@@ -37,6 +37,11 @@ class Database:
 
 
 # Convenience functions
+def get_database():
+    """Get database instance for dependency injection"""
+    return Database.get_database()
+
+
 async def get_patients_collection():
     """Get patients collection"""
     return Database.get_collection("patients")

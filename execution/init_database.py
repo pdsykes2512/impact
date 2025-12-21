@@ -28,6 +28,85 @@ async def init_database():
     
     print(f"Initializing database: {DB_NAME}")
     
+    # Create users collection
+    print("Creating users collection...")
+    try:
+        await db.create_collection(
+            "users",
+            validator={
+                "$jsonSchema": {
+                    "bsonType": "object",
+                    "required": ["email", "full_name", "hashed_password", "role", "is_active", "created_at", "updated_at"],
+                    "properties": {
+                        "email": {
+                            "bsonType": "string",
+                            "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
+                            "description": "User email address"
+                        },
+                        "full_name": {
+                            "bsonType": "string",
+                            "minLength": 2,
+                            "maxLength": 100,
+                            "description": "User's full name"
+                        },
+                        "hashed_password": {
+                            "bsonType": "string",
+                            "description": "Hashed password"
+                        },
+                        "role": {
+                            "enum": ["admin", "surgeon", "data_entry", "viewer"],
+                            "description": "User role for access control"
+                        },
+                        "is_active": {
+                            "bsonType": "bool",
+                            "description": "Whether user account is active"
+                        },
+                        "department": {
+                            "bsonType": ["string", "null"],
+                            "description": "User's department"
+                        },
+                        "job_title": {
+                            "bsonType": ["string", "null"],
+                            "description": "User's job title"
+                        },
+                        "created_at": {
+                            "bsonType": "date",
+                            "description": "Record creation timestamp"
+                        },
+                        "created_by": {
+                            "bsonType": ["string", "null"],
+                            "description": "User who created the record"
+                        },
+                        "updated_at": {
+                            "bsonType": "date",
+                            "description": "Last update timestamp"
+                        },
+                        "updated_by": {
+                            "bsonType": ["string", "null"],
+                            "description": "User who last updated the record"
+                        },
+                        "last_login": {
+                            "bsonType": ["date", "null"],
+                            "description": "Last login timestamp"
+                        }
+                    }
+                }
+            }
+        )
+        print("✓ Users collection created")
+    except Exception as e:
+        if "already exists" in str(e):
+            print("✓ Users collection already exists")
+        else:
+            raise
+    
+    # Create user indexes
+    await db.users.create_index("email", unique=True)
+    await db.users.create_index("role")
+    await db.users.create_index("is_active")
+    await db.users.create_index("created_at")
+    print("✓ User indexes created")
+    
     # Drop existing collections for fresh start (optional - comment out to preserve data)
     # await db["patients"].drop()
     # await db["surgeries"].drop()
