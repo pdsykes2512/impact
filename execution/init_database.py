@@ -119,29 +119,28 @@ async def init_database():
             validator={
                 "$jsonSchema": {
                     "bsonType": "object",
-                    "required": ["patient_id", "demographics", "created_at", "created_by", "updated_at"],
+                    "required": ["record_number", "nhs_number", "demographics", "created_at", "created_by", "updated_at"],
                     "properties": {
-                        "patient_id": {
+                        "record_number": {
                             "bsonType": "string",
-                            "description": "Unique patient identifier (MRN)"
+                            "description": "Unique patient record number: 8 digits or IW + 6 digits"
+                        },
+                        "nhs_number": {
+                            "bsonType": "string",
+                            "description": "NHS number in XXX XXX XXXX format"
                         },
                         "demographics": {
                             "bsonType": "object",
-                            "required": ["age", "gender"],
+                            "required": ["date_of_birth", "gender"],
                             "properties": {
-                                "age": {"bsonType": "int", "minimum": 0, "maximum": 150},
+                                "date_of_birth": {"bsonType": "string", "description": "Date of birth in YYYY-MM-DD format"},
+                                "age": {"bsonType": ["int", "null"], "minimum": 0, "maximum": 150},
                                 "gender": {"bsonType": "string"},
                                 "ethnicity": {"bsonType": ["string", "null"]},
+                                "postcode": {"bsonType": ["string", "null"]},
                                 "bmi": {"bsonType": ["double", "null"], "minimum": 10, "maximum": 80},
                                 "weight_kg": {"bsonType": ["double", "null"]},
                                 "height_cm": {"bsonType": ["double", "null"]}
-                            }
-                        },
-                        "contact": {
-                            "bsonType": ["object", "null"],
-                            "properties": {
-                                "phone": {"bsonType": ["string", "null"]},
-                                "email": {"bsonType": ["string", "null"]}
                             }
                         },
                         "medical_history": {
@@ -173,7 +172,8 @@ async def init_database():
     # Create indexes for patients collection
     print("Creating indexes for patients...")
     patients_collection = db["patients"]
-    await patients_collection.create_index("patient_id", unique=True)
+    await patients_collection.create_index("record_number", unique=True)
+    await patients_collection.create_index("nhs_number", unique=True)
     await patients_collection.create_index("created_at")
     await patients_collection.create_index("updated_at")
     await patients_collection.create_index([("demographics.age", 1)])

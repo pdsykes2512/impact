@@ -12,6 +12,15 @@ const api = axios.create({
   },
 })
 
+// Add auth token to requests
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
 export const apiService = {
   // Patients
   patients: {
@@ -40,4 +49,5 @@ export const apiService = {
   },
 }
 
-export default apiService
+// Export both the service object and raw axios instance
+export default api

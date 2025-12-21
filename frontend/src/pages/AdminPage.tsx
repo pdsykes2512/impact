@@ -23,6 +23,9 @@ export function AdminPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const [newPassword, setNewPassword] = useState('')
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -96,6 +99,32 @@ export function AdminPage() {
       fetchUsers()
     } catch (err) {
       setError('Failed to delete user')
+    }
+  }
+
+  const openPasswordModal = (userId: string) => {
+    setSelectedUserId(userId)
+    setNewPassword('')
+    setShowPasswordModal(true)
+    setError('')
+  }
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedUserId) return
+
+    try {
+      await axios.put(
+        `${API_URL}/api/admin/users/${selectedUserId}/password`,
+        { password: newPassword },
+        { headers: { Authorization: `Bearer ${token}` } }
+      )
+      setShowPasswordModal(false)
+      setNewPassword('')
+      setSelectedUserId(null)
+      alert('Password changed successfully')
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to change password')
     }
   }
 
@@ -288,6 +317,13 @@ export function AdminPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                       <Button
+                        onClick={() => openPasswordModal(user._id)}
+                        variant="outline"
+                        size="small"
+                      >
+                        Change Password
+                      </Button>
+                      <Button
                         onClick={() => toggleUserStatus(user._id, user.is_active)}
                         variant="secondary"
                         size="small"
@@ -309,6 +345,55 @@ export function AdminPage() {
           </table>
         </div>
       </Card>
+
+      {/* Password Change Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-medium text-gray-900">Change User Password</h3>
+            </div>
+            <form onSubmit={handlePasswordChange} className="px-6 py-4">
+              {error && (
+                <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">
+                  {error}
+                </div>
+              )}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  New Password <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  required
+                  minLength={6}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter new password (min 6 characters)"
+                />
+              </div>
+              <div className="flex justify-end space-x-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setShowPasswordModal(false)
+                    setNewPassword('')
+                    setSelectedUserId(null)
+                    setError('')
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary">
+                  Change Password
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

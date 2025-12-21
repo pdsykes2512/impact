@@ -1,8 +1,8 @@
 """
 Patient data models
 """
-from pydantic import BaseModel, Field, field_validator
-from typing import Optional, List
+from pydantic import BaseModel, Field, field_validator, ConfigDict
+from typing import Optional, List, Any
 from datetime import datetime
 from bson import ObjectId
 import re
@@ -27,8 +27,6 @@ class PyObjectId(ObjectId):
 
 class Demographics(BaseModel):
     """Patient demographics"""
-    first_name: str = Field(..., min_length=1)
-    last_name: str = Field(..., min_length=1)
     date_of_birth: str = Field(..., description="Date of birth in YYYY-MM-DD format")
     age: Optional[int] = Field(None, ge=0, le=150)
     gender: str = Field(..., min_length=1)
@@ -37,12 +35,6 @@ class Demographics(BaseModel):
     bmi: Optional[float] = Field(None, ge=10, le=80)
     weight_kg: Optional[float] = Field(None, ge=20, le=300)
     height_cm: Optional[float] = Field(None, ge=100, le=250)
-
-
-class Contact(BaseModel):
-    """Patient contact information"""
-    phone: Optional[str] = None
-    email: Optional[str] = None
 
 
 class MedicalHistory(BaseModel):
@@ -60,7 +52,6 @@ class PatientBase(BaseModel):
     record_number: str = Field(..., min_length=1, description="Unique patient record number: 8 digits or IW + 6 digits")
     nhs_number: str = Field(..., description="NHS number: 10 digits formatted as XXX XXX XXXX")
     demographics: Demographics
-    contact: Optional[Contact] = None
     medical_history: Optional[MedicalHistory] = Field(default_factory=MedicalHistory)
     
     @field_validator('record_number')
@@ -90,22 +81,21 @@ class PatientUpdate(BaseModel):
     record_number: Optional[str] = None
     nhs_number: Optional[str] = None
     demographics: Optional[Demographics] = None
-    contact: Optional[Contact] = None
     medical_history: Optional[MedicalHistory] = None
 
 
 class PatientInDB(PatientBase):
     """Patient model as stored in database"""
-    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+    id: str = Field(alias="_id")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     created_by: Optional[str] = None
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     updated_by: Optional[str] = None
     
-    class Config:
-        populate_by_name = True
-        arbitrary_types_allowed = True
-        json_encoders = {ObjectId: str}
+    model_config = ConfigDict(
+        populate_by_name=True,
+        arbitrary_types_allowed=True
+    )
 
 
 class Patient(PatientInDB):

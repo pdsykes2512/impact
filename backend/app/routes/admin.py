@@ -3,12 +3,18 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
+from pydantic import BaseModel, Field
 
 from ..database import get_database
 from ..models.user import User, UserCreate, UserUpdate, UserRole
 from ..auth import get_current_user, get_password_hash, require_admin
 
 router = APIRouter(prefix="/api/admin/users", tags=["Admin - User Management"])
+
+
+class PasswordChange(BaseModel):
+    """Password change model"""
+    password: str = Field(..., min_length=6, description="New password")
 
 
 @router.get("", response_model=List[User])
@@ -166,3 +172,37 @@ async def delete_user(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     
     return None
+
+
+@router.put("/{user_id}/password", response_model=User)
+async def change_user_password(
+    user_id: str,
+    password_data: PasswordChange,
+    current_user: User = Depends(require_admin),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Change a user's password (Admin only)"""
+    try:
+        existing_user = await db.users.find_one({"_id": ObjectId(user_id)})
+    except:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user ID")
+    
+    if not existing_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    # Update password
+    update_data = {
+        "hashed_password": get_password_hash(password_data.password),
+        "updated_at": datetime.utcnow(),
+        "updated_by": current_user.email
+    }
+    
+    await db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": update_data}
+    )
+    
+    # Fetch updated user
+    user_doc = await db.users.find_one({"_id": ObjectId(user_id)})
+    user_doc["_id"] = str(user_doc["_id"])
+    return User(**user_doc)

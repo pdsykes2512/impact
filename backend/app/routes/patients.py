@@ -37,6 +37,7 @@ async def create_patient(patient: PatientCreate):
     
     # Retrieve and return created patient
     created_patient = await collection.find_one({"_id": result.inserted_id})
+    created_patient["_id"] = str(created_patient["_id"])
     return Patient(**created_patient)
 
 
@@ -47,6 +48,10 @@ async def list_patients(skip: int = 0, limit: int = 100):
     
     cursor = collection.find().skip(skip).limit(limit)
     patients = await cursor.to_list(length=limit)
+    
+    # Convert ObjectId to string
+    for patient in patients:
+        patient["_id"] = str(patient["_id"])
     
     return [Patient(**patient) for patient in patients]
 
@@ -63,6 +68,7 @@ async def get_patient(record_number: str):
             detail=f"Patient {record_number} not found"
         )
     
+    patient["_id"] = str(patient["_id"])
     return Patient(**patient)
 
 
@@ -91,6 +97,7 @@ async def update_patient(record_number: str, patient_update: PatientUpdate):
     
     # Return updated patient
     updated_patient = await collection.find_one({"record_number": record_number})
+    updated_patient["_id"] = str(updated_patient["_id"])
     return Patient(**updated_patient)
 
 
