@@ -15,10 +15,10 @@ export function Card({ children, className = '', padding = 'medium', hover = fal
     large: 'p-8'
   }
 
-  const hoverClass = hover ? 'hover:shadow-lg transition-shadow duration-200' : ''
+  const hoverClass = hover ? 'hover:shadow-xl transition-shadow duration-200' : ''
 
   return (
-    <div className={`bg-white rounded-lg shadow ${paddingClasses[padding]} ${hoverClass} ${className}`}>
+    <div className={`bg-white rounded-lg shadow-md border border-gray-200 ${paddingClasses[padding]} ${hoverClass} ${className}`}>
       {children}
     </div>
   )
