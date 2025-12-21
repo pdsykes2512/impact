@@ -31,13 +31,13 @@ export const apiService = {
     delete: (patientId: string) => api.delete(`/patients/${patientId}`),
   },
   
-  // Surgeries
-  surgeries: {
-    list: (params?: any) => api.get('/surgeries', { params }),
-    get: (surgeryId: string) => api.get(`/surgeries/${surgeryId}`),
-    create: (data: any) => api.post('/surgeries', data),
-    update: (surgeryId: string, data: any) => api.put(`/surgeries/${surgeryId}`, data),
-    delete: (surgeryId: string) => api.delete(`/surgeries/${surgeryId}`),
+  // Episodes
+  episodes: {
+    list: (params?: any) => api.get('/episodes', { params }),
+    get: (episodeId: string) => api.get(`/episodes/${episodeId}`),
+    create: (data: any) => api.post('/episodes', data),
+    update: (episodeId: string, data: any) => api.put(`/episodes/${episodeId}`, data),
+    delete: (episodeId: string) => api.delete(`/episodes/${episodeId}`),
   },
   
   // Reports

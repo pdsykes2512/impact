@@ -26,6 +26,7 @@ export function AdminPage() {
   const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -105,6 +106,7 @@ export function AdminPage() {
   const openPasswordModal = (userId: string) => {
     setSelectedUserId(userId)
     setNewPassword('')
+    setConfirmPassword('')
     setShowPasswordModal(true)
     setError('')
   }
@@ -112,6 +114,11 @@ export function AdminPage() {
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedUserId) return
+
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
 
     try {
       await axios.put(
@@ -121,6 +128,7 @@ export function AdminPage() {
       )
       setShowPasswordModal(false)
       setNewPassword('')
+      setConfirmPassword('')
       setSelectedUserId(null)
       alert('Password changed successfully')
     } catch (err: any) {
@@ -373,6 +381,20 @@ export function AdminPage() {
                   placeholder="Enter new password (min 6 characters)"
                 />
               </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Confirm Password <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  required
+                  minLength={6}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Re-enter new password"
+                />
+              </div>
               <div className="flex justify-end space-x-3">
                 <Button
                   type="button"
@@ -380,6 +402,7 @@ export function AdminPage() {
                   onClick={() => {
                     setShowPasswordModal(false)
                     setNewPassword('')
+                    setConfirmPassword('')
                     setSelectedUserId(null)
                     setError('')
                   }}

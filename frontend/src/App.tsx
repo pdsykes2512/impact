@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { HomePage } from './pages/HomePage'
 import { PatientsPage } from './pages/PatientsPage'
-import { SurgeriesPage } from './pages/SurgeriesPage'
+import { EpisodesPage } from './pages/EpisodesPage'
 import { ReportsPage } from './pages/ReportsPage'
 import { LoginPage } from './pages/LoginPage'
 import { AdminPage } from './pages/AdminPage'
@@ -35,11 +35,11 @@ function App() {
           }
         />
         <Route
-          path="/surgeries"
+          path="/episodes"
           element={
             <ProtectedRoute requiredRoles={['data_entry', 'surgeon', 'admin']}>
               <Layout>
-                <SurgeriesPage />
+                <EpisodesPage />
               </Layout>
             </ProtectedRoute>
           }

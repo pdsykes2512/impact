@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 
 from .config import settings
 from .database import Database
-from .routes import patients, surgeries, reports, auth, admin
+from .routes import patients, episodes, reports, auth, admin
 
 
 @asynccontextmanager
@@ -39,7 +39,7 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router)
 app.include_router(patients.router)
-app.include_router(surgeries.router)
+app.include_router(episodes.router)
 app.include_router(reports.router)
 app.include_router(admin.router)
 

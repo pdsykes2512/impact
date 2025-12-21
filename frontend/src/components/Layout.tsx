@@ -48,8 +48,8 @@ export function Layout({ children }: LayoutProps) {
               <Link to="/patients" className={navLinkClass('/patients')}>
                 Patients
               </Link>
-              <Link to="/surgeries" className={navLinkClass('/surgeries')}>
-                Surgeries
+              <Link to="/episodes" className={navLinkClass('/episodes')}>
+                Episodes
               </Link>
               <Link to="/reports" className={navLinkClass('/reports')}>
                 Reports

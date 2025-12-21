@@ -226,3 +226,166 @@ cd /root/frontend && npm install
 git add backend/requirements.txt && git commit -m "fix: update pymongo version to resolve dependency conflict with motor"
 git status
 git add ../backend/requirements.txt && git commit -m "fix: update pymongo version to resolve dependency conflict with motor"
+kill 13456 && sleep 2 && cd /root/backend && python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 > /tmp/backend.log 2>&1 &
+echo "Backend restarted"
+sleep 3 && curl -s http://localhost:8000/health
+cd /root && git add -A && git commit -m "feat: add NHS number field with format validation
+
+- Add nhs_number field to Patient model with 'XXX XXX XXXX' format validation
+- Add record_number validation: 8 digits or IW + 6 digits
+- Update patient form with NHS number input and format hints
+- Add NHS number column to patient list table
+- Implement regex validators in Pydantic model
+- Add HTML5 pattern validation in frontend form" && git push origin feat/app-scaffold
+cd /root/backend && python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 > /root/.tmp/backend.log 2>&1 &
+echo "Backend started, logging to .tmp/backend.log"
+sleep 3 && curl -s http://localhost:8000/health && echo ""
+sleep 3 && curl -s -o /dev/null -w "%{http_code}" http://localhost:3000 && echo ""
+ls -lh /root/.tmp/*.log
+tail -50 /root/.tmp/backend.log
+tail -50 /root/.tmp/frontend.log
+curl -X POST http://localhost:8000/api/patients   -H "Content-Type: application/json"   -d '{
+    "record_number": "12345678",
+    "nhs_number": "123 456 7890",
+    "demographics": {
+      "date_of_birth": "1990-01-01",
+      "gender": "male"
+    },
+    "medical_history": {
+      "conditions": [],
+      "previous_surgeries": [],
+      "medications": [],
+      "allergies": []
+    }
+  }' 2>&1
+curl -v -X POST http://localhost:8000/api/patients   -H "Content-Type: application/json"   -d '{
+    "record_number": "12345678",
+    "nhs_number": "123 456 7890",
+    "demographics": {
+      "date_of_birth": "1990-01-01",
+      "gender": "male"
+    },
+    "medical_history": {
+      "conditions": [],
+      "previous_surgeries": [],
+      "medications": [],
+      "allergies": []
+    }
+  }'
+curl -X POST http://localhost:8000/api/patients/   -H "Content-Type: application/json"   -d '{
+    "record_number": "12345678",
+    "nhs_number": "123 456 7890",
+    "demographics": {
+      "date_of_birth": "1990-01-01",
+      "gender": "male"
+    },
+    "medical_history": {
+      "conditions": [],
+      "previous_surgeries": [],
+      "medications": [],
+      "allergies": []
+    }
+  }'
+tail -100 /root/.tmp/backend.log | grep -A 20 "Error\|Traceback\|Exception"
+cd /root && python3 -c "
+import asyncio
+from motor.motor_asyncio import AsyncIOMotorClient
+
+async def drop_patients():
+    client = AsyncIOMotorClient('mongodb://admin:admin123@localhost:27017/surg_outcomes?authSource=admin')
+    db = client['surg_outcomes']
+    
+    # Drop patients collection
+    await db['patients'].drop()
+    print('Patients collection dropped')
+    
+    client.close()
+
+asyncio.run(drop_patients())
+"
+cd /root/execution && python3 init_database.py
+curl -X POST http://localhost:8000/api/patients/   -H "Content-Type: application/json"   -d '{
+    "record_number": "12345678",
+    "nhs_number": "123 456 7890",
+    "demographics": {
+      "date_of_birth": "1990-01-01",
+      "gender": "male"
+    },
+    "medical_history": {
+      "conditions": [],
+      "previous_surgeries": [],
+      "medications": [],
+      "allergies": []
+    }
+  }' | python3 -m json.tool
+curl -X POST http://localhost:8000/api/patients/   -H "Content-Type: application/json"   -d '{
+    "record_number": "12345678",
+    "nhs_number": "123 456 7890",
+    "demographics": {
+      "date_of_birth": "1990-01-01",
+      "gender": "male"
+    },
+    "medical_history": {
+      "conditions": [],
+      "previous_surgeries": [],
+      "medications": [],
+      "allergies": []
+    }
+  }'
+curl -X POST http://localhost:8000/api/patients/   -H "Content-Type: application/json"   -d '{
+    "record_number": "87654321",
+    "nhs_number": "987 654 3210",
+    "demographics": {
+      "date_of_birth": "1985-05-15",
+      "gender": "female",
+      "postcode": "SW1A 1AA"
+    },
+    "medical_history": {
+      "conditions": [],
+      "previous_surgeries": [],
+      "medications": [],
+      "allergies": []
+    }
+  }'
+tail -30 /root/.tmp/backend.log
+curl -X POST http://localhost:8000/api/patients/   -H "Content-Type: application/json"   -d '{
+    "record_number": "IW123456",
+    "nhs_number": "456 789 0123",
+    "demographics": {
+      "date_of_birth": "1992-03-20",
+      "gender": "male",
+      "ethnicity": "White British",
+      "postcode": "E1 6AN"
+    },
+    "medical_history": {
+      "conditions": [],
+      "previous_surgeries": [],
+      "medications": [],
+      "allergies": []
+    }
+  }'
+tail -50 /root/.tmp/frontend.log
+curl -s http://localhost:8000/api/patients/ | python3 -m json.tool | head -50
+python3 -c "
+import asyncio
+from motor.motor_asyncio import AsyncIOMotorClient
+
+async def check_patients():
+    client = AsyncIOMotorClient('mongodb://admin:admin123@localhost:27017/surg_outcomes?authSource=admin')
+    db = client['surg_outcomes']
+    
+    count = await db['patients'].count_documents({})
+    print(f'Total patients in database: {count}')
+    
+    if count > 0:
+        cursor = db['patients'].find().limit(3)
+        async for doc in cursor:
+            print(f'Patient: {doc.get(\"record_number\")} - {doc.get(\"nhs_number\")}')
+    
+    client.close()
+
+asyncio.run(check_patients())
+"
+curl -v http://localhost:8000/api/patients/ 2>&1 | head -30
+tail -100 /root/.tmp/backend.log | grep -A 30 "Traceback\|Error" | tail -50
+sleep 2 && curl -s http://localhost:8000/api/patients/ | python3 -m json.tool | head -50

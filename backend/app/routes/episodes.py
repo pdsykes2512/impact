@@ -1,5 +1,5 @@
 """
-Surgery API routes
+Episode API routes
 """
 from fastapi import APIRouter, HTTPException, status, Query
 from typing import List, Optional
@@ -10,12 +10,12 @@ from ..models.surgery import Surgery, SurgeryCreate, SurgeryUpdate
 from ..database import get_surgeries_collection, get_patients_collection
 
 
-router = APIRouter(prefix="/api/surgeries", tags=["surgeries"])
+router = APIRouter(prefix="/api/episodes", tags=["episodes"])
 
 
 @router.post("/", response_model=Surgery, status_code=status.HTTP_201_CREATED)
-async def create_surgery(surgery: SurgeryCreate):
-    """Create a new surgery record"""
+async def create_episode(surgery: SurgeryCreate):
+    """Create a new episode record"""
     collection = await get_surgeries_collection()
     patients_collection = await get_patients_collection()
     
@@ -46,7 +46,7 @@ async def create_surgery(surgery: SurgeryCreate):
 
 
 @router.get("/", response_model=List[Surgery])
-async def list_surgeries(
+async def list_episodes(
     skip: int = 0,
     limit: int = 100,
     patient_id: Optional[str] = Query(None, description="Filter by patient ID"),
@@ -86,8 +86,8 @@ async def list_surgeries(
 
 
 @router.get("/{surgery_id}", response_model=Surgery)
-async def get_surgery(surgery_id: str):
-    """Get a specific surgery by surgery_id"""
+async def get_episode(surgery_id: str):
+    """Get a specific episode by surgery_id"""
     collection = await get_surgeries_collection()
     
     surgery = await collection.find_one({"surgery_id": surgery_id})
@@ -101,8 +101,8 @@ async def get_surgery(surgery_id: str):
 
 
 @router.put("/{surgery_id}", response_model=Surgery)
-async def update_surgery(surgery_id: str, surgery_update: SurgeryUpdate):
-    """Update a surgery record"""
+async def update_episode(surgery_id: str, surgery_update: SurgeryUpdate):
+    """Update an episode record"""
     collection = await get_surgeries_collection()
     
     # Check if surgery exists
@@ -134,8 +134,8 @@ async def update_surgery(surgery_id: str, surgery_update: SurgeryUpdate):
 
 
 @router.delete("/{surgery_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_surgery(surgery_id: str):
-    """Delete a surgery record"""
+async def delete_episode(surgery_id: str):
+    """Delete an episode record"""
     collection = await get_surgeries_collection()
     
     result = await collection.delete_one({"surgery_id": surgery_id})

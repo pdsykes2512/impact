@@ -1,9 +1,52 @@
+import { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { PageHeader } from '../components/PageHeader'
 import { Card } from '../components/Card'
+import api from '../services/api'
 
 export function HomePage() {
   const { user } = useAuth()
+  const [stats, setStats] = useState({
+    totalPatients: 0,
+    totalEpisodes: 0,
+    thisMonth: 0,
+    loading: true
+  })
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const [patientsRes, episodesRes] = await Promise.all([
+          api.get('/patients/'),
+          api.get('/episodes/')
+        ])
+        
+        const patients = patientsRes.data
+        const episodes = episodesRes.data
+        
+        // Count episodes this month
+        const now = new Date()
+        const thisMonthCount = episodes.filter((ep: any) => {
+          if (!ep.perioperative_timeline?.surgery_date) return false
+          const surgeryDate = new Date(ep.perioperative_timeline.surgery_date)
+          return surgeryDate.getMonth() === now.getMonth() && 
+                 surgeryDate.getFullYear() === now.getFullYear()
+        }).length
+        
+        setStats({
+          totalPatients: patients.length,
+          totalEpisodes: episodes.length,
+          thisMonth: thisMonthCount,
+          loading: false
+        })
+      } catch (error) {
+        console.error('Failed to fetch dashboard stats:', error)
+        setStats(prev => ({ ...prev, loading: false }))
+      }
+    }
+    
+    fetchStats()
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -27,7 +70,9 @@ export function HomePage() {
             </div>
             <div className="ml-4">
               <h3 className="text-sm font-medium text-gray-500">Total Patients</h3>
-              <p className="text-2xl font-semibold text-gray-900">—</p>
+              <p className="text-2xl font-semibold text-gray-900">
+                {stats.loading ? '—' : stats.totalPatients}
+              </p>
             </div>
           </div>
         </Card>
@@ -40,8 +85,10 @@ export function HomePage() {
               </svg>
             </div>
             <div className="ml-4">
-              <h3 className="text-sm font-medium text-gray-500">Total Surgeries</h3>
-              <p className="text-2xl font-semibold text-gray-900">—</p>
+              <h3 className="text-sm font-medium text-gray-500">Total Episodes</h3>
+              <p className="text-2xl font-semibold text-gray-900">
+                {stats.loading ? '—' : stats.totalEpisodes}
+              </p>
             </div>
           </div>
         </Card>
@@ -55,7 +102,9 @@ export function HomePage() {
             </div>
             <div className="ml-4">
               <h3 className="text-sm font-medium text-gray-500">This Month</h3>
-              <p className="text-2xl font-semibold text-gray-900">—</p>
+              <p className="text-2xl font-semibold text-gray-900">
+                {stats.loading ? '—' : stats.thisMonth}
+              </p>
             </div>
           </div>
         </Card>
@@ -94,11 +143,11 @@ export function HomePage() {
               </svg>
               <span className="text-sm font-medium text-gray-900">Add New Patient</span>
             </a>
-            <a href="/surgeries" className="flex items-center p-3 rounded-lg hover:bg-gray-50 transition-colors">
+            <a href="/episodes" className="flex items-center p-3 rounded-lg hover:bg-gray-50 transition-colors">
               <svg className="w-5 h-5 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              <span className="text-sm font-medium text-gray-900">Record Surgery</span>
+              <span className="text-sm font-medium text-gray-900">Record Episode</span>
             </a>
             <a href="/reports" className="flex items-center p-3 rounded-lg hover:bg-gray-50 transition-colors">
               <svg className="w-5 h-5 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
