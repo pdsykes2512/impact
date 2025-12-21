@@ -11,6 +11,9 @@ export function Layout({ children }: LayoutProps) {
   const location = useLocation()
 
   const isActive = (path: string) => {
+    if (path === '/episodes') {
+      return location.pathname === path || location.pathname.startsWith('/episodes/')
+    }
     return location.pathname === path
   }
 

@@ -45,6 +45,16 @@ function App() {
           }
         />
         <Route
+          path="/episodes/:patientId"
+          element={
+            <ProtectedRoute requiredRoles={['data_entry', 'surgeon', 'admin']}>
+              <Layout>
+                <EpisodesPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/reports"
           element={
             <ProtectedRoute>

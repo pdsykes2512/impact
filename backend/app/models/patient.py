@@ -100,4 +100,5 @@ class PatientInDB(PatientBase):
 
 class Patient(PatientInDB):
     """Patient response model"""
-    pass
+    episode_count: Optional[int] = Field(default=0, description="Count of episodes associated with this patient")
+

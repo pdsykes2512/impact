@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader'
 import { Card } from '../components/Card'
 import { Button } from '../components/Button'
@@ -8,6 +9,7 @@ interface Patient {
   _id: string;
   record_number: string;
   nhs_number: string;
+  episode_count?: number;
   demographics: {
     date_of_birth: string;
     age?: number;
@@ -44,11 +46,13 @@ interface PatientFormData {
 }
 
 export function PatientsPage() {
+  const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ show: boolean; patient: Patient | null }>({ show: false, patient: null });
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -99,6 +103,29 @@ export function PatientsPage() {
       current[keys[keys.length - 1]] = value;
       return updated;
     });
+  };
+
+  const formatNHSNumber = (value: string) => {
+    // Remove all non-digit characters
+    const digits = value.replace(/\D/g, '');
+    
+    // Limit to 10 digits
+    const limitedDigits = digits.slice(0, 10);
+    
+    // Add spaces after 3rd and 6th digit
+    let formatted = limitedDigits;
+    if (limitedDigits.length > 6) {
+      formatted = `${limitedDigits.slice(0, 3)} ${limitedDigits.slice(3, 6)} ${limitedDigits.slice(6)}`;
+    } else if (limitedDigits.length > 3) {
+      formatted = `${limitedDigits.slice(0, 3)} ${limitedDigits.slice(3)}`;
+    }
+    
+    return formatted;
+  };
+
+  const handleNHSNumberChange = (value: string) => {
+    const formatted = formatNHSNumber(value);
+    handleInputChange('nhs_number', formatted);
   };
 
   const handleEdit = (patient: Patient) => {
@@ -208,6 +235,15 @@ export function PatientsPage() {
     setError('');
   };
 
+  // Filter patients based on search term
+  const filteredPatients = patients.filter(patient => {
+    if (!searchTerm) return true;
+    const search = searchTerm.toLowerCase().replace(/\s/g, '');
+    const recordNumber = patient.record_number.toLowerCase().replace(/\s/g, '');
+    const nhsNumber = patient.nhs_number.toLowerCase().replace(/\s/g, '');
+    return recordNumber.includes(search) || nhsNumber.includes(search);
+  });
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -296,12 +332,11 @@ export function PatientsPage() {
                   <input
                     type="text"
                     required
-                    pattern="^\d{3} \d{3} \d{4}$"
-                    title="Must be 10 digits formatted as XXX XXX XXXX"
+                    title="NHS Number will be formatted as XXX XXX XXXX"
                     placeholder="123 456 7890"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={formData.nhs_number}
-                    onChange={(e) => handleInputChange('nhs_number', e.target.value)}
+                    onChange={(e) => handleNHSNumberChange(e.target.value)}
                     readOnly={!!editingPatient}
                     disabled={!!editingPatient}
                   />
@@ -359,12 +394,43 @@ export function PatientsPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Ethnicity
                   </label>
-                  <input
-                    type="text"
+                  <select
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={formData.demographics.ethnicity}
                     onChange={(e) => handleInputChange('demographics.ethnicity', e.target.value)}
-                  />
+                  >
+                    <option value="">Select ethnicity</option>
+                    <optgroup label="White">
+                      <option value="English, Welsh, Scottish, Northern Irish or British">English, Welsh, Scottish, Northern Irish or British</option>
+                      <option value="Irish">Irish</option>
+                      <option value="Gypsy or Irish Traveller">Gypsy or Irish Traveller</option>
+                      <option value="Roma">Roma</option>
+                      <option value="Any other White background">Any other White background</option>
+                    </optgroup>
+                    <optgroup label="Mixed or Multiple ethnic groups">
+                      <option value="White and Black Caribbean">White and Black Caribbean</option>
+                      <option value="White and Black African">White and Black African</option>
+                      <option value="White and Asian">White and Asian</option>
+                      <option value="Any other Mixed or Multiple ethnic background">Any other Mixed or Multiple ethnic background</option>
+                    </optgroup>
+                    <optgroup label="Asian or Asian British">
+                      <option value="Indian">Indian</option>
+                      <option value="Pakistani">Pakistani</option>
+                      <option value="Bangladeshi">Bangladeshi</option>
+                      <option value="Chinese">Chinese</option>
+                      <option value="Any other Asian background">Any other Asian background</option>
+                    </optgroup>
+                    <optgroup label="Black, Black British, Caribbean or African">
+                      <option value="Caribbean">Caribbean</option>
+                      <option value="African">African</option>
+                      <option value="Any other Black, Black British, or Caribbean background">Any other Black, Black British, or Caribbean background</option>
+                    </optgroup>
+                    <optgroup label="Other ethnic group">
+                      <option value="Arab">Arab</option>
+                      <option value="Any other ethnic group">Any other ethnic group</option>
+                    </optgroup>
+                    <option value="Prefer not to say">Prefer not to say</option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -454,7 +520,45 @@ export function PatientsPage() {
 
       {/* Patient List */}
       <Card>
-        <h2 className="text-xl font-semibold mb-4">Patient List</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">Patient List</h2>
+          {patients.length > 0 && (
+            <div className="text-sm text-gray-500">
+              Showing {filteredPatients.length} of {patients.length} patients
+            </div>
+          )}
+        </div>
+        
+        {/* Search Box */}
+        {patients.length > 0 && (
+          <div className="mb-4">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                placeholder="Search by Record Number or NHS Number..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+        
         {loading && !showForm && <p className="text-gray-500">Loading...</p>}
         {!loading && patients.length === 0 && (
           <div className="text-center py-12">
@@ -465,7 +569,19 @@ export function PatientsPage() {
             <p className="text-gray-500 mb-4">Get started by adding your first patient record</p>
           </div>
         )}
-        {patients.length > 0 && (
+        {!loading && patients.length > 0 && filteredPatients.length === 0 && (
+          <div className="text-center py-12">
+            <svg className="mx-auto w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No Patients Found</h3>
+            <p className="text-gray-500 mb-4">No patients match your search: "{searchTerm}"</p>
+            <Button variant="secondary" onClick={() => setSearchTerm('')}>
+              Clear Search
+            </Button>
+          </div>
+        )}
+        {filteredPatients.length > 0 && (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -480,10 +596,7 @@ export function PatientsPage() {
                     Date of Birth
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Gender
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Postcode
+                    Episodes
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
@@ -491,9 +604,11 @@ export function PatientsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {patients.map((patient) => (
+                {filteredPatients.map((patient) => (
                   <tr key={patient._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600 cursor-pointer hover:text-blue-800"
+                        onClick={() => navigate(`/episodes/${patient.record_number}`)}
+                        title="Click to view episodes for this patient">
                       {patient.record_number}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -502,14 +617,22 @@ export function PatientsPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {patient.demographics.date_of_birth}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
-                      {patient.demographics.gender}
-                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {patient.demographics.postcode || '-'}
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {patient.episode_count || 0}
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => navigate(`/episodes/${patient.record_number}`)}
+                          className="text-indigo-600 hover:text-indigo-800"
+                          title="View episodes for this patient"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                          </svg>
+                        </button>
                         <button
                           onClick={() => handleEdit(patient)}
                           className="text-blue-600 hover:text-blue-800"

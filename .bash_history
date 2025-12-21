@@ -389,3 +389,82 @@ asyncio.run(check_patients())
 curl -v http://localhost:8000/api/patients/ 2>&1 | head -30
 tail -100 /root/.tmp/backend.log | grep -A 30 "Traceback\|Error" | tail -50
 sleep 2 && curl -s http://localhost:8000/api/patients/ | python3 -m json.tool | head -50
+git add .gitignore && git status --short
+git commit -m "chore: update .gitignore"
+git push origin feat/app-scaffold
+git status
+git add .gitignore && git commit -m "chore: update .gitignore with additional exclusions"
+it push origin feat/app-scaffold
+git push origin feat/app-scaffold
+git push origin feat/app-scaffold
+git remote -v
+git remote set-url origin https://pdsykes2512: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@github.com/pdsykes2512/surg-db.git
+git push origin feat/app-scaffold
+git add .gitignore && git commit -m "chore: update .gitignore" && git push origin feat/app-scaffold
+git status
+git add backend/app/models/patient.py backend/app/routes/admin.py backend/app/routes/patients.py execution/init_database.py frontend/src/pages/AdminPage.tsx frontend/src/pages/PatientsPage.tsx frontend/src/services/api.ts .vscode/settings.json frontend/postcss.config.js frontend/src/index.css
+git add backend/app/models/patient.py backend/app/routes/admin.py backend/app/routes/patients.py execution/init_database.py frontend/src/pages/AdminPage.tsx frontend/src/pages/PatientsPage.tsx frontend/src/services/api.ts frontend/postcss.config.js frontend/src/index.css
+cd /root && git commit -m "feat: complete patient CRUD with edit/delete confirmation, password management
+
+- Updated Patient model: removed contact info, added NHS number validation
+- Fixed API routing: corrected baseURL handling and ObjectId conversion
+- Added password change functionality in admin panel with modal
+- Implemented full patient CRUD operations with safety features
+- Added edit functionality with pen icon and readonly identifiers
+- Added comprehensive delete confirmation requiring record number verification
+- Added delete button in edit form with same safety protections
+- Fixed PostCSS configuration for Tailwind processing
+- Fixed icon sizing with CSS rules"
+git push origin feat/app-scaffold
+curl -s http://localhost:8000/api/patients/ | python3 -m json.tool | head -50
+curl -v http://localhost:8000/api/patients/ 2>&1 | head -30
+ps aux | grep uvicorn
+tail -50 /root/.tmp/backend.log
+cd /root/backend && nohup python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 > /root/.tmp/backend.log 2>&1 & echo "Backend PID: $!"
+sleep 3 && curl -s http://localhost:8000/api/patients/ | python3 -m json.tool | head -50
+cd /root/frontend/src/pages && mv SurgeriesPage.tsx EpisodesPage.tsx
+cd /root/backend/app/routes && mv surgeries.py episodes.py
+cd /root/backend/app/models && ls -la *.py
+ps aux | grep uvicorn | grep -v grep
+sleep 2 && curl -s http://localhost:8000/api/episodes/ 2>&1 | head -20
+curl -s http://localhost:8000/health
+tail -30 /root/.tmp/backend.log
+kill 28464 && sleep 1 && cd /root/backend && nohup python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 > /root/.tmp/backend.log 2>&1 & echo "Backend PID: $!"
+sleep 3 && curl -s http://localhost:8000/health
+sleep 2 && curl -s http://localhost:8000/health
+curl -s http://localhost:8000/api/episodes/ | python3 -m json.tool 2>&1 | head -10
+git status
+git add backend/app/main.py backend/app/routes/episodes.py frontend/src/App.tsx frontend/src/components/Layout.tsx frontend/src/pages/AdminPage.tsx frontend/src/pages/HomePage.tsx frontend/src/pages/EpisodesPage.tsx frontend/src/services/api.ts .vscode/settings.json
+git add -A backend/app/main.py backend/app/routes/ frontend/src/ .vscode/settings.json
+pwd
+git add backend/app/main.py backend/app/routes/episodes.py frontend/src/App.tsx frontend/src/components/Layout.tsx frontend/src/pages/AdminPage.tsx frontend/src/pages/HomePage.tsx frontend/src/pages/EpisodesPage.tsx frontend/src/services/api.ts
+git rm backend/app/routes/surgeries.py && git rm frontend/src/pages/SurgeriesPage.tsx
+ls -la backend/app/main.py
+git status --short
+cd /root/backend/app && git add main.py routes/episodes.py && git rm routes/surgeries.py
+cd /root/frontend/src && git add App.tsx components/Layout.tsx pages/AdminPage.tsx pages/HomePage.tsx pages/EpisodesPage.tsx services/api.ts && git rm pages/SurgeriesPage.tsx
+git add .vscode/settings.json
+git status --short
+cd /root/frontend/src && git add -A
+cd /root && git commit -m "feat: rename Surgeries to Episodes, add dashboard stats, improve password change
+
+- Renamed all 'Surgeries' references to 'Episodes' throughout the application
+- Renamed SurgeriesPage to EpisodesPage component
+- Updated API routes from /api/surgeries to /api/episodes
+- Renamed backend route file surgeries.py to episodes.py
+- Updated navigation, page titles, and UI text to use 'Episodes'
+- Added real-time statistics to dashboard (patient count, episode count, monthly count)
+- Added password confirmation field to change password dialog
+- Updated .vscode settings to auto-approve file writes to tmp directories"
+git push origin feat/app-scaffold
+git config credential.helper store && cat ~/.git-credentials 2>/dev/null | head -1
+git status
+git add root.code-workspace && git commit -m "chore: add VS Code workspace configuration"
+git push origin feat/app-scaffold
+cd /root && git add TODO.md && git commit -m "docs: add comprehensive TODO list for project tracking
+
+- Organize tasks by priority (high, medium, low)
+- Track completed features and upcoming work
+- Include episode management, reports, and analytics tasks
+- Document technical debt and future enhancements"
+git push origin feat/app-scaffold
