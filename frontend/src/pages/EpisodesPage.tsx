@@ -395,23 +395,33 @@ export function EpisodesPage() {
               />
             </div>
 
-            <div className="md:col-span-1.5">
+            <div className="md:col-span-1.5 relative">
+              {!startDateFilter && (
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-sm">
+                  Start Date
+                </span>
+              )}
               <input
                 type="date"
                 value={startDateFilter}
                 onChange={(e) => setStartDateFilter(e.target.value)}
-                placeholder="Start Date"
-                className="w-full h-10 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full h-10 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 [&::-webkit-calendar-picker-indicator]:opacity-100"
+                style={!startDateFilter ? { color: 'transparent' } : {}}
               />
             </div>
 
-            <div className="md:col-span-1.5">
+            <div className="md:col-span-1.5 relative">
+              {!endDateFilter && (
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-sm">
+                  End Date
+                </span>
+              )}
               <input
                 type="date"
                 value={endDateFilter}
                 onChange={(e) => setEndDateFilter(e.target.value)}
-                placeholder="End Date"
-                className="w-full h-10 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full h-10 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 [&::-webkit-calendar-picker-indicator]:opacity-100"
+                style={!endDateFilter ? { color: 'transparent' } : {}}
               />
             </div>
           </div>
