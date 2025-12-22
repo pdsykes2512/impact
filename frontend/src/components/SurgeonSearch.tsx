@@ -6,6 +6,7 @@ interface Surgeon {
   surname: string
   gmc_number?: string
   is_consultant: boolean
+  subspecialty_leads?: string[]
 }
 
 interface SurgeonSearchProps {
@@ -14,6 +15,7 @@ interface SurgeonSearchProps {
   label?: string
   required?: boolean
   consultantsOnly?: boolean
+  subspecialtyFilter?: string
   placeholder?: string
   className?: string
 }
@@ -24,6 +26,7 @@ export function SurgeonSearch({
   label = 'Surgeon',
   required = false,
   consultantsOnly = false,
+  subspecialtyFilter,
   placeholder = 'Search surgeon...',
   className = ''
 }: SurgeonSearchProps) {
@@ -61,10 +64,13 @@ export function SurgeonSearch({
     fetchSurgeons()
   }, [consultantsOnly])
 
-  // Filter surgeons based on search
-  const filteredSurgeons = surgeons.filter((s) =>
-    `${s.first_name} ${s.surname}`.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  // Filter surgeons based on search and subspecialty
+  const filteredSurgeons = surgeons.filter((s) => {
+    const matchesSearch = `${s.first_name} ${s.surname}`.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSubspecialty = !subspecialtyFilter || 
+      (s.subspecialty_leads && s.subspecialty_leads.includes(subspecialtyFilter))
+    return matchesSearch && matchesSubspecialty
+  })
 
   const handleSelect = (surgeon: Surgeon) => {
     const fullName = `${surgeon.first_name} ${surgeon.surname}`
