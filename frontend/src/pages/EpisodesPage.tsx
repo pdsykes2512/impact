@@ -54,7 +54,6 @@ export function EpisodesPage() {
   const [patientInfo, setPatientInfo] = useState<any>(null)
   
   // Filters
-  const [urgencyFilter, setUrgencyFilter] = useState('')
   const [startDateFilter, setStartDateFilter] = useState('')
   const [endDateFilter, setEndDateFilter] = useState('')
 
@@ -74,7 +73,6 @@ export function EpisodesPage() {
       if (patientId) {
         params.patient_id = patientId
       }
-      if (urgencyFilter) params.urgency = urgencyFilter
       if (startDateFilter) params.start_date = startDateFilter
       if (endDateFilter) params.end_date = endDateFilter
 
@@ -106,7 +104,7 @@ export function EpisodesPage() {
     } finally {
       setLoading(false)
     }
-  }, [patientId, urgencyFilter, startDateFilter, endDateFilter])
+  }, [patientId, startDateFilter, endDateFilter])
 
   const loadPatientInfo = useCallback(async () => {
     if (!patientId) return
@@ -259,11 +257,6 @@ export function EpisodesPage() {
         if (!matchesSearch) return false
       }
 
-      // Urgency filter
-      if (urgencyFilter && episode.urgency !== urgencyFilter) {
-        return false
-      }
-
       // Date filters
       if (startDateFilter && episode.date < startDateFilter) {
         return false
@@ -274,7 +267,7 @@ export function EpisodesPage() {
 
       return true
     })
-  }, [episodes, searchTerm, urgencyFilter, startDateFilter, endDateFilter])
+  }, [episodes, searchTerm, startDateFilter, endDateFilter])
 
   const filteredCancerEpisodes = useMemo(() => {
     return cancerEpisodes.filter(episode => {
@@ -390,49 +383,34 @@ export function EpisodesPage() {
             <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
           </div>
 
-          {/* Search */}
-          <div>
-            <input
-              type="text"
-              placeholder="Search by Episode ID, Patient ID, Cancer Type, or Clinician..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-10 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-
-          {/* Filter dropdowns */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Urgency</label>
-              <select
-                value={urgencyFilter}
-                onChange={(e) => setUrgencyFilter(e.target.value)}
-                className="w-full h-10 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 appearance-none bg-white"
-              >
-                <option value="">All Urgencies</option>
-                <option value="elective">Elective</option>
-                <option value="urgent">Urgent</option>
-                <option value="emergency">Emergency</option>
-              </select>
+          {/* Search and Date Filters */}
+          <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+            <div className="md:col-span-4">
+              <input
+                type="text"
+                placeholder="Search by Episode ID, Patient ID, Cancer Type, or Clinician..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full h-10 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+            <div className="md:col-span-1.5">
               <input
                 type="date"
                 value={startDateFilter}
                 onChange={(e) => setStartDateFilter(e.target.value)}
+                placeholder="Start Date"
                 className="w-full h-10 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+            <div className="md:col-span-1.5">
               <input
                 type="date"
                 value={endDateFilter}
                 onChange={(e) => setEndDateFilter(e.target.value)}
+                placeholder="End Date"
                 className="w-full h-10 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
