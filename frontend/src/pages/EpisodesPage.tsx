@@ -247,29 +247,60 @@ export function EpisodesPage() {
 
   const filteredEpisodes = useMemo(() => {
     return episodes.filter(episode => {
-      if (!searchTerm) return true
-      const search = searchTerm.toLowerCase()
-      return (
-        episode.surgery_id.toLowerCase().includes(search) ||
-        episode.patient_id.toLowerCase().includes(search) ||
-        episode.procedure.primary_procedure.toLowerCase().includes(search) ||
-        episode.team.primary_surgeon.toLowerCase().includes(search)
-      )
+      // Search term filter
+      if (searchTerm) {
+        const search = searchTerm.toLowerCase()
+        const matchesSearch = (
+          episode.surgery_id.toLowerCase().includes(search) ||
+          episode.patient_id.toLowerCase().includes(search) ||
+          episode.procedure.primary_procedure.toLowerCase().includes(search) ||
+          episode.team.primary_surgeon.toLowerCase().includes(search)
+        )
+        if (!matchesSearch) return false
+      }
+
+      // Urgency filter
+      if (urgencyFilter && episode.urgency !== urgencyFilter) {
+        return false
+      }
+
+      // Date filters
+      if (startDateFilter && episode.date < startDateFilter) {
+        return false
+      }
+      if (endDateFilter && episode.date > endDateFilter) {
+        return false
+      }
+
+      return true
     })
-  }, [episodes, searchTerm])
+  }, [episodes, searchTerm, urgencyFilter, startDateFilter, endDateFilter])
 
   const filteredCancerEpisodes = useMemo(() => {
     return cancerEpisodes.filter(episode => {
-      if (!searchTerm) return true
-      const search = searchTerm.toLowerCase()
-      return (
-        episode.episode_id.toLowerCase().includes(search) ||
-        episode.patient_id.toLowerCase().includes(search) ||
-        (episode.cancer_type && episode.cancer_type.toLowerCase().includes(search)) ||
-        (episode.lead_clinician && episode.lead_clinician.toLowerCase().includes(search))
-      )
+      // Search term filter
+      if (searchTerm) {
+        const search = searchTerm.toLowerCase()
+        const matchesSearch = (
+          episode.episode_id.toLowerCase().includes(search) ||
+          episode.patient_id.toLowerCase().includes(search) ||
+          (episode.cancer_type && episode.cancer_type.toLowerCase().includes(search)) ||
+          (episode.lead_clinician && episode.lead_clinician.toLowerCase().includes(search))
+        )
+        if (!matchesSearch) return false
+      }
+
+      // Date filters
+      if (startDateFilter && episode.diagnosis_date < startDateFilter) {
+        return false
+      }
+      if (endDateFilter && episode.diagnosis_date > endDateFilter) {
+        return false
+      }
+
+      return true
     })
-  }, [cancerEpisodes, searchTerm])
+  }, [cancerEpisodes, searchTerm, startDateFilter, endDateFilter])
 
   const getUrgencyColor = (urgency: string) => {
     switch (urgency) {
