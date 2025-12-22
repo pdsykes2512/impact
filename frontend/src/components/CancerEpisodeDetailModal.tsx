@@ -382,6 +382,30 @@ export function CancerEpisodeDetailModal({ episode, onClose }: CancerEpisodeDeta
                     <label className="text-sm font-medium text-gray-500">Referral Date</label>
                     <p className="text-sm text-gray-900 mt-1">{formatDate(episode.referral_date)}</p>
                   </div>
+                  {episode.referral_source && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Referral Source</label>
+                      <p className="text-sm text-gray-900 mt-1">
+                        {episode.referral_source === '2ww' ? '2 Week Wait' : 
+                         episode.referral_source.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                      </p>
+                    </div>
+                  )}
+                  {episode.provider_first_seen && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Provider First Seen</label>
+                      <p className="text-sm text-gray-900 mt-1">{episode.provider_first_seen}</p>
+                    </div>
+                  )}
+                  {episode.cns_involved && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">CNS Involved</label>
+                      <p className="text-sm text-gray-900 mt-1">
+                        {episode.cns_involved === 'yes' ? 'Yes' : 
+                         episode.cns_involved === 'no' ? 'No' : 'Unknown'}
+                      </p>
+                    </div>
+                  )}
                   <div>
                     <label className="text-sm font-medium text-gray-500">First Seen</label>
                     <p className="text-sm text-gray-900 mt-1">{formatDate(episode.first_seen_date)}</p>

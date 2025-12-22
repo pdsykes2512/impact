@@ -21,6 +21,67 @@ const generateEpisodeId = () => {
   return `EPI-${timestamp}-${randomStr}`.toUpperCase()
 }
 
+// NHS Trust ODS Codes - NBOCA requirement (CR1410, CR1450)
+const NHS_TRUSTS = [
+  { code: 'RH8', name: 'Barnsley Hospital NHS Foundation Trust' },
+  { code: 'RFS', name: 'Royal Free London NHS Foundation Trust' },
+  { code: 'RRV', name: 'University College London Hospitals NHS Foundation Trust' },
+  { code: 'RJ1', name: "Guy's and St Thomas' NHS Foundation Trust" },
+  { code: 'R1H', name: 'Imperial College Healthcare NHS Trust' },
+  { code: 'RQM', name: "Chelsea and Westminster Hospital NHS Foundation Trust" },
+  { code: 'RFW', name: "King's College Hospital NHS Foundation Trust" },
+  { code: 'RJ7', name: "St George's University Hospitals NHS Foundation Trust" },
+  { code: 'RAL', name: 'Royal Free London NHS Foundation Trust' },
+  { code: 'RNJ', name: 'University Hospitals Birmingham NHS Foundation Trust' },
+  { code: 'RWE', name: 'University Hospitals of Leicester NHS Trust' },
+  { code: 'RHM', name: 'University Hospital Southampton NHS Foundation Trust' },
+  { code: 'RTG', name: 'Leeds Teaching Hospitals NHS Trust' },
+  { code: 'RR8', name: 'Sheffield Teaching Hospitals NHS Foundation Trust' },
+  { code: 'RCU', name: 'Nottingham University Hospitals NHS Trust' },
+  { code: 'RRK', name: 'University Hospitals of North Midlands NHS Trust' },
+  { code: 'RXH', name: 'The Newcastle upon Tyne Hospitals NHS Foundation Trust' },
+  { code: 'RA4', name: 'Gateshead Health NHS Foundation Trust' },
+  { code: 'RCX', name: 'Cambridge University Hospitals NHS Foundation Trust' },
+  { code: 'RNA', name: 'Sheffield Children\'s NHS Foundation Trust' },
+  { code: 'RTH', name: 'Oxford University Hospitals NHS Foundation Trust' },
+  { code: 'RJ2', name: 'Royal Berkshire NHS Foundation Trust' },
+  { code: 'RDU', name: 'Frimley Health NHS Foundation Trust' },
+  { code: 'RXC', name: 'Surrey and Sussex Healthcare NHS Trust' },
+  { code: 'RWD', name: 'United Lincolnshire Hospitals NHS Trust' },
+  { code: 'RJE', name: 'East Lancashire Hospitals NHS Trust' },
+  { code: 'RW6', name: 'Blackpool Teaching Hospitals NHS Foundation Trust' },
+  { code: 'RBN', name: 'Lancashire Teaching Hospitals NHS Foundation Trust' },
+  { code: 'RBL', name: 'Royal Bolton Hospital NHS Foundation Trust' },
+  { code: 'R0A', name: 'Manchester University NHS Foundation Trust' },
+  { code: 'RW3', name: 'Wrightington, Wigan and Leigh NHS Foundation Trust' },
+  { code: 'RMC', name: 'Stockport NHS Foundation Trust' },
+  { code: 'RM3', name: 'Tameside and Glossop Integrated Care NHS Foundation Trust' },
+  { code: 'REF', name: 'The Dudley Group NHS Foundation Trust' },
+  { code: 'RBK', name: 'The Royal Wolverhampton NHS Trust' },
+  { code: 'RXK', name: 'Walsall Healthcare NHS Trust' },
+  { code: 'RLN', name: 'University Hospitals Coventry and Warwickshire NHS Trust' },
+  { code: 'RWH', name: 'East Kent Hospitals University NHS Foundation Trust' },
+  { code: 'RYJ', name: 'Northern Devon Healthcare NHS Trust' },
+  { code: 'RH5', name: 'Royal Cornwall Hospitals NHS Trust' },
+  { code: 'RD3', name: 'University Hospitals Dorset NHS Foundation Trust' },
+  { code: 'RA7', name: 'University Hospitals Bristol and Weston NHS Foundation Trust' },
+  { code: 'RVJ', name: 'North Bristol NHS Trust' },
+  { code: 'RTE', name: 'Great Western Hospitals NHS Foundation Trust' },
+  { code: 'RN7', name: 'Dartford and Gravesham NHS Trust' },
+  { code: 'RPA', name: 'Medway NHS Foundation Trust' },
+  { code: 'RN5', name: 'Maidstone and Tunbridge Wells NHS Trust' },
+  { code: 'RVV', name: 'East Sussex Healthcare NHS Trust' },
+  { code: 'RXQ', name: 'Brighton and Sussex University Hospitals NHS Trust' },
+  { code: 'RYR', name: 'Portsmouth Hospitals University NHS Trust' },
+  { code: 'RHW', name: 'Isle of Wight NHS Trust' },
+  { code: 'RDZ', name: 'University Hospitals Sussex NHS Foundation Trust' },
+]
+
+const NHS_TRUST_OPTIONS = NHS_TRUSTS.map(trust => ({
+  value: trust.code,
+  label: `${trust.code} - ${trust.name}`
+}))
+
 export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'create' }: CancerEpisodeFormProps) {
   const [step, setStep] = useState(1)
   const [addTumourNow, setAddTumourNow] = useState(false)
@@ -163,6 +224,71 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
           placeholder="Search cancer type..."
           required
         />
+      </div>
+
+      {/* NBOCA Phase 4: Process Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Referral Source - CR1600 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Referral Source
+          </label>
+          <SearchableSelect
+            value={formData.referral_source}
+            onChange={(value) => updateFormData('referral_source', value)}
+            options={[
+              { value: '', label: 'Not recorded' },
+              { value: 'gp', label: 'GP Referral' },
+              { value: '2ww', label: '2 Week Wait Referral' },
+              { value: 'screening', label: 'Bowel Screening Programme' },
+              { value: 'emergency', label: 'Emergency Presentation' },
+              { value: 'consultant', label: 'Consultant Referral' },
+              { value: 'private', label: 'Private Referral' },
+              { value: 'other', label: 'Other' }
+            ]}
+            getOptionValue={(opt) => opt.value}
+            getOptionLabel={(opt) => opt.label}
+            placeholder="Select referral source..."
+          />
+          <p className="mt-1 text-xs text-gray-500">NBOCA (CR1600)</p>
+        </div>
+
+        {/* Provider First Seen - CR1410 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Provider First Seen
+          </label>
+          <SearchableSelect
+            value={formData.provider_first_seen}
+            onChange={(value) => updateFormData('provider_first_seen', value)}
+            options={NHS_TRUST_OPTIONS}
+            getOptionValue={(opt) => opt.value}
+            getOptionLabel={(opt) => opt.label}
+            placeholder="Search NHS Trust..."
+          />
+          <p className="mt-1 text-xs text-gray-500">NBOCA (CR1410) - NHS Trust where first seen</p>
+        </div>
+
+        {/* CNS Involved - CR2050 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Clinical Nurse Specialist (CNS)
+          </label>
+          <SearchableSelect
+            value={formData.cns_involved}
+            onChange={(value) => updateFormData('cns_involved', value)}
+            options={[
+              { value: '', label: 'Not recorded' },
+              { value: 'yes', label: 'Yes - CNS Involved' },
+              { value: 'no', label: 'No - No CNS Involvement' },
+              { value: 'unknown', label: 'Unknown' }
+            ]}
+            getOptionValue={(opt) => opt.value}
+            getOptionLabel={(opt) => opt.label}
+            placeholder="Select CNS involvement..."
+          />
+          <p className="mt-1 text-xs text-gray-500">NBOCA (CR2050)</p>
+        </div>
       </div>
 
       {/* Dates */}

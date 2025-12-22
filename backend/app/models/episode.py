@@ -111,6 +111,7 @@ class TNMStaging(BaseModel):
     pathological_m: Optional[str] = Field(None, description="Pathological M stage")
     stage_group: Optional[str] = Field(None, description="Overall stage group (I, II, III, IV)")
     staging_date: Optional[Union[datetime, date, str]] = None
+    tnm_version: Optional[str] = Field("8", description="CR2070/pCR6820: TNM version (7 or 8)")
 
 
 # Performance Status
@@ -129,6 +130,9 @@ class BowelCancerData(BaseModel):
     cancer_site: str = Field(..., description="colon/rectum/sigmoid/caecum/other")
     site_specific_location: Optional[str] = Field(None, description="Specific anatomical location")
     distance_from_anal_verge_cm: Optional[float] = Field(None, ge=0, description="For rectal cancers")
+    diagnosis_date: Optional[Union[datetime, date, str]] = Field(None, description="CR2030: Date of primary diagnosis")
+    icd10_code: Optional[str] = Field(None, description="CR0370: ICD-10 diagnosis code (e.g., C18.0-C20)")
+    snomed_morphology_code: Optional[str] = Field(None, description="CR6400: SNOMED morphology code")
     
     # Presentation
     presentation_type: str = Field(..., description="symptomatic/screening/surveillance/emergency")

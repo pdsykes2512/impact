@@ -93,6 +93,7 @@ class TNMStaging(BaseModel):
     pathological_t: Optional[str] = None
     pathological_n: Optional[str] = None
     pathological_m: Optional[str] = None
+    tnm_version: Optional[str] = Field("8", description="CR2070/pCR6820: TNM version (7 or 8)")
 
 
 class Pathology(BaseModel):
@@ -106,6 +107,9 @@ class Pathology(BaseModel):
     tumor_size_mm: Optional[float] = Field(None, ge=0)
     lymphovascular_invasion: Optional[bool] = None
     perineural_invasion: Optional[bool] = None
+    # NBOCA COSD fields
+    circumferential_resection_margin: Optional[str] = Field(None, description="pCR1150: clear/involved/uncertain")
+    crm_distance_mm: Optional[float] = Field(None, ge=0, description="Distance from tumor to CRM in mm")
 
 
 class CancerSpecific(BaseModel):

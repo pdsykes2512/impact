@@ -63,6 +63,9 @@ class SurgeryTreatment(TreatmentBase):
     """Surgery as a treatment within an episode"""
     treatment_type: TreatmentType = TreatmentType.SURGERY
     
+    # NBOCA COSD field
+    provider_organisation: Optional[str] = Field(None, description="CR1450: NHS Trust code of provider")
+    
     # Core surgery data (from original surgery model)
     classification: Classification
     procedure: Procedure

@@ -83,6 +83,7 @@ export function TumourSummaryModal({ tumour, onClose, onEdit }: TumourSummaryMod
               value={tumour.site?.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
             />
             <Field label="ICD-10 Code" value={tumour.icd10_code} />
+            <Field label="SNOMED Morphology" value={tumour.snomed_morphology} />
             {tumour.tumour_type === 'primary' && (
               <Field label="Distance from Anal Verge" value={tumour.distance_from_anal_verge ? `${tumour.distance_from_anal_verge} cm` : undefined} />
             )}
@@ -184,19 +185,33 @@ export function TumourSummaryModal({ tumour, onClose, onEdit }: TumourSummaryMod
           )}
 
           {/* Margins */}
-          {(tumour.circumferential_resection_margin !== undefined || tumour.distal_margin !== undefined || tumour.proximal_margin !== undefined) && (
+          {(tumour.crm_status || tumour.crm_distance_mm !== undefined || tumour.distal_margin_mm !== undefined || tumour.proximal_margin_mm !== undefined) && (
             <Section title="Resection Margins">
+              {tumour.crm_status && (
+                <Field 
+                  label="CRM Status" 
+                  value={
+                    <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
+                      tumour.crm_status === 'clear' ? 'bg-green-100 text-green-800' :
+                      tumour.crm_status === 'involved' ? 'bg-red-100 text-red-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {tumour.crm_status.replace('_', ' ').toUpperCase()}
+                    </span>
+                  }
+                />
+              )}
               <div className="grid grid-cols-3 gap-4 py-1">
                 <dt className="text-sm font-medium text-gray-500">Margins (mm)</dt>
                 <dd className="text-sm text-gray-900 col-span-2">
-                  {tumour.circumferential_resection_margin !== undefined && (
-                    <span className="mr-3">CRM: {tumour.circumferential_resection_margin}</span>
+                  {tumour.crm_distance_mm !== undefined && (
+                    <span className="mr-3">CRM: {tumour.crm_distance_mm}</span>
                   )}
-                  {tumour.proximal_margin !== undefined && (
-                    <span className="mr-3">Proximal: {tumour.proximal_margin}</span>
+                  {tumour.proximal_margin_mm !== undefined && (
+                    <span className="mr-3">Proximal: {tumour.proximal_margin_mm}</span>
                   )}
-                  {tumour.distal_margin !== undefined && (
-                    <span>Distal: {tumour.distal_margin}</span>
+                  {tumour.distal_margin_mm !== undefined && (
+                    <span>Distal: {tumour.distal_margin_mm}</span>
                   )}
                 </dd>
               </div>
