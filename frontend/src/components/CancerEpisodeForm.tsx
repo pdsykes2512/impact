@@ -56,6 +56,8 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
       first_seen_date: '',
       mdt_discussion_date: '',
       mdt_meeting_type: '',
+      performance_status: '',
+      no_treatment_reason: '',
       lead_clinician: '',
       mdt_team: [],
       episode_status: 'active',
@@ -221,6 +223,55 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
           />
           <p className="mt-1 text-xs text-gray-500">NBOCA (CR3190)</p>
         </div>
+      </div>
+
+      {/* Performance Status (ECOG) - NBOCA CR0510 */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Performance Status (ECOG)
+        </label>
+        <SearchableSelect
+          value={formData.performance_status}
+          onChange={(value) => updateFormData('performance_status', value)}
+          options={[
+            { value: '', label: 'Not assessed' },
+            { value: '0', label: 'ECOG 0 - Fully active, no restrictions' },
+            { value: '1', label: 'ECOG 1 - Strenuous activity restricted' },
+            { value: '2', label: 'ECOG 2 - Ambulatory, capable of self-care' },
+            { value: '3', label: 'ECOG 3 - Limited self-care, confined to bed/chair >50% of waking hours' },
+            { value: '4', label: 'ECOG 4 - Completely disabled, confined to bed/chair' },
+            { value: '5', label: 'ECOG 5 - Dead' }
+          ]}
+          getOptionValue={(opt) => opt.value}
+          getOptionLabel={(opt) => opt.label}
+          placeholder="Select ECOG score..."
+        />
+        <p className="mt-1 text-xs text-gray-500">NBOCA (CR0510) - Patient fitness assessment</p>
+      </div>
+
+      {/* No Treatment Reason - NBOCA CR0490 */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          No Treatment Reason (if applicable)
+        </label>
+        <SearchableSelect
+          value={formData.no_treatment_reason}
+          onChange={(value) => updateFormData('no_treatment_reason', value)}
+          options={[
+            { value: '', label: 'Treatment planned/given' },
+            { value: 'patient_choice', label: 'Patient choice/declined' },
+            { value: 'not_fit', label: 'Not fit for treatment' },
+            { value: 'comorbidities', label: 'Comorbidities contraindicate treatment' },
+            { value: 'too_advanced', label: 'Disease too advanced' },
+            { value: 'died_before', label: 'Died before treatment' },
+            { value: 'palliative_only', label: 'Palliative care only' },
+            { value: 'other', label: 'Other reason' }
+          ]}
+          getOptionValue={(opt) => opt.value}
+          getOptionLabel={(opt) => opt.label}
+          placeholder="Select reason if no treatment given..."
+        />
+        <p className="mt-1 text-xs text-gray-500">NBOCA (CR0490) - Required if cancer treatment not provided</p>
       </div>
 
       {/* Lead Clinician */}

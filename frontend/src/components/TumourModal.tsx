@@ -333,7 +333,7 @@ export function TumourModal({ episodeId, onSubmit, onCancel, mode = 'create', in
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Grade
+                      Grade (Differentiation)
                     </label>
                     <SearchableSelect
                       value={formData.grade}
@@ -343,6 +343,7 @@ export function TumourModal({ episodeId, onSubmit, onCancel, mode = 'create', in
                       getOptionLabel={(opt) => opt.label}
                       placeholder="Search grade..."
                     />
+                    <p className="mt-1 text-xs text-gray-500">Tumour differentiation - important for staging</p>
                   </div>
 
                   <div>

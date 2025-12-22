@@ -71,6 +71,7 @@ class EpisodeBase(BaseModel):
     provider_first_seen: Optional[str] = Field(None, description="CR1410: NHS Trust code where first seen")
     cns_involved: Optional[str] = Field(None, description="CR2050: yes/no/unknown - Clinical Nurse Specialist")
     mdt_meeting_type: Optional[str] = Field(None, description="CR3190: colorectal/upper_gi/lower_gi/combined/other")
+    performance_status: Optional[str] = Field(None, description="CR0510: ECOG score 0-5 - Patient fitness")
     no_treatment_reason: Optional[str] = Field(None, description="CR0490: Reason if no treatment given")
     
     # Clinical team
@@ -412,6 +413,7 @@ class EpisodeCreate(BaseModel):
     provider_first_seen: Optional[str] = None
     cns_involved: Optional[str] = None
     mdt_meeting_type: Optional[str] = None
+    performance_status: Optional[str] = None
     no_treatment_reason: Optional[str] = None
     
     lead_clinician: str
@@ -433,6 +435,7 @@ class EpisodeUpdate(BaseModel):
     provider_first_seen: Optional[str] = None
     cns_involved: Optional[str] = None
     mdt_meeting_type: Optional[str] = None
+    performance_status: Optional[str] = None
     no_treatment_reason: Optional[str] = None
     
     lead_clinician: Optional[str] = None

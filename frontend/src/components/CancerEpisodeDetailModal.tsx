@@ -390,6 +390,20 @@ export function CancerEpisodeDetailModal({ episode, onClose }: CancerEpisodeDeta
                     <label className="text-sm font-medium text-gray-500">MDT Discussion</label>
                     <p className="text-sm text-gray-900 mt-1">{formatDate(episode.mdt_discussion_date)}</p>
                   </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-500">Performance Status</label>
+                    <p className="text-sm text-gray-900 mt-1">
+                      {episode.performance_status ? `ECOG ${episode.performance_status}` : 'Not assessed'}
+                    </p>
+                  </div>
+                  {episode.no_treatment_reason && (
+                    <div className="md:col-span-3">
+                      <label className="text-sm font-medium text-gray-500">No Treatment Reason</label>
+                      <p className="text-sm text-gray-900 mt-1">
+                        {episode.no_treatment_reason.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                      </p>
+                    </div>
+                  )}
                   <div className="md:col-span-3">
                     <label className="text-sm font-medium text-gray-500">Lead Clinician</label>
                     <p className="text-sm text-gray-900 mt-1">{episode.lead_clinician}</p>
