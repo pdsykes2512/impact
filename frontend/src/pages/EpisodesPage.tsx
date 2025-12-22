@@ -363,7 +363,7 @@ export function EpisodesPage() {
           <div>
             <input
               type="text"
-              placeholder="Search by Surgery ID, Patient ID, Procedure, or Surgeon..."
+              placeholder="Search by Episode ID, Patient ID, Cancer Type, or Clinician..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full h-10 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
