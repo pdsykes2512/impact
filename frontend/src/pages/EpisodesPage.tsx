@@ -284,10 +284,10 @@ export function EpisodesPage() {
       }
 
       // Date filters
-      if (startDateFilter && episode.diagnosis_date < startDateFilter) {
+      if (startDateFilter && episode.referral_date < startDateFilter) {
         return false
       }
-      if (endDateFilter && episode.diagnosis_date > endDateFilter) {
+      if (endDateFilter && episode.referral_date > endDateFilter) {
         return false
       }
 
