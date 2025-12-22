@@ -24,6 +24,7 @@ interface CancerEpisode {
   first_seen_date?: string
   mdt_discussion_date?: string
   lead_clinician: string
+  subspecialty_lead?: string
   episode_status: string
   cancer_data?: any
   treatments?: Treatment[]
@@ -430,8 +431,14 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
                     </div>
                   )}
                   <div className="md:col-span-3">
-                    <label className="text-sm font-medium text-gray-500">Lead Clinician</label>
-                    <p className="text-sm text-gray-900 mt-1">{episode.lead_clinician}</p>
+                    <label className="text-sm font-medium text-gray-500">
+                      {episode.subspecialty_lead ? 'Subspecialty Lead' : 'Lead Clinician'}
+                    </label>
+                    <p className="text-sm text-gray-900 mt-1 capitalize">
+                      {episode.subspecialty_lead 
+                        ? episode.subspecialty_lead.replace(/_/g, ' ')
+                        : episode.lead_clinician}
+                    </p>
                   </div>
                 </div>
               </div>

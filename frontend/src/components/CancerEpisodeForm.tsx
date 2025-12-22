@@ -120,6 +120,7 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
       performance_status: '',
       no_treatment_reason: '',
       lead_clinician: '',
+      subspecialty_lead: '',
       mdt_team: [],
       episode_status: 'active',
       created_by: 'current_user',
@@ -173,7 +174,7 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
     
     if (!formData.patient_id) missingFields.push('Patient')
     if (!formData.cancer_type) missingFields.push('Cancer Type')
-    if (!formData.lead_clinician) missingFields.push('Lead Clinician')
+    if (!formData.subspecialty_lead) missingFields.push('Subspecialty Lead')
     
     if (missingFields.length > 0) {
       alert(`Please fill in the following required fields:\n- ${missingFields.join('\n- ')}`)
@@ -400,15 +401,29 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
         <p className="mt-1 text-xs text-gray-500">NBOCA (CR0490) - Required if cancer treatment not provided</p>
       </div>
 
-      {/* Lead Clinician */}
-      <SurgeonSearch
-        value={formData.lead_clinician}
-        onChange={(name) => updateFormData('lead_clinician', name)}
-        label="Lead Clinician (Consultant)"
-        required
-        consultantsOnly
-        placeholder="Search consultant surgeon..."
-      />
+      {/* Subspecialty Lead */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Subspecialty Lead <span className="text-red-500">*</span>
+        </label>
+        <select
+          required
+          value={formData.subspecialty_lead}
+          onChange={(e) => updateFormData('subspecialty_lead', e.target.value)}
+          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+          <option value="">Select subspecialty...</option>
+          <option value="colorectal">Colorectal</option>
+          <option value="urology">Urology</option>
+          <option value="breast">Breast</option>
+          <option value="upper_gi">Upper GI</option>
+          <option value="gynae_onc">Gynaecological Oncology</option>
+          <option value="other">Other</option>
+        </select>
+        <p className="mt-1 text-xs text-gray-500">
+          Select the subspecialty leading this cancer episode
+        </p>
+      </div>
     </div>
   )
 
@@ -808,8 +823,8 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
             <dd className="font-medium">{formData.patient_id}</dd>
             <dt className="text-gray-600">Cancer Type:</dt>
             <dd className="font-medium">{formData.cancer_type}</dd>
-            <dt className="text-gray-600">Lead Clinician:</dt>
-            <dd className="font-medium">{formatSurgeon(formData.lead_clinician)}</dd>
+            <dt className="text-gray-600">Subspecialty Lead:</dt>
+            <dd className="font-medium capitalize">{formData.subspecialty_lead?.replace('_', ' ')}</dd>
             <dt className="text-gray-600">Referral Date:</dt>
             <dd className="font-medium">{formData.referral_date}</dd>
           </dl>

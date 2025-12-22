@@ -1,15 +1,17 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, Field, field_validator
 import re
 
 
 class SurgeonBase(BaseModel):
-    """Base surgeon model"""
-    first_name: str = Field(..., description="Surgeon's first name")
-    surname: str = Field(..., description="Surgeon's surname")
+    """Base surgeon/clinician model"""
+    first_name: str = Field(..., description="Clinician's first name")
+    surname: str = Field(..., description="Clinician's surname")
     gmc_number: Optional[str] = Field(None, description="GMC registration number (7 digits)")
-    is_consultant: bool = Field(default=False, description="Whether the surgeon is a consultant (lead clinician)")
+    is_consultant: bool = Field(default=False, description="Whether the clinician is a consultant (backward compatibility)")
+    subspecialty_leads: List[str] = Field(default_factory=list, description="List of subspecialties: colorectal/urology/breast/upper_gi/gynae_onc/other")
+    clinical_role: str = Field(default="surgeon", description="surgeon/anaesthetist/oncologist/radiologist/other")
     
     @field_validator('gmc_number')
     @classmethod
@@ -34,6 +36,8 @@ class SurgeonUpdate(BaseModel):
     surname: Optional[str] = None
     gmc_number: Optional[str] = None
     is_consultant: Optional[bool] = None
+    subspecialty_leads: Optional[List[str]] = None
+    clinical_role: Optional[str] = None
 
 
 class Surgeon(SurgeonBase):

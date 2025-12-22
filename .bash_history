@@ -1,153 +1,3 @@
-      "postcode": "E1 6AN"
-    },
-    "medical_history": {
-      "conditions": [],
-      "previous_surgeries": [],
-      "medications": [],
-      "allergies": []
-    }
-  }'
-tail -50 /root/.tmp/frontend.log
-curl -s http://localhost:8000/api/patients/ | python3 -m json.tool | head -50
-python3 -c "
-import asyncio
-from motor.motor_asyncio import AsyncIOMotorClient
-
-async def check_patients():
-    client = AsyncIOMotorClient('mongodb://admin:admin123@localhost:27017/surg_outcomes?authSource=admin')
-    db = client['surg_outcomes']
-    
-    count = await db['patients'].count_documents({})
-    print(f'Total patients in database: {count}')
-    
-    if count > 0:
-        cursor = db['patients'].find().limit(3)
-        async for doc in cursor:
-            print(f'Patient: {doc.get(\"record_number\")} - {doc.get(\"nhs_number\")}')
-    
-    client.close()
-
-asyncio.run(check_patients())
-"
-curl -v http://localhost:8000/api/patients/ 2>&1 | head -30
-tail -100 /root/.tmp/backend.log | grep -A 30 "Traceback\|Error" | tail -50
-sleep 2 && curl -s http://localhost:8000/api/patients/ | python3 -m json.tool | head -50
-git add .gitignore && git status --short
-git commit -m "chore: update .gitignore"
-git push origin feat/app-scaffold
-git status
-git add .gitignore && git commit -m "chore: update .gitignore with additional exclusions"
-it push origin feat/app-scaffold
-git push origin feat/app-scaffold
-git push origin feat/app-scaffold
-git remote -v
-git remote set-url origin https://pdsykes2512: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@github.com/pdsykes2512/surg-db.git
-git push origin feat/app-scaffold
-git add .gitignore && git commit -m "chore: update .gitignore" && git push origin feat/app-scaffold
-git status
-git add backend/app/models/patient.py backend/app/routes/admin.py backend/app/routes/patients.py execution/init_database.py frontend/src/pages/AdminPage.tsx frontend/src/pages/PatientsPage.tsx frontend/src/services/api.ts .vscode/settings.json frontend/postcss.config.js frontend/src/index.css
-git add backend/app/models/patient.py backend/app/routes/admin.py backend/app/routes/patients.py execution/init_database.py frontend/src/pages/AdminPage.tsx frontend/src/pages/PatientsPage.tsx frontend/src/services/api.ts frontend/postcss.config.js frontend/src/index.css
-cd /root && git commit -m "feat: complete patient CRUD with edit/delete confirmation, password management
-
-- Updated Patient model: removed contact info, added NHS number validation
-- Fixed API routing: corrected baseURL handling and ObjectId conversion
-- Added password change functionality in admin panel with modal
-- Implemented full patient CRUD operations with safety features
-- Added edit functionality with pen icon and readonly identifiers
-- Added comprehensive delete confirmation requiring record number verification
-- Added delete button in edit form with same safety protections
-- Fixed PostCSS configuration for Tailwind processing
-- Fixed icon sizing with CSS rules"
-git push origin feat/app-scaffold
-curl -s http://localhost:8000/api/patients/ | python3 -m json.tool | head -50
-curl -v http://localhost:8000/api/patients/ 2>&1 | head -30
-ps aux | grep uvicorn
-tail -50 /root/.tmp/backend.log
-cd /root/backend && nohup python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 > /root/.tmp/backend.log 2>&1 & echo "Backend PID: $!"
-sleep 3 && curl -s http://localhost:8000/api/patients/ | python3 -m json.tool | head -50
-cd /root/frontend/src/pages && mv SurgeriesPage.tsx EpisodesPage.tsx
-cd /root/backend/app/routes && mv surgeries.py episodes.py
-cd /root/backend/app/models && ls -la *.py
-ps aux | grep uvicorn | grep -v grep
-sleep 2 && curl -s http://localhost:8000/api/episodes/ 2>&1 | head -20
-curl -s http://localhost:8000/health
-tail -30 /root/.tmp/backend.log
-kill 28464 && sleep 1 && cd /root/backend && nohup python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 > /root/.tmp/backend.log 2>&1 & echo "Backend PID: $!"
-sleep 3 && curl -s http://localhost:8000/health
-sleep 2 && curl -s http://localhost:8000/health
-curl -s http://localhost:8000/api/episodes/ | python3 -m json.tool 2>&1 | head -10
-git status
-git add backend/app/main.py backend/app/routes/episodes.py frontend/src/App.tsx frontend/src/components/Layout.tsx frontend/src/pages/AdminPage.tsx frontend/src/pages/HomePage.tsx frontend/src/pages/EpisodesPage.tsx frontend/src/services/api.ts .vscode/settings.json
-git add -A backend/app/main.py backend/app/routes/ frontend/src/ .vscode/settings.json
-pwd
-git add backend/app/main.py backend/app/routes/episodes.py frontend/src/App.tsx frontend/src/components/Layout.tsx frontend/src/pages/AdminPage.tsx frontend/src/pages/HomePage.tsx frontend/src/pages/EpisodesPage.tsx frontend/src/services/api.ts
-git rm backend/app/routes/surgeries.py && git rm frontend/src/pages/SurgeriesPage.tsx
-ls -la backend/app/main.py
-git status --short
-cd /root/backend/app && git add main.py routes/episodes.py && git rm routes/surgeries.py
-cd /root/frontend/src && git add App.tsx components/Layout.tsx pages/AdminPage.tsx pages/HomePage.tsx pages/EpisodesPage.tsx services/api.ts && git rm pages/SurgeriesPage.tsx
-git add .vscode/settings.json
-git status --short
-cd /root/frontend/src && git add -A
-cd /root && git commit -m "feat: rename Surgeries to Episodes, add dashboard stats, improve password change
-
-- Renamed all 'Surgeries' references to 'Episodes' throughout the application
-- Renamed SurgeriesPage to EpisodesPage component
-- Updated API routes from /api/surgeries to /api/episodes
-- Renamed backend route file surgeries.py to episodes.py
-- Updated navigation, page titles, and UI text to use 'Episodes'
-- Added real-time statistics to dashboard (patient count, episode count, monthly count)
-- Added password confirmation field to change password dialog
-- Updated .vscode settings to auto-approve file writes to tmp directories"
-git push origin feat/app-scaffold
-git config credential.helper store && cat ~/.git-credentials 2>/dev/null | head -1
-git status
-git add root.code-workspace && git commit -m "chore: add VS Code workspace configuration"
-git push origin feat/app-scaffold
-cd /root && git add TODO.md && git commit -m "docs: add comprehensive TODO list for project tracking
-
-- Organize tasks by priority (high, medium, low)
-- Track completed features and upcoming work
-- Include episode management, reports, and analytics tasks
-- Document technical debt and future enhancements"
-git push origin feat/app-scaffold
-ps aux | grep "npm run dev" | grep -v grep | awk '{print $2}' | xargs kill -9 2>/dev/null
-sleep 2 && cd /root/frontend && npm run dev > /root/.tmp/frontend.log 2>&1 &
-echo "Frontend restarted, logging to .tmp/frontend.log"
-pkill -f "uvicorn app.main" && sleep 2 && cd /root/backend && python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 > /root/.tmp/backend.log 2>&1 &
-echo "Backend restarted, logging to .tmp/backend.log"
-ls -la /root/.tmp 2>/dev/null || echo "Directory does not exist"
-cd /root/backend && python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 > /tmp/backend.log 2>&1 &
-echo "Backend started with PID: $!"
-sleep 3 && curl -s http://localhost:8000/health
-cat /tmp/backend.log | tail -30
-lsof -i :8000 | grep LISTEN
-pkill -f "uvicorn.*8000" && cd /root/backend && python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 > /tmp/backend.log 2>&1 &
-sleep 2 && curl -s http://localhost:8000/health
-cat /tmp/backend.log | tail -20
-ps aux | grep uvicorn | grep -v grep
-cd /root/frontend && nohup npm run dev > /tmp/frontend.log 2>&1 & echo "Frontend PID: $!"
-sleep 4 && tail -15 /tmp/frontend.log && echo "---" && tail -10 /tmp/backend.log
-pkill -f uvicorn && sleep 2 && cd /root/backend && nohup python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 > /tmp/backend.log 2>&1 & sleep 3 && tail -10 /tmp/backend.log
-curl -s http://localhost:8000/health && echo ""
-curl -s http://localhost:3000 2>&1 | grep -o "tailwind\|stylesheet" | head -5
-git status --short
-git add directives/ui_design_system.md frontend/postcss.config.js frontend/package.json && git commit -m "feat: add PostCSS config and UI design system documentation"
-git push origin feat/app-scaffold
-ps aux | grep -E "npm run dev|vite" | grep -v grep
-tail -20 /tmp/frontend.log
-curl -s -o /dev/null -w "%{http_code}" http://localhost:3000
-curl -s http://localhost:3000 | head -20
-cd /root/backend && nohup python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 > /tmp/backend.log 2>&1 & echo "Backend PID: $!"
-ps aux | grep -E "uvicorn|npm run dev|vite" | grep -v grep
-cd /root/frontend && cat postcss.config.js
-git add -A
-cd /root && git commit -m "feat: enhance episode form with standardized procedures, diagnoses, and patient selection
-
-- Fix episode form crash when initialData is passed with patient_id only
-- Add 90+ standardized procedures (Upper GI, Lower GI, Hernia) with British spelling
-- Implement searchable procedure dropdown with usage-based sorting
-- Auto-populate ICD-10 and OPCS-4 codes based on selected procedure
 - Remove CPT codes field
 - Add searchable multi-select for additional procedures with custom entry support
 - Remove category and indication fields from classification
@@ -498,3 +348,153 @@ sleep 5 && tail -30 ~/.tmp/frontend.log | grep -E "(error|Error|ERROR|FAILED|rea
 lsof -ti:8000 | xargs kill -9 2>/dev/null || true && sleep 2 && cd /root && bash execution/start_backend.sh
 sleep 3 && tail -30 ~/.tmp/backend.log | grep -A 10 "Application startup complete"
 tail -50 ~/.tmp/frontend.log 2>/dev/null | tail -20
+bash execution/start_backend.sh
+tail -20 ~/.tmp/backend.log
+ps aux | grep -E "(vite|npm.*dev)" | grep -v grep
+tail -50 ~/.tmp/frontend.log
+curl -s -o /dev/null -w "%{http_code}" http://localhost:3000
+pkill -9 -f "vite" && pkill -9 -f "node.*3000" && sleep 3 && cd /root && bash execution/start_frontend.sh
+sleep 5 && ps aux | grep -E "(vite|node.*3000)" | grep -v grep
+tail -20 ~/.tmp/frontend.log
+grep -A 20 "async def create_surgeon" /root/backend/app/routes/surgeons.py
+tail -50 ~/.tmp/backend.log | grep -A 5 -B 5 "error\|Error\|Exception" | tail -20
+cat > /tmp/check_indexes.py << 'EOF'
+import asyncio
+from motor.motor_asyncio import AsyncIOMotorClient
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+MONGODB_DB_NAME = os.getenv("MONGODB_DB_NAME", "surg_outcomes")
+
+async def check_indexes():
+    client = AsyncIOMotorClient(MONGODB_URI)
+    db = client[MONGODB_DB_NAME]
+    
+    indexes = await db.surgeons.list_indexes().to_list(None)
+    print("Current indexes on surgeons collection:")
+    for idx in indexes:
+        print(f"  - {idx}")
+    
+    client.close()
+
+asyncio.run(check_indexes())
+EOF
+
+python3 /tmp/check_indexes.py
+python3 /tmp/check_indexes.py
+python3 execution/fix_surgeon_gmc_index.py
+python3 execution/fix_surgeon_gmc_index.py
+python3 execution/fix_surgeon_gmc_index.py
+tail -100 ~/.tmp/backend.log | grep -A 10 -B 5 "error\|Error\|Exception\|Traceback" | tail -40
+tail -50 ~/.tmp/frontend.log | grep -i error
+curl -s http://localhost:3000 2>&1 | head -20
+tail -100 ~/.tmp/frontend.log
+tail -100 ~/.tmp/frontend.log | tail -40
+tail -200 ~/.tmp/frontend.log | grep -A 3 "Internal server error"
+tail -100 ~/.tmp/frontend.log | grep -E "(error|Error|ERROR)" -A 3
+tail -200 ~/.tmp/frontend.log | tail -50
+tail -200 ~/.tmp/frontend.log | grep -i "CancerEpisode" -A 3
+cd /root/frontend && npx tsc --noEmit 2>&1 | grep -A 5 "EpisodeForm.tsx" | head -30
+sleep 5 && tail -50 ~/.tmp/frontend.log
+tail -100 ~/.tmp/frontend.log | grep -i "error" -A 2
+curl -s -o /dev/null -w "%{http_code}" http://localhost:3000
+cd /root/frontend && timeout 15 npx tsc --noEmit 2>&1 | head -50
+sleep 5 && tail -30 ~/.tmp/frontend.log
+tail -10 ~/.tmp/frontend.log
+sleep 3 && tail -30 ~/.tmp/frontend.log
+tail -50 ~/.tmp/frontend.log | grep -i "error" | head -5
+ps aux | grep "uvicorn.*main:app" | grep -v grep
+curl -s http://localhost:3000 > /dev/null && echo "Frontend: OK" && curl -s http://localhost:8000/docs > /dev/null && echo "Backend: OK"
+wc -l /root/backend/app/routes/episodes_v2.py
+grep -n "Treatments Section\|Treatments Table\|Add Treatment" /root/frontend/src/components/CancerEpisodeDetailModal.tsx | head -5
+sleep 3 && tail -30 ~/.tmp/frontend.log
+tail -10 ~/.tmp/frontend.log | grep -E "(hmr update|error|Error)" || echo "No recent errors found"
+sleep 5 && tail -50 ~/.tmp/frontend.log | tail -10
+touch /root/frontend/src/components/TumourModal.tsx && sleep 3 && tail -10 ~/.tmp/frontend.log
+tail -100 ~/.tmp/frontend.log | grep -B 5 "Internal server error" | head -10
+sleep 5 && tail -20 ~/.tmp/frontend.log
+curl -s http://localhost:3000 > /dev/null && echo "Frontend: ✓" && curl -s http://localhost:8000/docs > /dev/null && echo "Backend: ✓"
+tail -100 ~/.tmp/frontend.log
+sleep 3 && tail -20 ~/.tmp/frontend.log
+sleep 5 && tail -10 ~/.tmp/frontend.log
+curl -s http://localhost:3000 | head -20
+sleep 3 && curl -s -o /dev/null -w "%{http_code}" http://localhost:3000
+tail -50 ~/.tmp/frontend.log | grep -A 20 "error\|Error\|ERROR"
+cd /root/frontend && npm run build 2>&1 | tail -100
+cd /root/frontend && npm run build 2>&1 | grep -E "error|built in|Error" | head -20
+cd /root/frontend && npm run build 2>&1 | grep -E "error|built in|Error" | head -10
+curl -s http://localhost:3000 | head -5
+sleep 3 && curl -s -o /dev/null -w "%{http_code}" http://localhost:3000
+wc -l /root/frontend/src/components/CancerEpisodeForm.tsx
+curl -s -o /dev/null -w "%{http_code}" http://localhost:3000
+tail -100 ~/.tmp/frontend.log | grep -A 10 "error\|Error\|ERROR"
+tail -100 ~/.tmp/frontend.log | grep -A 5 -B 5 "error\|Error\|ERROR"
+tail -100 ~/.tmp/backend.log 2>/dev/null | grep -A 5 -B 5 "error\|Error\|ERROR" || echo "No backend log found"
+ps aux | grep -E "(vite|npm.*dev)" | grep -v grep
+pkill -f "vite|npm.*dev" && sleep 2 && cd /root/frontend && nohup npm run dev -- --host 0.0.0.0 > ~/.tmp/frontend.log 2>&1 &
+sleep 5 && tail -50 ~/.tmp/frontend.log
+ps aux | grep -E "uvicorn|python.*main.py" | grep -v grep
+curl -s http://localhost:3000 | head -20
+sleep 2 && curl -s http://localhost:8000/api/v2/episodes/ | head -20
+cd /root/frontend/src/components && grep -n "{\|}" CancerEpisodeForm.tsx | grep -v "className\|onChange\|onClick\|value=" | head -30
+sleep 3 && curl -s -o /dev/null -w "%{http_code}" http://localhost:3000
+tail -100 ~/.tmp/frontend.log | tail -30
+cd /root/frontend && tail -50 ~/.tmp/frontend.log | grep -A 5 "capitalize"
+tail -200 ~/.tmp/frontend.log | grep -i "error\|capitalize" | tail -30
+cd /root && python3 -c "
+import asyncio
+from motor.motor_asyncio import AsyncIOMotorClient
+
+async def check_surgeons():
+    client = AsyncIOMotorClient('mongodb://localhost:27017')
+    db = client['surgical_database']
+    
+    # Check a few treatments to see surgeon field format
+    treatments = await db.episodes.find({
+        'treatments': {'$exists': True, '$ne': []}
+    }).limit(5).to_list(length=5)
+    
+    print('Sample surgeon fields in treatments:')
+    for ep in treatments:
+        if 'treatments' in ep:
+            for t in ep.get('treatments', [])[:2]:  # First 2 treatments per episode
+                surgeon = t.get('surgeon', 'N/A')
+                oncologist = t.get('oncologist', 'N/A')
+                print(f\"  Surgeon: '{surgeon}', Oncologist: '{oncologist}'\")
+    
+    # Check lead_clinician format
+    episodes = await db.episodes.find({}).limit(5).to_list(length=5)
+    print('\nSample lead_clinician fields:')
+    for ep in episodes:
+        lc = ep.get('lead_clinician', 'N/A')
+        print(f\"  Lead Clinician: '{lc}'\")
+
+asyncio.run(check_surgeons())
+"
+cd /root && mongosh surgical_database --quiet --eval "
+db.episodes.findOne(
+  {'treatments': {\$exists: true, \$ne: []}},
+  {'treatments': 1, 'lead_clinician': 1, 'episode_id': 1, _id: 0}
+)" | head -30
+mongo surgical_database --quiet --eval "printjson(db.episodes.findOne({'treatments': {\$exists: true, \$ne: []}}, {'treatments': 1, 'lead_clinician': 1, 'episode_id': 1, _id: 0}))" 2>&1 | head -40
+python3 check_surgeon_data.py
+ls -la check_surgeon_data.py
+python3 /root/check_surgeon_data.py
+python3 execution/migrate_surgeon_names_to_full.py
+ls -la /root/execution/migrate_surgeon*.py
+python3 /root/execution/migrate_surgeon_names_to_full.py
+grep -r "surgical_database\|surg_outcomes" /root/backend/app/ | head -10
+python3 /root/execution/migrate_surgeon_names_to_full.py
+pkill -f "uvicorn backend.app.main:app" || true
+pkill -f "vite --host" && sleep 2 && cd /root && bash execution/start_frontend.sh
+sleep 5 && tail -30 ~/.tmp/frontend.log
+pkill -f "uvicorn.*main:app" && sleep 2 && cd /root && bash execution/start_backend.sh
+sleep 3 && curl -s http://localhost:8000/api/admin/surgeons?consultants_only=true -H "Authorization: Bearer $(grep -o 'token.*' ~/.tmp/test_token.txt 2>/dev/null || echo 'test')" | head -20
+ps aux | grep -E "(vite|node.*5173)" | grep -v grep
+tail -50 ~/.tmp/frontend.log
+chmod +x /root/execution/migrate_add_consultant_flag.py && cd /root && python execution/migrate_add_consultant_flag.py
+python3 execution/migrate_add_consultant_flag.py
+python3 execution/migrate_add_consultant_flag.py
+ps aux | grep -E "(vite|node.*frontend|npm.*dev)" | grep -v grep

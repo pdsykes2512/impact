@@ -24,6 +24,8 @@ interface Surgeon {
   surname: string
   gmc_number?: string
   is_consultant: boolean
+  subspecialty_leads?: string[]
+  clinical_role?: string
   created_at: string
   updated_at: string
 }
@@ -53,7 +55,9 @@ export function AdminPage() {
     first_name: '',
     surname: '',
     gmc_number: '',
-    is_consultant: false
+    is_consultant: false,
+    subspecialty_leads: [] as string[],
+    clinical_role: 'surgeon'
   })
   const [error, setError] = useState('')
 
@@ -192,7 +196,7 @@ export function AdminPage() {
       }
       setShowSurgeonForm(false)
       setEditingSurgeon(null)
-      setSurgeonFormData({ first_name: '', surname: '', gmc_number: '', is_consultant: false })
+      setSurgeonFormData({ first_name: '', surname: '', gmc_number: '', is_consultant: false, subspecialty_leads: [], clinical_role: 'surgeon' })
       fetchSurgeons()
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to save surgeon')
@@ -218,7 +222,9 @@ export function AdminPage() {
       first_name: surgeon.first_name,
       surname: surgeon.surname,
       gmc_number: surgeon.gmc_number || '',
-      is_consultant: surgeon.is_consultant || false
+      is_consultant: surgeon.is_consultant || false,
+      subspecialty_leads: surgeon.subspecialty_leads || [],
+      clinical_role: surgeon.clinical_role || 'surgeon'
     })
     setShowSurgeonForm(true)
     setError('')
@@ -265,7 +271,7 @@ export function AdminPage() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            Surgeons
+            Clinicians
           </button>
         </nav>
       </div>
@@ -481,13 +487,13 @@ export function AdminPage() {
             <Button 
               onClick={() => {
                 setEditingSurgeon(null)
-                setSurgeonFormData({ first_name: '', surname: '', gmc_number: '' })
+                setSurgeonFormData({ first_name: '', surname: '', gmc_number: '', is_consultant: false, subspecialty_leads: [], clinical_role: 'surgeon' })
                 setShowSurgeonForm(!showSurgeonForm)
                 setError('')
               }} 
               variant="primary"
             >
-              {showSurgeonForm ? 'Cancel' : '+ Add Surgeon'}
+              {showSurgeonForm ? 'Cancel' : '+ Add Clinician'}
             </Button>
           </div>
 
@@ -542,25 +548,60 @@ export function AdminPage() {
                     />
                     <p className="mt-1 text-xs text-gray-500">7 digits only</p>
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Clinical Role <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      required
+                      value={surgeonFormData.clinical_role}
+                      onChange={(e) => setSurgeonFormData({ ...surgeonFormData, clinical_role: e.target.value })}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="surgeon">Surgeon</option>
+                      <option value="anaesthetist">Anaesthetist</option>
+                      <option value="oncologist">Oncologist</option>
+                      <option value="radiologist">Radiologist</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
                 </div>
-                <div className="flex items-center p-4 bg-blue-50 border border-blue-200 rounded-md">
-                  <input
-                    type="checkbox"
-                    id="is_consultant"
-                    checked={surgeonFormData.is_consultant}
-                    onChange={(e) => setSurgeonFormData({ ...surgeonFormData, is_consultant: e.target.checked })}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="is_consultant" className="ml-2 block text-sm font-medium text-gray-900">
-                    <span className="text-blue-700">✓</span> Mark as Consultant
-                    <span className="block text-xs text-gray-600 mt-0.5">
-                      Consultants can be selected as lead clinicians for cancer episodes
-                    </span>
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                  <label className="block text-sm font-medium text-gray-900 mb-2">
+                    Subspecialty Leads
                   </label>
+                  <p className="text-xs text-gray-600 mb-3">
+                    Select which cancer subspecialties this clinician can lead
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { value: 'colorectal', label: 'Colorectal' },
+                      { value: 'urology', label: 'Urology' },
+                      { value: 'breast', label: 'Breast' },
+                      { value: 'upper_gi', label: 'Upper GI' },
+                      { value: 'gynae_onc', label: 'Gynae Onc' },
+                      { value: 'other', label: 'Other' }
+                    ].map((subspecialty) => (
+                      <label key={subspecialty.value} className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={surgeonFormData.subspecialty_leads.includes(subspecialty.value)}
+                          onChange={(e) => {
+                            const newLeads = e.target.checked
+                              ? [...surgeonFormData.subspecialty_leads, subspecialty.value]
+                              : surgeonFormData.subspecialty_leads.filter(s => s !== subspecialty.value)
+                            setSurgeonFormData({ ...surgeonFormData, subspecialty_leads: newLeads })
+                          }}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <span className="text-sm text-gray-700">{subspecialty.label}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
                 <div className="flex justify-end">
                   <Button type="submit" variant="success">
-                    {editingSurgeon ? 'Update Surgeon' : 'Add Surgeon'}
+                    {editingSurgeon ? 'Update Clinician' : 'Add Clinician'}
                   </Button>
                 </div>
               </form>
@@ -582,7 +623,10 @@ export function AdminPage() {
                       GMC Number
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Consultant
+                      Role
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Subspecialty Leads
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
@@ -592,8 +636,8 @@ export function AdminPage() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {surgeons.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">
-                        No surgeons found
+                      <td colSpan={6} className="px-6 py-8 text-center text-sm text-gray-500">
+                        No clinicians found
                       </td>
                     </tr>
                   ) : (
@@ -609,10 +653,19 @@ export function AdminPage() {
                           {surgeon.gmc_number || '—'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {surgeon.is_consultant ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                              ✓ Consultant
-                            </span>
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 capitalize">
+                            {surgeon.clinical_role || 'surgeon'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500">
+                          {surgeon.subspecialty_leads && surgeon.subspecialty_leads.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {surgeon.subspecialty_leads.map((lead) => (
+                                <span key={lead} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 capitalize">
+                                  {lead.replace('_', ' ')}
+                                </span>
+                              ))}
+                            </div>
                           ) : (
                             <span className="text-gray-400">—</span>
                           )}

@@ -292,7 +292,8 @@ export function EpisodesPage() {
         episode.episode_id.toLowerCase().includes(search) ||
         episode.patient_id.toLowerCase().includes(search) ||
         (episode.cancer_type && episode.cancer_type.toLowerCase().includes(search)) ||
-        (episode.lead_clinician && episode.lead_clinician.toLowerCase().includes(search))
+        (episode.lead_clinician && episode.lead_clinician.toLowerCase().includes(search)) ||
+        (episode.subspecialty_lead && episode.subspecialty_lead.toLowerCase().includes(search))
       )
     })
   }, [cancerEpisodes, searchTerm])
@@ -587,7 +588,11 @@ export function EpisodesPage() {
                       {formatDate(episode.referral_date)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatSurgeon(episode.lead_clinician)}
+                      {episode.subspecialty_lead ? (
+                        <span className="capitalize">{episode.subspecialty_lead.replace('_', ' ')}</span>
+                      ) : (
+                        <span className="text-gray-400">{formatSurgeon(episode.lead_clinician)}</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${

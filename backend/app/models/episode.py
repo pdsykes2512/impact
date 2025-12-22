@@ -75,7 +75,8 @@ class EpisodeBase(BaseModel):
     no_treatment_reason: Optional[str] = Field(None, description="CR0490: Reason if no treatment given")
     
     # Clinical team
-    lead_clinician: str = Field(..., min_length=1)
+    subspecialty_lead: Optional[str] = Field(None, description="Subspecialty: colorectal/urology/breast/upper_gi/gynae_onc/other")
+    lead_clinician: Optional[str] = Field(None, description="Name of lead consultant (for backward compatibility)")
     mdt_team: List[str] = Field(default_factory=list)
     
     # Episode status
@@ -420,7 +421,8 @@ class EpisodeCreate(BaseModel):
     performance_status: Optional[str] = None
     no_treatment_reason: Optional[str] = None
     
-    lead_clinician: str
+    subspecialty_lead: Optional[str] = None
+    lead_clinician: Optional[str] = None
     mdt_team: List[str] = Field(default_factory=list)
     episode_status: str = "active"
     created_by: str
@@ -442,6 +444,7 @@ class EpisodeUpdate(BaseModel):
     performance_status: Optional[str] = None
     no_treatment_reason: Optional[str] = None
     
+    subspecialty_lead: Optional[str] = None
     lead_clinician: Optional[str] = None
     mdt_team: Optional[List[str]] = None
     episode_status: Optional[str] = None
