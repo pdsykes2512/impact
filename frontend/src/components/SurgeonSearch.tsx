@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { SearchableSelect } from './SearchableSelect'
 
 interface Surgeon {
   _id: string
@@ -31,14 +32,7 @@ export function SurgeonSearch({
   className = ''
 }: SurgeonSearchProps) {
   const [surgeons, setSurgeons] = useState<Surgeon[]>([])
-  const [searchTerm, setSearchTerm] = useState(value || '')
-  const [showDropdown, setShowDropdown] = useState(false)
   const [loading, setLoading] = useState(false)
-
-  // Sync searchTerm with value prop when it changes
-  useEffect(() => {
-    setSearchTerm(value || '')
-  }, [value])
 
   // Fetch surgeons on mount
   useEffect(() => {
@@ -64,65 +58,49 @@ export function SurgeonSearch({
     fetchSurgeons()
   }, [consultantsOnly])
 
-  // Filter surgeons based on search and subspecialty
+  // Filter surgeons based on subspecialty
   const filteredSurgeons = surgeons.filter((s) => {
-    const matchesSearch = `${s.first_name} ${s.surname}`.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesSubspecialty = !subspecialtyFilter || 
       (s.subspecialty_leads && s.subspecialty_leads.includes(subspecialtyFilter))
-    return matchesSearch && matchesSubspecialty
+    return matchesSubspecialty
   })
 
-  const handleSelect = (surgeon: Surgeon) => {
-    const fullName = `${surgeon.first_name} ${surgeon.surname}`
-    onChange(fullName)
-    setSearchTerm(fullName)
-    setShowDropdown(false)
-  }
+  // Convert surgeons to options format
+  const options = filteredSurgeons.map(surgeon => ({
+    value: `${surgeon.first_name} ${surgeon.surname}`,
+    label: `${surgeon.first_name} ${surgeon.surname}`,
+    surgeon: surgeon
+  }))
 
   return (
-    <div className={className}>
-      {label && (
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          {label} {required && <span className="text-red-500">*</span>}
-        </label>
+    <SearchableSelect
+      value={value}
+      onChange={onChange}
+      options={options}
+      getOptionValue={(opt) => opt.value}
+      getOptionLabel={(opt) => opt.label}
+      renderOption={(opt) => (
+        <div>
+          <div className="font-medium">{opt.label}</div>
+          {opt.surgeon.gmc_number && (
+            <div className="text-xs text-gray-500">GMC: {opt.surgeon.gmc_number}</div>
+          )}
+          {opt.surgeon.subspecialty_leads && opt.surgeon.subspecialty_leads.length > 0 && (
+            <div className="flex gap-1 mt-1 flex-wrap">
+              {opt.surgeon.subspecialty_leads.map(lead => (
+                <span key={lead} className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 capitalize">
+                  {lead.replace('_', ' ')}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
       )}
-      <div className="relative">
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={(e) => {
-            setSearchTerm(e.target.value)
-            onChange(e.target.value)
-            setShowDropdown(true)
-          }}
-          onFocus={() => setShowDropdown(true)}
-          onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          placeholder={placeholder}
-          disabled={loading}
-        />
-        {showDropdown && filteredSurgeons.length > 0 && (
-          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-            {filteredSurgeons.map((surgeon) => (
-              <div
-                key={surgeon._id}
-                onMouseDown={() => handleSelect(surgeon)}
-                className="px-4 py-2 hover:bg-blue-50 cursor-pointer"
-              >
-                <div className="font-medium">{surgeon.first_name} {surgeon.surname}</div>
-                {surgeon.gmc_number && (
-                  <div className="text-xs text-gray-500">GMC: {surgeon.gmc_number}</div>
-                )}
-                {surgeon.is_consultant && (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mt-1">
-                    Consultant
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+      label={label}
+      required={required}
+      placeholder={placeholder}
+      className={className}
+      disabled={loading}
+    />
   )
 }
