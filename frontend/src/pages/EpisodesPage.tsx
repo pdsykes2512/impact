@@ -55,12 +55,8 @@ export function EpisodesPage() {
   
   // Filters
   const [urgencyFilter, setUrgencyFilter] = useState('')
-  const [surgeonFilter, setSurgeonFilter] = useState('')
   const [startDateFilter, setStartDateFilter] = useState('')
   const [endDateFilter, setEndDateFilter] = useState('')
-  const [surgeons, setSurgeons] = useState<any[]>([])
-  const [surgeonSearch, setSurgeonSearch] = useState('')
-  const [showSurgeonDropdown, setShowSurgeonDropdown] = useState(false)
 
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
     const id = Date.now().toString()
@@ -71,26 +67,6 @@ export function EpisodesPage() {
     setToasts(prev => prev.filter(toast => toast.id !== id))
   }, [])
 
-  // Fetch surgeons list
-  useEffect(() => {
-    const fetchSurgeons = async () => {
-      try {
-        const response = await fetch('http://localhost:8000/api/admin/surgeons', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        })
-        if (response.ok) {
-          const data = await response.json()
-          setSurgeons(data)
-        }
-      } catch (error) {
-        console.error('Error fetching surgeons:', error)
-      }
-    }
-    fetchSurgeons()
-  }, [])
-
   const loadEpisodes = useCallback(async () => {
     try {
       setLoading(true)
@@ -99,7 +75,6 @@ export function EpisodesPage() {
         params.patient_id = patientId
       }
       if (urgencyFilter) params.urgency = urgencyFilter
-      if (surgeonFilter) params.primary_surgeon = surgeonFilter
       if (startDateFilter) params.start_date = startDateFilter
       if (endDateFilter) params.end_date = endDateFilter
 
@@ -110,7 +85,6 @@ export function EpisodesPage() {
       // Load new cancer episodes from V2 API
       const cancerParams = new URLSearchParams()
       if (patientId) cancerParams.append('patient_id', patientId)
-      if (surgeonFilter) cancerParams.append('lead_clinician', surgeonFilter)
       if (startDateFilter) cancerParams.append('start_date', startDateFilter)
       if (endDateFilter) cancerParams.append('end_date', endDateFilter)
 
@@ -132,7 +106,7 @@ export function EpisodesPage() {
     } finally {
       setLoading(false)
     }
-  }, [patientId, urgencyFilter, surgeonFilter, startDateFilter, endDateFilter])
+  }, [patientId, urgencyFilter, startDateFilter, endDateFilter])
 
   const loadPatientInfo = useCallback(async () => {
     if (!patientId) return
@@ -397,7 +371,7 @@ export function EpisodesPage() {
           </div>
 
           {/* Filter dropdowns */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Urgency</label>
               <select
@@ -410,70 +384,6 @@ export function EpisodesPage() {
                 <option value="urgent">Urgent</option>
                 <option value="emergency">Emergency</option>
               </select>
-            </div>
-
-            <div className="relative">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Surgeon</label>
-              <input
-                type="text"
-                placeholder="Type to search surgeons..."
-                value={surgeonSearch || surgeonFilter}
-                onChange={(e) => {
-                  setSurgeonSearch(e.target.value)
-                  setShowSurgeonDropdown(true)
-                }}
-                onFocus={() => setShowSurgeonDropdown(true)}
-                onBlur={() => setTimeout(() => setShowSurgeonDropdown(false), 200)}
-                className="w-full h-10 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
-              {showSurgeonDropdown && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                  <div
-                    onClick={() => {
-                      setSurgeonFilter('')
-                      setSurgeonSearch('')
-                      setShowSurgeonDropdown(false)
-                    }}
-                    className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 text-gray-500 italic"
-                  >
-                    All Surgeons
-                  </div>
-                  {surgeons
-                    .filter(surgeon => {
-                      const searchLower = (surgeonSearch || '').toLowerCase()
-                      const fullName = `${surgeon.first_name} ${surgeon.surname}`.toLowerCase()
-                      const reverseName = `${surgeon.surname} ${surgeon.first_name}`.toLowerCase()
-                      return fullName.includes(searchLower) || reverseName.includes(searchLower)
-                    })
-                    .map((surgeon) => (
-                      <div
-                        key={surgeon._id}
-                        onClick={() => {
-                          const surgeonName = `${surgeon.first_name} ${surgeon.surname}`
-                          setSurgeonFilter(surgeonName)
-                          setSurgeonSearch('')
-                          setShowSurgeonDropdown(false)
-                        }}
-                        className="px-3 py-2 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                      >
-                        <div className="font-medium text-gray-900">
-                          {surgeon.surname}, {surgeon.first_name}
-                        </div>
-                        {surgeon.gmc_number && (
-                          <div className="text-xs text-gray-500">GMC: {surgeon.gmc_number}</div>
-                        )}
-                      </div>
-                    ))}
-                  {surgeons.filter(surgeon => {
-                    const searchLower = (surgeonSearch || '').toLowerCase()
-                    const fullName = `${surgeon.first_name} ${surgeon.surname}`.toLowerCase()
-                    const reverseName = `${surgeon.surname} ${surgeon.first_name}`.toLowerCase()
-                    return fullName.includes(searchLower) || reverseName.includes(searchLower)
-                  }).length === 0 && (
-                    <div className="px-3 py-2 text-sm text-gray-500">No surgeons found</div>
-                  )}
-                </div>
-              )}
             </div>
 
             <div>
@@ -497,13 +407,12 @@ export function EpisodesPage() {
             </div>
           </div>
 
-          {(urgencyFilter || surgeonFilter || startDateFilter || endDateFilter) && (
+          {(urgencyFilter || startDateFilter || endDateFilter) && (
             <div className="flex justify-end">
               <Button
                 variant="secondary"
                 onClick={() => {
                   setUrgencyFilter('')
-                  setSurgeonFilter('')
                   setStartDateFilter('')
                   setEndDateFilter('')
                 }}
@@ -528,7 +437,7 @@ export function EpisodesPage() {
             </svg>
             <h3 className="text-lg font-medium text-gray-900 mb-2">No Episode Records</h3>
             <p className="text-gray-500">
-              {searchTerm || urgencyFilter || surgeonFilter || startDateFilter || endDateFilter
+              {searchTerm || urgencyFilter || startDateFilter || endDateFilter
                 ? 'No episodes match your search criteria'
                 : 'No episodes recorded yet'}
             </p>
