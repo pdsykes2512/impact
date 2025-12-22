@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import axios from 'axios'
 import { useAuth } from '../contexts/AuthContext'
 import { PageHeader } from '../components/PageHeader'
@@ -60,7 +60,7 @@ export function AdminPage() {
     fetchSurgeons()
   }, [])
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const response = await axios.get(`${API_URL}/api/admin/users`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -71,9 +71,9 @@ export function AdminPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [token])
 
-  const fetchSurgeons = async () => {
+  const fetchSurgeons = useCallback(async () => {
     try {
       const response = await axios.get(`${API_URL}/api/admin/surgeons`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -82,7 +82,7 @@ export function AdminPage() {
     } catch (err) {
       setError('Failed to fetch surgeons')
     }
-  }
+  }, [token])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

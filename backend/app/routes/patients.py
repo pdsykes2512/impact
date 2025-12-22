@@ -47,15 +47,27 @@ async def list_patients(skip: int = 0, limit: int = 100):
     collection = await get_patients_collection()
     surgeries_collection = await get_surgeries_collection()
     
+    # Fetch patients
     cursor = collection.find().skip(skip).limit(limit)
     patients = await cursor.to_list(length=limit)
+    
+    # Get all record numbers
+    record_numbers = [p["record_number"] for p in patients]
+    
+    # Single aggregation to count episodes for all patients
+    episode_counts = {}
+    if record_numbers:
+        pipeline = [
+            {"$match": {"patient_id": {"$in": record_numbers}}},
+            {"$group": {"_id": "$patient_id", "count": {"$sum": 1}}}
+        ]
+        async for doc in surgeries_collection.aggregate(pipeline):
+            episode_counts[doc["_id"]] = doc["count"]
     
     # Convert ObjectId to string and add episode count
     for patient in patients:
         patient["_id"] = str(patient["_id"])
-        # Count episodes for this patient
-        episode_count = await surgeries_collection.count_documents({"patient_id": patient["record_number"]})
-        patient["episode_count"] = episode_count
+        patient["episode_count"] = episode_counts.get(patient["record_number"], 0)
     
     return [Patient(**patient) for patient in patients]
 

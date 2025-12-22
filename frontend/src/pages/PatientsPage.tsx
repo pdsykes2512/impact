@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader'
 import { Card } from '../components/Card'
@@ -76,11 +76,7 @@ export function PatientsPage() {
     },
   });
 
-  useEffect(() => {
-    loadPatients();
-  }, []);
-
-  const loadPatients = async () => {
+  const loadPatients = useCallback(async () => {
     try {
       setLoading(true);
       const response = await api.get('/patients');
@@ -90,7 +86,11 @@ export function PatientsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadPatients();
+  }, [loadPatients]);
 
   const handleInputChange = (field: string, value: any) => {
     const keys = field.split('.');
@@ -235,14 +235,16 @@ export function PatientsPage() {
     setError('');
   };
 
-  // Filter patients based on search term
-  const filteredPatients = patients.filter(patient => {
-    if (!searchTerm) return true;
-    const search = searchTerm.toLowerCase().replace(/\s/g, '');
-    const recordNumber = patient.record_number.toLowerCase().replace(/\s/g, '');
-    const nhsNumber = patient.nhs_number.toLowerCase().replace(/\s/g, '');
-    return recordNumber.includes(search) || nhsNumber.includes(search);
-  });
+  // Filter patients based on search term (memoized for performance)
+  const filteredPatients = useMemo(() => {
+    return patients.filter(patient => {
+      if (!searchTerm) return true;
+      const search = searchTerm.toLowerCase().replace(/\s/g, '');
+      const recordNumber = patient.record_number.toLowerCase().replace(/\s/g, '');
+      const nhsNumber = patient.nhs_number.toLowerCase().replace(/\s/g, '');
+      return recordNumber.includes(search) || nhsNumber.includes(search);
+    });
+  }, [patients, searchTerm]);
 
   return (
     <div className="space-y-6">

@@ -16,48 +16,73 @@ async def get_summary_report() -> Dict[str, Any]:
     """Get overall outcome statistics"""
     collection = await get_surgeries_collection()
     
-    # Total surgeries
-    total_surgeries = await collection.count_documents({})
+    # Use single aggregation pipeline to get all stats in one query for efficiency
+    pipeline = [
+        {
+            "$facet": {
+                "total": [{"$count": "count"}],
+                "complications": [
+                    {"$match": {"postoperative_events.complications": {"$exists": True, "$ne": []}}},
+                    {"$count": "count"}
+                ],
+                "readmissions": [
+                    {"$match": {"outcomes.readmission_30day": True}},
+                    {"$count": "count"}
+                ],
+                "mortality": [
+                    {"$match": {"outcomes.mortality_30day": True}},
+                    {"$count": "count"}
+                ],
+                "return_to_theatre": [
+                    {"$match": {"postoperative_events.return_to_theatre.occurred": True}},
+                    {"$count": "count"}
+                ],
+                "escalation": [
+                    {"$match": {"postoperative_events.escalation_of_care.occurred": True}},
+                    {"$count": "count"}
+                ],
+                "avg_los": [
+                    {"$match": {"perioperative_timeline.length_of_stay_days": {"$exists": True, "$ne": None}}},
+                    {"$group": {"_id": None, "avg": {"$avg": "$perioperative_timeline.length_of_stay_days"}}}
+                ],
+                "urgency": [
+                    {"$group": {"_id": "$classification.urgency", "count": {"$sum": 1}}}
+                ]
+            }
+        }
+    ]
     
-    # Complications (using new postoperative_events structure)
-    surgeries_with_complications = await collection.count_documents({
-        "postoperative_events.complications": {"$exists": True, "$ne": []}
-    })
+    result = await collection.aggregate(pipeline).to_list(length=1)
+    if not result:
+        return {"total_surgeries": 0, "complication_rate": 0, "readmission_rate": 0, "mortality_rate": 0, 
+                "return_to_theatre_rate": 0, "escalation_rate": 0, "avg_length_of_stay_days": 0, 
+                "urgency_breakdown": {}, "generated_at": datetime.utcnow().isoformat()}
+    
+    stats = result[0]
+    total_surgeries = stats["total"][0]["count"] if stats["total"] else 0
+    
+    surgeries_with_complications = stats["complications"][0]["count"] if stats["complications"] else 0
     complication_rate = (surgeries_with_complications / total_surgeries * 100) if total_surgeries > 0 else 0
     
-    # Readmissions
-    readmissions = await collection.count_documents({"outcomes.readmission_30day": True})
+    readmissions = stats["readmissions"][0]["count"] if stats["readmissions"] else 0
     readmission_rate = (readmissions / total_surgeries * 100) if total_surgeries > 0 else 0
     
-    # Mortality (30-day)
-    mortality_count = await collection.count_documents({"outcomes.mortality_30day": True})
+    mortality_count = stats["mortality"][0]["count"] if stats["mortality"] else 0
     mortality_rate = (mortality_count / total_surgeries * 100) if total_surgeries > 0 else 0
     
-    # Return to theatre
-    return_to_theatre = await collection.count_documents({
-        "postoperative_events.return_to_theatre.occurred": True
-    })
+    return_to_theatre = stats["return_to_theatre"][0]["count"] if stats["return_to_theatre"] else 0
     return_to_theatre_rate = (return_to_theatre / total_surgeries * 100) if total_surgeries > 0 else 0
     
-    # ICU/HDU escalation
-    escalation_of_care = await collection.count_documents({
-        "postoperative_events.escalation_of_care.occurred": True
-    })
+    escalation_of_care = stats["escalation"][0]["count"] if stats["escalation"] else 0
     escalation_rate = (escalation_of_care / total_surgeries * 100) if total_surgeries > 0 else 0
     
-    # Average length of stay
-    pipeline = [
-        {"$match": {"perioperative_timeline.length_of_stay_days": {"$exists": True, "$ne": None}}},
-        {"$group": {"_id": None, "avg_los": {"$avg": "$perioperative_timeline.length_of_stay_days"}}}
-    ]
-    avg_los_result = await collection.aggregate(pipeline).to_list(length=1)
-    avg_length_of_stay = round(avg_los_result[0]["avg_los"], 2) if avg_los_result else 0
+    avg_length_of_stay = round(stats["avg_los"][0]["avg"], 2) if stats["avg_los"] and stats["avg_los"][0] else 0
     
-    # Surgeries by urgency
-    urgency_breakdown = {}
+    urgency_breakdown = {item["_id"]: item["count"] for item in stats["urgency"] if item["_id"]}
+    # Ensure all urgencies are present
     for urgency in ["elective", "emergency", "urgent"]:
-        count = await collection.count_documents({"classification.urgency": urgency})
-        urgency_breakdown[urgency] = count
+        if urgency not in urgency_breakdown:
+            urgency_breakdown[urgency] = 0
     
     return {
         "total_surgeries": total_surgeries,

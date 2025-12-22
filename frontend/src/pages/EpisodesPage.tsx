@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { PageHeader } from '../components/PageHeader'
 import { Card } from '../components/Card'
@@ -49,14 +49,14 @@ export function EpisodesPage() {
   const [surgeonSearch, setSurgeonSearch] = useState('')
   const [showSurgeonDropdown, setShowSurgeonDropdown] = useState(false)
 
-  const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
     const id = Date.now().toString()
     setToasts(prev => [...prev, { id, message, type }])
-  }
+  }, [])
 
-  const removeToast = (id: string) => {
+  const removeToast = useCallback((id: string) => {
     setToasts(prev => prev.filter(toast => toast.id !== id))
-  }
+  }, [])
 
   // Fetch surgeons list
   useEffect(() => {
@@ -78,25 +78,7 @@ export function EpisodesPage() {
     fetchSurgeons()
   }, [])
 
-  useEffect(() => {
-    loadEpisodes()
-    if (patientId) {
-      loadPatientInfo()
-    }
-  }, [urgencyFilter, surgeonFilter, startDateFilter, endDateFilter, patientId])
-
-  const loadPatientInfo = async () => {
-    if (!patientId) return
-    try {
-      const response = await api.get(`/patients/${patientId}`)
-      setPatientInfo(response.data)
-    } catch (error) {
-      console.error('Failed to load patient info:', error)
-      showToast('Failed to load patient information', 'error')
-    }
-  }
-
-  const loadEpisodes = async () => {
+  const loadEpisodes = useCallback(async () => {
     try {
       setLoading(true)
       const params: any = {}
@@ -115,7 +97,25 @@ export function EpisodesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [patientId, urgencyFilter, surgeonFilter, startDateFilter, endDateFilter])
+
+  const loadPatientInfo = useCallback(async () => {
+    if (!patientId) return
+    try {
+      const response = await api.get(`/patients/${patientId}`)
+      setPatientInfo(response.data)
+    } catch (error) {
+      console.error('Failed to load patient info:', error)
+      showToast('Failed to load patient information', 'error')
+    }
+  }, [patientId, showToast])
+
+  useEffect(() => {
+    loadEpisodes()
+    if (patientId) {
+      loadPatientInfo()
+    }
+  }, [loadEpisodes, patientId, loadPatientInfo])
 
   const handleCreate = async (data: any) => {
     try {
@@ -158,18 +158,20 @@ export function EpisodesPage() {
     }
   }
 
-  const filteredEpisodes = episodes.filter(episode => {
-    if (!searchTerm) return true
-    const search = searchTerm.toLowerCase()
-    return (
-      episode.surgery_id.toLowerCase().includes(search) ||
-      episode.patient_id.toLowerCase().includes(search) ||
-      episode.procedure.primary_procedure.toLowerCase().includes(search) ||
-      episode.team.primary_surgeon.toLowerCase().includes(search)
-    )
-  })
+  const filteredEpisodes = useMemo(() => {
+    return episodes.filter(episode => {
+      if (!searchTerm) return true
+      const search = searchTerm.toLowerCase()
+      return (
+        episode.surgery_id.toLowerCase().includes(search) ||
+        episode.patient_id.toLowerCase().includes(search) ||
+        episode.procedure.primary_procedure.toLowerCase().includes(search) ||
+        episode.team.primary_surgeon.toLowerCase().includes(search)
+      )
+    })
+  }, [episodes, searchTerm])
 
-  const formatDate = (dateStr: string) => {
+  const formatDate = useCallback((dateStr: string) => {
     try {
       return new Date(dateStr).toLocaleDateString('en-GB', {
         day: '2-digit',
