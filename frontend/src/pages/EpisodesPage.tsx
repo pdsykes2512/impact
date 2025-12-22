@@ -723,6 +723,10 @@ export function EpisodesPage() {
             setShowCancerDetailModal(false)
             setSelectedCancerEpisode(null)
           }}
+          onEdit={(episode) => {
+            setEditingCancerEpisode(episode)
+            setShowCancerModal(true)
+          }}
         />
       )}
 
