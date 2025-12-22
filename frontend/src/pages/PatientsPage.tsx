@@ -614,7 +614,7 @@ export function PatientsPage() {
                     onClick={() => navigate(`/episodes/${patient.record_number}`)}
                     title="Click to view episodes for this patient"
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {patient.record_number}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
