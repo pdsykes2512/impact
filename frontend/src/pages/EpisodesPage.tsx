@@ -181,7 +181,7 @@ export function EpisodesPage() {
     } catch {
       return dateStr
     }
-  }
+  }, [])
 
   const getUrgencyColor = (urgency: string) => {
     switch (urgency) {
