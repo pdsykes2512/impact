@@ -36,8 +36,8 @@ async def get_summary_report() -> Dict[str, Any]:
     
     # Calculate metrics - using flat structure from AddTreatmentModal
     surgeries_with_complications = sum(1 for t in all_treatments if t.get('complications'))
-    readmissions = sum(1 for t in all_treatments if t.get('readmission_30day'))
-    mortality_count = sum(1 for t in all_treatments if t.get('mortality_30day'))
+    readmissions = sum(1 for t in all_treatments if t.get('readmission_30d'))
+    mortality_count = sum(1 for t in all_treatments if t.get('mortality_30d'))
     return_to_theatre = sum(1 for t in all_treatments if t.get('return_to_theatre'))
     escalation_of_care = sum(1 for t in all_treatments if t.get('icu_admission'))
     
@@ -105,9 +105,9 @@ async def get_surgeon_performance() -> Dict[str, Any]:
         # Using flat fields from AddTreatmentModal
         if treatment.get('complications'):
             stats['surgeries_with_complications'] += 1
-        if treatment.get('readmission_30day'):
+        if treatment.get('readmission_30d'):
             stats['readmissions'] += 1
-        if treatment.get('mortality_30day'):
+        if treatment.get('mortality_30d'):
             stats['mortality_30day'] += 1
         if treatment.get('return_to_theatre'):
             stats['return_to_theatre_count'] += 1
