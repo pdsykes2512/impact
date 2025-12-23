@@ -11,6 +11,24 @@ export const capitalize = (str: string): string => {
 }
 
 /**
+ * Normalize string to lowercase for backend storage
+ * Should be used before sending data to API
+ */
+export const normalizeForStorage = (str: string): string => {
+  if (!str) return ''
+  return str.toLowerCase().trim()
+}
+
+/**
+ * Format string for display (capitalize first letter)
+ * Should be used when displaying data from backend
+ */
+export const formatForDisplay = (str: string): string => {
+  if (!str) return ''
+  return capitalize(str)
+}
+
+/**
  * Convert snake_case to Title Case
  */
 export const snakeToTitle = (str: string): string => {
@@ -127,6 +145,56 @@ export const formatTreatmentType = (type: string): string => {
   }
   
   return typeMap[type.toLowerCase()] || snakeToTitle(type)
+}
+
+/**
+ * Format urgency level for display
+ */
+export const formatUrgency = (urgency: string): string => {
+  if (!urgency) return '-'
+  
+  const urgencyMap: Record<string, string> = {
+    'elective': 'Elective',
+    'urgent': 'Urgent',
+    'emergency': 'Emergency',
+    'expedited': 'Expedited'
+  }
+  
+  return urgencyMap[urgency.toLowerCase()] || capitalize(urgency)
+}
+
+/**
+ * Format approach for display
+ */
+export const formatApproach = (approach: string): string => {
+  if (!approach) return '-'
+  
+  const approachMap: Record<string, string> = {
+    'open': 'Open',
+    'laparoscopic': 'Laparoscopic',
+    'robotic': 'Robotic',
+    'endoscopic': 'Endoscopic',
+    'converted': 'Converted'
+  }
+  
+  return approachMap[approach.toLowerCase()] || capitalize(approach)
+}
+
+/**
+ * Normalize object fields for backend storage
+ * Converts specified string fields to lowercase
+ */
+export const normalizeObjectForStorage = (obj: any, fields: string[]): any => {
+  if (!obj) return obj
+  
+  const normalized = { ...obj }
+  fields.forEach(field => {
+    if (normalized[field] && typeof normalized[field] === 'string') {
+      normalized[field] = normalizeForStorage(normalized[field])
+    }
+  })
+  
+  return normalized
 }
 
 /**
