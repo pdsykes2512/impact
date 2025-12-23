@@ -40,7 +40,7 @@ export function TumourSummaryModal({ tumour, onClose, onEdit }: TumourSummaryMod
   const Field = ({ label, value }: { label: string, value: any }) => {
     if (!value && value !== 0 && value !== false) return null
     return (
-      <div className="grid grid-cols-3 gap-4 py-1">
+      <div className="grid grid-cols-3 gap-4 py-2">
         <dt className="text-sm font-medium text-gray-500">{label}</dt>
         <dd className="text-sm text-gray-900 col-span-2">{value}</dd>
       </div>
@@ -94,7 +94,7 @@ export function TumourSummaryModal({ tumour, onClose, onEdit }: TumourSummaryMod
           <Section title="Clinical Staging">
             <Field label="TNM Version" value={tumour.tnm_version ? `Version ${tumour.tnm_version}` : undefined} />
             {(tumour.clinical_t || tumour.clinical_n || tumour.clinical_m) && (
-              <div className="grid grid-cols-3 gap-4 py-1">
+              <div className="grid grid-cols-3 gap-4 py-2">
                 <dt className="text-sm font-medium text-gray-500">TNM (cTNM)</dt>
                 <dd className="text-sm text-gray-900 col-span-2">
                   <span className="font-mono">
@@ -118,7 +118,7 @@ export function TumourSummaryModal({ tumour, onClose, onEdit }: TumourSummaryMod
           {/* Pathological Staging (TNM) */}
           <Section title="Pathological Staging">
             {(tumour.pathological_t || tumour.pathological_n || tumour.pathological_m) && (
-              <div className="grid grid-cols-3 gap-4 py-1">
+              <div className="grid grid-cols-3 gap-4 py-2">
                 <dt className="text-sm font-medium text-gray-500">TNM (pTNM)</dt>
                 <dd className="text-sm text-gray-900 col-span-2">
                   <span className="font-mono">
@@ -146,7 +146,7 @@ export function TumourSummaryModal({ tumour, onClose, onEdit }: TumourSummaryMod
               <Field label="Histology Type" value={tumour.histology_type?.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())} />
               <Field label="Grade" value={tumour.grade?.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())} />
               {(tumour.lymphovascular_invasion !== undefined || tumour.perineural_invasion !== undefined) && (
-                <div className="grid grid-cols-3 gap-4 py-1">
+                <div className="grid grid-cols-3 gap-4 py-2">
                   <dt className="text-sm font-medium text-gray-500">Invasion</dt>
                   <dd className="text-sm text-gray-900 col-span-2">
                     {tumour.lymphovascular_invasion !== undefined && (
@@ -165,7 +165,7 @@ export function TumourSummaryModal({ tumour, onClose, onEdit }: TumourSummaryMod
           {/* Lymph Nodes */}
           {(tumour.lymph_nodes_examined !== undefined || tumour.lymph_nodes_positive !== undefined) && (
             <Section title="Lymph Nodes">
-              <div className="grid grid-cols-3 gap-4 py-1">
+              <div className="grid grid-cols-3 gap-4 py-2">
                 <dt className="text-sm font-medium text-gray-500">Nodes</dt>
                 <dd className="text-sm text-gray-900 col-span-2">
                   {tumour.lymph_nodes_positive !== undefined && tumour.lymph_nodes_examined !== undefined ? (
@@ -201,7 +201,7 @@ export function TumourSummaryModal({ tumour, onClose, onEdit }: TumourSummaryMod
                   }
                 />
               )}
-              <div className="grid grid-cols-3 gap-4 py-1">
+              <div className="grid grid-cols-3 gap-4 py-2">
                 <dt className="text-sm font-medium text-gray-500">Margins (mm)</dt>
                 <dd className="text-sm text-gray-900 col-span-2">
                   {tumour.crm_distance_mm !== undefined && (
@@ -221,7 +221,7 @@ export function TumourSummaryModal({ tumour, onClose, onEdit }: TumourSummaryMod
           {/* Molecular/Genetic */}
           {(tumour.msi_status || tumour.kras_status || tumour.nras_status || tumour.braf_status) && (
             <Section title="Molecular Markers">
-              <div className="grid grid-cols-3 gap-4 py-1">
+              <div className="grid grid-cols-3 gap-4 py-2">
                 <dt className="text-sm font-medium text-gray-500">Biomarkers</dt>
                 <dd className="text-sm text-gray-900 col-span-2">
                   {tumour.msi_status && (

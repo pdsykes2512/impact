@@ -34,7 +34,7 @@ export function TreatmentSummaryModal({ treatment, onClose, onEdit }: TreatmentS
   const Field = ({ label, value }: { label: string, value: any }) => {
     if (!value && value !== 0 && value !== false) return null
     return (
-      <div className="grid grid-cols-3 gap-4 py-1">
+      <div className="grid grid-cols-3 gap-4 py-2">
         <dt className="text-sm font-medium text-gray-500">{label}</dt>
         <dd className="text-sm text-gray-900 col-span-2">{value}</dd>
       </div>
