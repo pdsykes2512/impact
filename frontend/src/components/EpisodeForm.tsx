@@ -127,7 +127,7 @@ export function EpisodeForm({ onSubmit, onCancel, initialData, mode = 'create' }
     team: {
       primary_surgeon: '',
       assistant_surgeons: [],
-      anesthesiologist: '',
+      anaesthetist: '',
       scrub_nurse: '',
       circulating_nurse: ''
     },

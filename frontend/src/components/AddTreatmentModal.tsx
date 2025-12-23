@@ -159,7 +159,13 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
         assistant_surgeons: initialData.assistant_surgeons || [],
         specimens_sent: initialData.specimens_sent || [],
         drain_types: initialData.drain_types || [],
-        complications: initialData.complications || []
+        complications: initialData.complications || [],
+        // Convert numeric fields to strings for form inputs
+        asa_score: initialData.asa_score ? String(initialData.asa_score) : '',
+        blood_loss_ml: initialData.blood_loss_ml ? String(initialData.blood_loss_ml) : '',
+        units_transfused: initialData.units_transfused ? String(initialData.units_transfused) : '',
+        anesthesia_duration_minutes: initialData.anesthesia_duration_minutes ? String(initialData.anesthesia_duration_minutes) : '',
+        operation_duration_minutes: initialData.operation_duration_minutes ? String(initialData.operation_duration_minutes) : ''
       }
     }
     return {
@@ -178,7 +184,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
     asa_score: '',
     surgeon: '',
     assistant_surgeons: [] as string[],
-    anesthesiologist: '',
+    anaesthetist: '',
     
     // Timing
     admission_date: '',
@@ -266,7 +272,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
       
       // Team
       treatment.surgeon = formData.surgeon
-      if (formData.anesthesiologist) treatment.anesthesiologist = formData.anesthesiologist
+      if (formData.anaesthetist) treatment.anaesthetist = formData.anaesthetist
       
       // Timeline
       if (formData.admission_date) treatment.admission_date = formData.admission_date
@@ -531,18 +537,15 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                   required
                   placeholder="Type to search surgeons..."
                 />
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Anesthesiologist
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.anesthesiologist}
-                    onChange={(e) => setFormData({ ...formData, anesthesiologist: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="Dr. Name"
-                  />
-                </div>
+                <SurgeonSearch
+                  value={formData.anaesthetist}
+                  onChange={(name) => {
+                    setFormData({ ...formData, anaesthetist: name })
+                  }}
+                  label="Anaesthetist"
+                  roleFilter="anaesthetist"
+                  placeholder="Type to search anaesthetists..."
+                />
               </div>
 
               {/* Timeline */}

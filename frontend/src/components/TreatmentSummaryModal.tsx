@@ -88,7 +88,7 @@ export function TreatmentSummaryModal({ treatment, onClose, onEdit }: TreatmentS
                 <Field label="Urgency" value={treatment.urgency?.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())} />
                 <Field label="Complexity" value={treatment.complexity?.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())} />
                 <Field label="ASA Score" value={treatment.asa_score ? `ASA ${treatment.asa_score}` : undefined} />
-                <Field label="Anesthesiologist" value={treatment.anesthesiologist} />
+                <Field label="Anaesthetist" value={treatment.anaesthetist} />
                 <Field label="Anesthesia Type" value={treatment.anesthesia_type?.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())} />
                 <Field label="Anastomosis" value={treatment.anastomosis !== undefined ? (treatment.anastomosis ? 'Yes' : 'No') : undefined} />
                 <Field label="Stoma Created" value={treatment.stoma_created !== undefined ? (treatment.stoma_created ? 'Yes' : 'No') : undefined} />

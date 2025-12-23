@@ -68,7 +68,7 @@ class SurgicalTeam(BaseModel):
     """Surgical team members"""
     primary_surgeon: str = Field(..., min_length=1)
     assistant_surgeons: List[str] = Field(default_factory=list)
-    anesthesiologist: Optional[str] = None
+    anaesthetist: Optional[str] = None
     scrub_nurse: Optional[str] = None
     circulating_nurse: Optional[str] = None
 
