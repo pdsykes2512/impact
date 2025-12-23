@@ -511,13 +511,13 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
                             {tumour.grade && (
                               <div>
                                 <span className="text-gray-500">Grade:</span>
-                                <span className="ml-1 text-gray-900">{tumour.grade}</span>
+                                <span className="ml-1 text-gray-900">{formatFieldValue(tumour.grade)}</span>
                               </div>
                             )}
                             {tumour.stage && (
                               <div>
                                 <span className="text-gray-500">Stage:</span>
-                                <span className="ml-1 text-gray-900">{tumour.stage}</span>
+                                <span className="ml-1 text-gray-900">{formatFieldValue(tumour.stage)}</span>
                               </div>
                             )}
                           </div>
