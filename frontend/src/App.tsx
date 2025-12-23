@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { HomePage } from './pages/HomePage'
 import { PatientsPage } from './pages/PatientsPage'
+import { CancerEpisodesPage } from './pages/CancerEpisodesPage'
 import { ReportsPage } from './pages/ReportsPage'
 import { LoginPage } from './pages/LoginPage'
 import { AdminPage } from './pages/AdminPage'
@@ -35,11 +36,23 @@ function App() {
         />
         <Route
           path="/episodes/:patientId"
-          element={<Navigate to="/" replace />}
+          element={
+            <ProtectedRoute requiredRoles={['data_entry', 'surgeon', 'admin']}>
+              <Layout>
+                <CancerEpisodesPage />
+              </Layout>
+            </ProtectedRoute>
+          }
         />
         <Route
           path="/episodes"
-          element={<Navigate to="/" replace />}
+          element={
+            <ProtectedRoute requiredRoles={['data_entry', 'surgeon', 'admin']}>
+              <Layout>
+                <CancerEpisodesPage />
+              </Layout>
+            </ProtectedRoute>
+          }
         />
         <Route
           path="/reports"
