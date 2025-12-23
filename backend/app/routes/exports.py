@@ -132,7 +132,7 @@ def create_episode_xml(episode: dict, patient: dict, treatments: list, tumours: 
         # ICD-10 code (CR0370) - MANDATORY for NBOCA
         if tumour.get("icd10_code"):
             icd = ET.SubElement(diagnosis_elem, "PrimaryDiagnosisICD")
-        icd.text = tumour["icd10_code"]
+            icd.text = tumour["icd10_code"]
         
         # SNOMED morphology code (CR6400)
         if tumour.get("snomed_morphology_code"):
