@@ -109,6 +109,27 @@ export function HomePage() {
         }
       />
 
+      <Card>
+        <div className="flex items-center space-x-4">
+          <div className="flex-shrink-0">
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </div>
+          </div>
+          <div>
+            <h3 className="text-lg font-medium text-gray-900">Welcome, {user?.full_name}</h3>
+            <p className="text-sm text-gray-500">{user?.email}</p>
+            <p className="text-sm text-gray-500 mt-1">
+              Role: <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                {user?.role}
+              </span>
+            </p>
+          </div>
+        </div>
+      </Card>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card hover>
           <div className="flex items-center">
@@ -158,27 +179,6 @@ export function HomePage() {
           </div>
         </Card>
       </div>
-
-      <Card>
-        <div className="flex items-center space-x-4">
-          <div className="flex-shrink-0">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </div>
-          </div>
-          <div>
-            <h3 className="text-lg font-medium text-gray-900">Welcome, {user?.full_name}</h3>
-            <p className="text-sm text-gray-500">{user?.email}</p>
-            <p className="text-sm text-gray-500 mt-1">
-              Role: <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                {user?.role}
-              </span>
-            </p>
-          </div>
-        </div>
-      </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
