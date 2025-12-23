@@ -77,15 +77,76 @@ An episode represents a patient's contact with the hospital for a specific condi
 - `condition_type` (enum): cancer|ibd|benign
 - `cancer_type` (enum): bowel|kidney|breast_primary|breast_metastatic|oesophageal|ovarian|prostate
 - `cancer_data` (object): Cancer-specific clinical data
-- `treatments` (array): List of treatments
 - `referral_date`, `first_seen_date`, `mdt_discussion_date`
 - `lead_clinician`, `mdt_team`
 - `episode_status`: active|completed|cancelled
 - Audit fields: created_at, created_by, last_modified_at, last_modified_by
 
+**Note**: As of 2024-12-23, treatments and tumours are stored in **separate collections** with `episode_id` references (see below).
+
+#### treatments
+- `treatment_id` (string, unique): Treatment identifier
+- `episode_id` (string): Reference to parent episode (as string of ObjectId)
+- `patient_id` (string): Patient MRN (denormalized for query performance)
+- `treatment_type` (enum): surgery|chemotherapy|radiotherapy|immunotherapy|targeted_therapy
+- `treatment_date` (datetime): When treatment occurred
+- `treatment_intent` (string): curative|palliative|neo-adjuvant|adjuvant
+- `provider_organisation` (string): Organization code
+- Treatment-specific fields (varies by type)
+- Audit fields: created_at, last_modified_at
+
+**Benefits of separate collection:**
+- Independent querying of treatments across episodes
+- Better performance for treatment-level analytics
+- Audit trails per treatment
+- No document size limits from embedded arrays
+- Aligns with NBOCA submission structure
+
+#### tumours
+- `tumour_id` (string, unique): Tumour identifier
+- `episode_id` (string): Reference to parent episode (as string of ObjectId)
+- `patient_id` (string): Patient MRN (denormalized)
+- `tumour_type` (enum): primary|metastasis|recurrence
+- `site` (string): Anatomical location
+- `icd10_code` (string): ICD-10 diagnosis code
+- `snomed_morphology_code` (string): SNOMED CT morphology
+- `tnm_staging` (object): TNM classification
+- `pathology` (object): Pathological findings
+- `diagnosis_date` (datetime): Date of diagnosis
+- Audit fields: created_at, last_modified_at
+
+**Benefits of separate collection:**
+- Supports multiple primaries per episode
+- Track metastatic sites independently
+- Longitudinal tumour tracking
+- Better COSD data export alignment
+
 #### surgeries (legacy)
 - Preserved for historical data
 - Can be migrated to episodes using `migrate_surgeries_to_episodes.py`
+
+### Database Indexes
+
+**episodes collection:**
+- episode_id (unique)
+- patient_id
+- condition_type
+- cancer_type
+- referral_date
+
+**treatments collection:**
+- episode_id (for joins)
+- patient_id (for patient-level queries)
+- treatment_type
+- treatment_date
+- compound index: (episode_id, treatment_date)
+
+**tumours collection:**
+- episode_id (for joins)
+- patient_id
+- tumour_type
+- diagnosis_date
+- compound index: (episode_id, tumour_id)
 
 ## Scripts
 
@@ -101,6 +162,18 @@ An episode represents a patient's contact with the hospital for a specific condi
    - When to use: One-time migration from old to new system
    - Command: `python execution/migrate_surgeries_to_episodes.py`
    - Note: Preserves original surgery records
+
+3. **migrate_to_separate_collections.py**
+   - Purpose: Move treatments and tumours from embedded arrays to separate collections
+   - When to use: Database restructuring (completed 2024-12-23)
+   - Command: `python execution/migrate_to_separate_collections.py`
+   - Features:
+     * Before/after validation with comprehensive statistics
+     * User confirmation required before migration
+     * Generates detailed JSON report in `~/.tmp/migration_report_*.json`
+     * Creates indexes for optimal query performance
+     * Idempotent - safe to rerun
+   - Status: **COMPLETED** - All episodes migrated to separate collections structure
 
 ### Startup Scripts
 - `start_backend.sh` - Start FastAPI backend
@@ -239,3 +312,60 @@ For technical issues:
 - Check application logs: `~/.tmp/backend.log`, `~/.tmp/frontend.log`
 - Review error messages in browser console
 - Verify database connection and collection indexes
+
+## Self-Annealing Notes
+
+### 2024-12-23: Database Restructuring - Separate Collections
+**Problem**: Treatments and tumours were stored as embedded arrays in episode documents. This limited:
+- Independent querying of treatments across episodes
+- Treatment-level analytics and reporting
+- Audit trails per treatment
+- NBOCA export flexibility
+
+**Solution**: Migrated to separate collections architecture:
+1. Created `treatments` and `tumours` collections with `episode_id` foreign key references
+2. Built comprehensive migration script (`migrate_to_separate_collections.py`) with before/after validation
+3. Updated all API endpoints in `routes/episodes_v2.py` to use separate collections:
+   - POST/PUT/DELETE treatment endpoints now insert/update/delete in treatments collection
+   - GET patient timeline now fetches treatments via episode_id lookup
+   - Similar updates for tumour endpoints
+4. Updated NBOCA XML export (`routes/exports.py`) to fetch treatments/tumours from separate collections
+5. Added helper functions in `database.py`: `get_treatments_collection()`, `get_tumours_collection()`
+6. Created indexes on episode_id, patient_id, treatment_type, treatment_date for optimal performance
+
+**Migration Results** (from `/root/.tmp/migration_report_20251223_013813.json`):
+- Episodes: 6 documents
+- Treatments: 0 → 2 documents (migrated from embedded arrays)
+- Tumours: 0 → 2 documents (migrated from embedded arrays)
+- Embedded arrays: All cleared from episode documents
+- Duration: 12.92 seconds
+- Status: ✅ COMPLETED SUCCESSFULLY
+
+**Validation**:
+- Tested NBOCA XML export - generates correct COSD v9/v10 XML with treatments from separate collection
+- All episode CRUD operations working
+- Treatment and tumour add/update/delete endpoints functional
+- Patient timeline correctly aggregates data from separate collections
+
+**Benefits Realized**:
+- Improved query performance (can query treatments without loading entire episode)
+- Better alignment with NBOCA submission format (treatments as independent records)
+- Scalability (no document size limits from embedded arrays)
+- Foundation for treatment-level audit trails and versioning
+- Enables future analytics dashboards querying treatments directly
+
+**Files Modified**:
+- `/root/backend/app/database.py` - Added collection helpers
+- `/root/backend/app/routes/episodes_v2.py` - Updated all treatment/tumour endpoints
+- `/root/backend/app/routes/exports.py` - Updated NBOCA export to fetch from separate collections
+- `/root/directives/cancer_episode_system.md` - Documented new architecture
+
+**Known Limitations**:
+- Episode model still includes empty `treatments` and `tumours` arrays in schema (legacy fields, can be removed in future cleanup)
+- Frontend may need updates if it expects treatments embedded in episode GET response (should fetch separately via new endpoints)
+
+**Next Steps**:
+- Monitor query performance with real data
+- Consider adding treatment-level audit logging
+- Build treatment analytics dashboard
+- Update frontend to optimize fetching patterns (avoid N+1 queries)

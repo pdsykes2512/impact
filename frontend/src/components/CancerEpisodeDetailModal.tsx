@@ -61,7 +61,7 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
     
     try {
       setLoading(true)
-      const response = await fetch(`http://localhost:8000/api/v2/episodes/${episode.episode_id}`, {
+      const response = await fetch(`http://localhost:8000/api/episodes/${episode.episode_id}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -81,7 +81,7 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
   const handleAddTreatment = async (treatment: any) => {
     try {
       const response = await fetch(
-        `http://localhost:8000/api/v2/episodes/${episode.episode_id}/treatments`,
+        `http://localhost:8000/api/episodes/${episode.episode_id}/treatments`,
         {
           method: 'POST',
           headers: {
@@ -110,7 +110,7 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
     
     try {
       const response = await fetch(
-        `http://localhost:8000/api/v2/episodes/${episode.episode_id}/treatments/${editingTreatment.treatment_id}`,
+        `http://localhost:8000/api/episodes/${episode.episode_id}/treatments/${editingTreatment.treatment_id}`,
         {
           method: 'PUT',
           headers: {
@@ -138,7 +138,7 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
   const handleAddTumour = async (tumour: any) => {
     try {
       const response = await fetch(
-        `http://localhost:8000/api/v2/episodes/${episode.episode_id}/tumours`,
+        `http://localhost:8000/api/episodes/${episode.episode_id}/tumours`,
         {
           method: 'POST',
           headers: {
@@ -167,7 +167,7 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
     
     try {
       const response = await fetch(
-        `http://localhost:8000/api/v2/episodes/${episode.episode_id}/tumours/${editingTumour.tumour_id}`,
+        `http://localhost:8000/api/episodes/${episode.episode_id}/tumours/${editingTumour.tumour_id}`,
         {
           method: 'PUT',
           headers: {
@@ -204,7 +204,7 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
     
     try {
       const response = await fetch(
-        `http://localhost:8000/api/v2/episodes/${episode.episode_id}/tumours/${tumourId}`,
+        `http://localhost:8000/api/episodes/${episode.episode_id}/tumours/${tumourId}`,
         {
           method: 'DELETE',
           headers: {
@@ -237,7 +237,7 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
     
     try {
       const response = await fetch(
-        `http://localhost:8000/api/v2/episodes/${episode.episode_id}/treatments/${treatmentId}`,
+        `http://localhost:8000/api/episodes/${episode.episode_id}/treatments/${treatmentId}`,
         {
           method: 'DELETE',
           headers: {

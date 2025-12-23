@@ -1,12 +1,12 @@
 """
 Report generation API routes
-Updated to work with cancer episodes and treatments
+Updated to work with cancer episodes and treatments in separate collections
 """
 from fastapi import APIRouter, HTTPException, status, Query
 from typing import Dict, Any, Optional
 from datetime import datetime, timedelta
 
-from ..database import get_surgeries_collection, get_episodes_collection
+from ..database import get_surgeries_collection, get_episodes_collection, get_treatments_collection
 
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
@@ -14,29 +14,27 @@ router = APIRouter(prefix="/api/reports", tags=["reports"])
 
 @router.get("/summary")
 async def get_summary_report() -> Dict[str, Any]:
-    """Get overall outcome statistics from episodes and surgical treatments"""
-    collection = await get_episodes_collection()
+    """Get overall outcome statistics from surgical treatments in separate collection"""
+    treatments_collection = await get_treatments_collection()
     
-    # Unwind treatments array to get individual surgery treatments
+    # Query treatments collection directly (no unwinding needed)
     pipeline = [
-        {"$unwind": {"path": "$treatments", "preserveNullAndEmptyArrays": False}},
-        {"$match": {"treatments.treatment_type": "surgery"}},
+        {"$match": {"treatment_type": "surgery"}},
         {
             "$facet": {
                 "total": [{"$count": "count"}],
-                # For now, simplified metrics based on available flat structure
                 "urgency": [
-                    {"$group": {"_id": "$treatments.urgency", "count": {"$sum": 1}}}
+                    {"$group": {"_id": "$urgency", "count": {"$sum": 1}}}
                 ],
                 "avg_duration": [
-                    {"$match": {"treatments.operation_duration_minutes": {"$exists": True, "$ne": None}}},
-                    {"$group": {"_id": None, "avg": {"$avg": "$treatments.operation_duration_minutes"}}}
+                    {"$match": {"operation_duration_minutes": {"$exists": True, "$ne": None}}},
+                    {"$group": {"_id": None, "avg": {"$avg": "$operation_duration_minutes"}}}
                 ]
             }
         }
     ]
     
-    result = await collection.aggregate(pipeline).to_list(length=1)
+    result = await treatments_collection.aggregate(pipeline).to_list(length=1)
     if not result or not result[0]["total"]:
         return {"total_surgeries": 0, "complication_rate": 0, "readmission_rate": 0, "mortality_rate": 0, 
                 "return_to_theatre_rate": 0, "escalation_rate": 0, "avg_length_of_stay_days": 0, 
@@ -86,20 +84,19 @@ async def get_complications_report() -> Dict[str, Any]:
 async def get_trends_report(
     days: int = Query(30, description="Number of days to analyze", ge=1, le=365)
 ) -> Dict[str, Any]:
-    """Get trends over specified time period from surgical treatments"""
-    collection = await get_episodes_collection()
+    """Get trends over specified time period from surgical treatments in separate collection"""
+    treatments_collection = await get_treatments_collection()
     
     start_date = datetime.utcnow() - timedelta(days=days)
     
-    # Surgeries by date  
+    # Surgeries by date from treatments collection
     pipeline = [
-        {"$unwind": {"path": "$treatments", "preserveNullAndEmptyArrays": False}},
-        {"$match": {"treatments.treatment_type": "surgery"}},
-        {"$match": {"treatments.treatment_date": {"$exists": True}}},
+        {"$match": {"treatment_type": "surgery"}},
+        {"$match": {"treatment_date": {"$exists": True}}},
         {"$addFields": {
             "treatment_date_parsed": {
                 "$dateFromString": {
-                    "dateString": "$treatments.treatment_date",
+                    "dateString": "$treatment_date",
                     "onError": None,
                     "onNull": None
                 }
@@ -113,7 +110,7 @@ async def get_trends_report(
         {"$sort": {"_id": 1}}
     ]
     
-    daily_trends = await collection.aggregate(pipeline).to_list(length=days)
+    daily_trends = await treatments_collection.aggregate(pipeline).to_list(length=days)
     
     return {
         "period_days": days,
@@ -126,21 +123,20 @@ async def get_trends_report(
 
 @router.get("/surgeon-performance")
 async def get_surgeon_performance() -> Dict[str, Any]:
-    """Get surgeon-specific performance metrics from surgical treatments"""
-    collection = await get_episodes_collection()
+    """Get surgeon-specific performance metrics from surgical treatments in separate collection"""
+    treatments_collection = await get_treatments_collection()
     
     pipeline = [
-        {"$unwind": {"path": "$treatments", "preserveNullAndEmptyArrays": False}},
-        {"$match": {"treatments.treatment_type": "surgery"}},
+        {"$match": {"treatment_type": "surgery"}},
         {"$group": {
-            "_id": "$treatments.surgeon",
+            "_id": "$surgeon",
             "total_surgeries": {"$sum": 1},
-            "avg_duration": {"$avg": "$treatments.operation_duration_minutes"},
+            "avg_duration": {"$avg": "$operation_duration_minutes"},
         }},
         {"$sort": {"total_surgeries": -1}}
     ]
     
-    surgeon_stats = await collection.aggregate(pipeline).to_list(length=100)
+    surgeon_stats = await treatments_collection.aggregate(pipeline).to_list(length=100)
     
     # Round numeric values and add placeholder zeros for metrics not yet captured
     for stat in surgeon_stats:

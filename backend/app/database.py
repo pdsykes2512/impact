@@ -55,3 +55,13 @@ async def get_surgeries_collection():
 async def get_episodes_collection():
     """Get episodes collection"""
     return Database.get_collection("episodes")
+
+
+async def get_treatments_collection():
+    """Get treatments collection"""
+    return Database.get_collection("treatments")
+
+
+async def get_tumours_collection():
+    """Get tumours collection"""
+    return Database.get_collection("tumours")

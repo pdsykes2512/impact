@@ -78,29 +78,16 @@ export function EpisodesPage() {
       if (startDateFilter) params.start_date = startDateFilter
       if (endDateFilter) params.end_date = endDateFilter
 
-      // Load legacy surgery episodes
+      // Load episodes from main API (now includes all episode types)
       const response = await apiService.episodes.list(params)
-      setEpisodes(response.data)
-
-      // Load new cancer episodes from V2 API
-      const cancerParams = new URLSearchParams()
-      if (patientId) cancerParams.append('patient_id', patientId)
-      if (startDateFilter) cancerParams.append('start_date', startDateFilter)
-      if (endDateFilter) cancerParams.append('end_date', endDateFilter)
-
-      const cancerResponse = await fetch(
-        `http://localhost:8000/api/v2/episodes/?${cancerParams.toString()}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        }
-      )
+      const allEpisodes = response.data
       
-      if (cancerResponse.ok) {
-        const cancerData = await cancerResponse.json()
-        setCancerEpisodes(cancerData)
-      }
+      // Separate legacy surgery episodes from cancer episodes
+      const legacyEpisodes = allEpisodes.filter((ep: any) => ep.surgery_id)
+      const cancer = allEpisodes.filter((ep: any) => ep.episode_id && ep.condition_type === 'cancer')
+      
+      setEpisodes(legacyEpisodes)
+      setCancerEpisodes(cancer)
     } catch (error) {
       console.error('Failed to load episodes:', error)
     } finally {
@@ -222,7 +209,7 @@ export function EpisodesPage() {
     if (!editingCancerEpisode) return
     
     try {
-      const response = await fetch(`http://localhost:8000/api/v2/episodes/${editingCancerEpisode.episode_id}`, {
+      const response = await fetch(`http://localhost:8000/api/episodes/${editingCancerEpisode.episode_id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

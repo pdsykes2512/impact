@@ -18,7 +18,7 @@ interface User {
   created_at: string
 }
 
-interface Surgeon {
+interface Clinician {
   _id: string
   first_name: string
   surname: string
@@ -32,13 +32,13 @@ interface Surgeon {
 
 export function AdminPage() {
   const { token } = useAuth()
-  const [activeTab, setActiveTab] = useState<'users' | 'surgeons' | 'exports'>('users')
+  const [activeTab, setActiveTab] = useState<'users' | 'clinicians' | 'exports'>('users')
   const [users, setUsers] = useState<User[]>([])
-  const [surgeons, setSurgeons] = useState<Surgeon[]>([])
+  const [clinicians, setClinicians] = useState<Clinician[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [showSurgeonForm, setShowSurgeonForm] = useState(false)
-  const [editingSurgeon, setEditingSurgeon] = useState<Surgeon | null>(null)
+  const [showClinicianForm, setShowClinicianForm] = useState(false)
+  const [editingClinician, setEditingClinician] = useState<Clinician | null>(null)
   const [showPasswordModal, setShowPasswordModal] = useState(false)
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [newPassword, setNewPassword] = useState('')
@@ -51,7 +51,7 @@ export function AdminPage() {
     department: '',
     job_title: ''
   })
-  const [surgeonFormData, setSurgeonFormData] = useState({
+  const [clinicianFormData, setClinicianFormData] = useState({
     first_name: '',
     surname: '',
     gmc_number: '',
@@ -61,34 +61,57 @@ export function AdminPage() {
   })
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    fetchUsers()
-    fetchSurgeons()
-  }, [])
-
   const fetchUsers = useCallback(async () => {
+    if (!token) {
+      setError('No authentication token found. Please log in again.')
+      setLoading(false)
+      return
+    }
     try {
+      setLoading(true)
       const response = await axios.get(`${API_URL}/api/admin/users`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       setUsers(response.data)
-    } catch (err) {
-      setError('Failed to fetch users')
+      setError('')
+    } catch (err: any) {
+      console.error('Failed to fetch users:', err)
+      if (err.response?.status === 401) {
+        setError('Session expired. Please log in again.')
+      } else {
+        const errorMsg = err.response?.data?.detail || err.message || 'Failed to fetch users'
+        setError(errorMsg)
+      }
     } finally {
       setLoading(false)
     }
   }, [token])
 
-  const fetchSurgeons = useCallback(async () => {
+  const fetchClinicians = useCallback(async () => {
+    if (!token) return
     try {
-      const response = await axios.get(`${API_URL}/api/admin/surgeons`, {
+      const response = await axios.get(`${API_URL}/api/admin/clinicians`, {
         headers: { Authorization: `Bearer ${token}` }
       })
-      setSurgeons(response.data)
-    } catch (err) {
-      setError('Failed to fetch surgeons')
+      setClinicians(response.data)
+      setError('')
+    } catch (err: any) {
+      console.error('Failed to fetch clinicians:', err)
+      if (err.response?.status === 401) {
+        setError('Session expired. Please log in again.')
+      } else {
+        const errorMsg = err.response?.data?.detail || err.message || 'Failed to fetch clinicians'
+        setError(errorMsg)
+      }
     }
   }, [token])
+
+  useEffect(() => {
+    if (token) {
+      fetchUsers()
+      fetchClinicians()
+    }
+  }, [token, fetchUsers, fetchClinicians])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -172,61 +195,61 @@ export function AdminPage() {
     }
   }
 
-  const handleSurgeonSubmit = async (e: React.FormEvent) => {
+  const handleClinicianSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
 
     try {
       // Prepare data: convert empty GMC number to null
       const dataToSubmit = {
-        ...surgeonFormData,
-        gmc_number: surgeonFormData.gmc_number.trim() === '' ? null : surgeonFormData.gmc_number
+        ...clinicianFormData,
+        gmc_number: clinicianFormData.gmc_number.trim() === '' ? null : clinicianFormData.gmc_number
       }
       
-      if (editingSurgeon) {
+      if (editingClinician) {
         await axios.put(
-          `${API_URL}/api/admin/surgeons/${editingSurgeon._id}`,
+          `${API_URL}/api/admin/clinicians/${editingClinician._id}`,
           dataToSubmit,
           { headers: { Authorization: `Bearer ${token}` } }
         )
       } else {
-        await axios.post(`${API_URL}/api/admin/surgeons`, dataToSubmit, {
+        await axios.post(`${API_URL}/api/admin/clinicians`, dataToSubmit, {
           headers: { Authorization: `Bearer ${token}` }
         })
       }
-      setShowSurgeonForm(false)
-      setEditingSurgeon(null)
-      setSurgeonFormData({ first_name: '', surname: '', gmc_number: '', is_consultant: false, subspecialty_leads: [], clinical_role: 'surgeon' })
-      fetchSurgeons()
+      setShowClinicianForm(false)
+      setEditingClinician(null)
+      setClinicianFormData({ first_name: '', surname: '', gmc_number: '', is_consultant: false, subspecialty_leads: [], clinical_role: 'surgeon' })
+      fetchClinicians()
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to save surgeon')
+      setError(err.response?.data?.detail || 'Failed to save clinician')
     }
   }
 
-  const deleteSurgeon = async (surgeonId: string) => {
-    if (!confirm('Are you sure you want to delete this surgeon?')) return
+  const deleteClinician = async (clinicianId: string) => {
+    if (!confirm('Are you sure you want to delete this clinician?')) return
 
     try {
-      await axios.delete(`${API_URL}/api/admin/surgeons/${surgeonId}`, {
+      await axios.delete(`${API_URL}/api/admin/clinicians/${clinicianId}`, {
         headers: { Authorization: `Bearer ${token}` }
       })
-      fetchSurgeons()
+      fetchClinicians()
     } catch (err) {
-      setError('Failed to delete surgeon')
+      setError('Failed to delete clinician')
     }
   }
 
-  const openEditSurgeon = (surgeon: Surgeon) => {
-    setEditingSurgeon(surgeon)
-    setSurgeonFormData({
-      first_name: surgeon.first_name,
-      surname: surgeon.surname,
-      gmc_number: surgeon.gmc_number || '',
-      is_consultant: surgeon.is_consultant || false,
-      subspecialty_leads: surgeon.subspecialty_leads || [],
-      clinical_role: surgeon.clinical_role || 'surgeon'
+  const openEditClinician = (clinician: Clinician) => {
+    setEditingClinician(clinician)
+    setClinicianFormData({
+      first_name: clinician.first_name,
+      surname: clinician.surname,
+      gmc_number: clinician.gmc_number || '',
+      is_consultant: clinician.is_consultant || false,
+      subspecialty_leads: clinician.subspecialty_leads || [],
+      clinical_role: clinician.clinical_role || 'surgeon'
     })
-    setShowSurgeonForm(true)
+    setShowClinicianForm(true)
     setError('')
   }
 
@@ -264,9 +287,9 @@ export function AdminPage() {
             Users
           </button>
           <button
-            onClick={() => setActiveTab('surgeons')}
+            onClick={() => setActiveTab('clinicians')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'surgeons'
+              activeTab === 'clinicians'
                 ? 'border-blue-500 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
@@ -491,30 +514,30 @@ export function AdminPage() {
       )}
 
       {/* Surgeons Tab */}
-      {activeTab === 'surgeons' && (
+      {activeTab === 'clinicians' && (
         <>
           <div className="flex justify-end">
             <Button 
               onClick={() => {
-                setEditingSurgeon(null)
-                setSurgeonFormData({ first_name: '', surname: '', gmc_number: '', is_consultant: false, subspecialty_leads: [], clinical_role: 'surgeon' })
-                setShowSurgeonForm(!showSurgeonForm)
+                setEditingClinician(null)
+                setClinicianFormData({ first_name: '', surname: '', gmc_number: '', is_consultant: false, subspecialty_leads: [], clinical_role: 'surgeon' })
+                setShowClinicianForm(!showClinicianForm)
                 setError('')
               }} 
               variant="primary"
             >
-              {showSurgeonForm ? 'Cancel' : '+ Add Clinician'}
+              {showClinicianForm ? 'Cancel' : '+ Add Clinician'}
             </Button>
           </div>
 
-          {showSurgeonForm && (
+          {showClinicianForm && (
             <Card>
               <div className="border-b border-gray-200 pb-4 mb-4">
                 <h3 className="text-lg font-medium text-gray-900">
-                  {editingSurgeon ? 'Edit Surgeon' : 'Add New Surgeon'}
+                  {editingClinician ? 'Edit Clinician' : 'Add New Clinician'}
                 </h3>
               </div>
-              <form onSubmit={handleSurgeonSubmit} className="space-y-4">
+              <form onSubmit={handleClinicianSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -523,8 +546,8 @@ export function AdminPage() {
                     <input
                       type="text"
                       required
-                      value={surgeonFormData.first_name}
-                      onChange={(e) => setSurgeonFormData({ ...surgeonFormData, first_name: e.target.value })}
+                      value={clinicianFormData.first_name}
+                      onChange={(e) => setClinicianFormData({ ...clinicianFormData, first_name: e.target.value })}
                       className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="John"
                     />
@@ -536,8 +559,8 @@ export function AdminPage() {
                     <input
                       type="text"
                       required
-                      value={surgeonFormData.surname}
-                      onChange={(e) => setSurgeonFormData({ ...surgeonFormData, surname: e.target.value })}
+                      value={clinicianFormData.surname}
+                      onChange={(e) => setClinicianFormData({ ...clinicianFormData, surname: e.target.value })}
                       className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Smith"
                     />
@@ -548,8 +571,8 @@ export function AdminPage() {
                     </label>
                     <input
                       type="text"
-                      value={surgeonFormData.gmc_number}
-                      onChange={(e) => setSurgeonFormData({ ...surgeonFormData, gmc_number: e.target.value })}
+                      value={clinicianFormData.gmc_number}
+                      onChange={(e) => setClinicianFormData({ ...clinicianFormData, gmc_number: e.target.value })}
                       className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="1234567"
                       pattern="[0-9]{7}"
@@ -564,8 +587,8 @@ export function AdminPage() {
                     </label>
                     <select
                       required
-                      value={surgeonFormData.clinical_role}
-                      onChange={(e) => setSurgeonFormData({ ...surgeonFormData, clinical_role: e.target.value })}
+                      value={clinicianFormData.clinical_role}
+                      onChange={(e) => setClinicianFormData({ ...clinicianFormData, clinical_role: e.target.value })}
                       className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="surgeon">Surgeon</option>
@@ -595,12 +618,12 @@ export function AdminPage() {
                       <label key={subspecialty.value} className="flex items-center space-x-2 cursor-pointer">
                         <input
                           type="checkbox"
-                          checked={surgeonFormData.subspecialty_leads.includes(subspecialty.value)}
+                          checked={clinicianFormData.subspecialty_leads.includes(subspecialty.value)}
                           onChange={(e) => {
                             const newLeads = e.target.checked
-                              ? [...surgeonFormData.subspecialty_leads, subspecialty.value]
-                              : surgeonFormData.subspecialty_leads.filter(s => s !== subspecialty.value)
-                            setSurgeonFormData({ ...surgeonFormData, subspecialty_leads: newLeads })
+                              ? [...clinicianFormData.subspecialty_leads, subspecialty.value]
+                              : clinicianFormData.subspecialty_leads.filter(s => s !== subspecialty.value)
+                            setClinicianFormData({ ...clinicianFormData, subspecialty_leads: newLeads })
                           }}
                           className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                         />
@@ -611,7 +634,7 @@ export function AdminPage() {
                 </div>
                 <div className="flex justify-end">
                   <Button type="submit" variant="success">
-                    {editingSurgeon ? 'Update Clinician' : 'Add Clinician'}
+                    {editingClinician ? 'Update Clinician' : 'Add Clinician'}
                   </Button>
                 </div>
               </form>
@@ -644,33 +667,33 @@ export function AdminPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {surgeons.length === 0 ? (
+                  {clinicians.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="px-6 py-8 text-center text-sm text-gray-500">
                         No clinicians found
                       </td>
                     </tr>
                   ) : (
-                    surgeons.map((surgeon) => (
-                      <tr key={surgeon._id} className="hover:bg-blue-50 transition-colors">
+                    clinicians.map((clinician) => (
+                      <tr key={clinician._id} className="hover:bg-blue-50 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {surgeon.surname}
+                          {clinician.surname}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {surgeon.first_name}
+                          {clinician.first_name}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {surgeon.gmc_number || '—'}
+                          {clinician.gmc_number || '—'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 capitalize">
-                            {surgeon.clinical_role || 'surgeon'}
+                            {clinician.clinical_role || 'surgeon'}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-500">
-                          {surgeon.subspecialty_leads && surgeon.subspecialty_leads.length > 0 ? (
+                          {clinician.subspecialty_leads && clinician.subspecialty_leads.length > 0 ? (
                             <div className="flex flex-wrap gap-1">
-                              {surgeon.subspecialty_leads.map((lead) => (
+                              {clinician.subspecialty_leads.map((lead) => (
                                 <span key={lead} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 capitalize">
                                   {lead.replace('_', ' ')}
                                 </span>
@@ -682,14 +705,14 @@ export function AdminPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                           <Button
-                            onClick={() => openEditSurgeon(surgeon)}
+                            onClick={() => openEditClinician(clinician)}
                             variant="outline"
                             size="small"
                           >
                             Edit
                           </Button>
                           <Button
-                            onClick={() => deleteSurgeon(surgeon._id)}
+                            onClick={() => deleteClinician(clinician._id)}
                             variant="danger"
                             size="small"
                           >

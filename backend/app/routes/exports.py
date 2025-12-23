@@ -72,7 +72,7 @@ def create_patient_xml(patient: dict, episode: dict) -> ET.Element:
     return patient_elem
 
 
-def create_episode_xml(episode: dict, patient: dict, treatments: list) -> ET.Element:
+def create_episode_xml(episode: dict, patient: dict, treatments: list, tumours: list = None) -> ET.Element:
     """Create COSD XML cancer episode record."""
     record = ET.Element("CancerRecord")
     
@@ -117,76 +117,146 @@ def create_episode_xml(episode: dict, patient: dict, treatments: list) -> ET.Ele
             perf.text = str(perf_status)
     
     # Diagnosis details for bowel cancer
-    cancer_data = episode.get("cancer_data", {})
-    if episode.get("cancer_type") == "bowel" and cancer_data:
+    # Get tumour data from tumours collection
+    if episode.get("cancer_type") == "bowel" and tumours:
+        # Use the first (primary) tumour for NBOCA export
+        tumour = tumours[0]
+        
         diagnosis_elem = ET.SubElement(episode_elem, "Diagnosis")
         
-        # Diagnosis date (CR2030)
-        if cancer_data.get("diagnosis_date"):
+        # Diagnosis date (CR2030) - MANDATORY
+        if tumour.get("diagnosis_date"):
             diag_date = ET.SubElement(diagnosis_elem, "PrimaryDiagnosisDate")
-            diag_date.text = format_date(cancer_data["diagnosis_date"])
+            diag_date.text = format_date(tumour["diagnosis_date"])
         
         # ICD-10 code (CR0370) - MANDATORY for NBOCA
-        if cancer_data.get("icd10_code"):
+        if tumour.get("icd10_code"):
             icd = ET.SubElement(diagnosis_elem, "PrimaryDiagnosisICD")
-            icd.text = cancer_data["icd10_code"]
+        icd.text = tumour["icd10_code"]
         
         # SNOMED morphology code (CR6400)
-        if cancer_data.get("snomed_morphology_code"):
+        if tumour.get("snomed_morphology_code"):
             snomed = ET.SubElement(diagnosis_elem, "MorphologySNOMED")
-            snomed.text = cancer_data["snomed_morphology_code"]
+            snomed.text = tumour["snomed_morphology_code"]
+        
+        # Histology type
+        if tumour.get("histology_type"):
+            histology = ET.SubElement(diagnosis_elem, "HistologyType")
+            histology.text = tumour["histology_type"]
+        
+        # Tumour site (CR0490)
+        if tumour.get("site"):
+            site = ET.SubElement(diagnosis_elem, "TumourSite")
+            site.text = tumour["site"]
         
         # TNM Staging
-        tnm = cancer_data.get("tnm_staging", {})
-        if tnm:
-            tnm_elem = ET.SubElement(diagnosis_elem, "TNMStaging")
-            
-            # TNM version (CR2070)
-            if tnm.get("version"):
-                version = ET.SubElement(tnm_elem, "TNMVersionNumber")
-                version.text = str(tnm["version"])
-            
-            # Clinical T (CR0520)
-            if tnm.get("clinical_t"):
-                t_cat = ET.SubElement(tnm_elem, "TCategoryFinalPretreatment")
-                t_cat.text = tnm["clinical_t"]
-            
-            # Clinical N (CR0540)
-            if tnm.get("clinical_n"):
-                n_cat = ET.SubElement(tnm_elem, "NCategoryFinalPretreatment")
-                n_cat.text = tnm["clinical_n"]
-            
-            # Clinical M (CR0560)
-            if tnm.get("clinical_m"):
-                m_cat = ET.SubElement(tnm_elem, "MCategoryFinalPretreatment")
-                m_cat.text = tnm["clinical_m"]
-            
-            # Pathological staging
-            if tnm.get("pathological_t"):
-                path_t = ET.SubElement(tnm_elem, "TCategoryPathological")
-                path_t.text = tnm["pathological_t"]
-            
-            if tnm.get("pathological_n"):
-                path_n = ET.SubElement(tnm_elem, "NCategoryPathological")
-                path_n.text = tnm["pathological_n"]
-            
-            if tnm.get("pathological_m"):
-                path_m = ET.SubElement(tnm_elem, "MCategoryPathological")
-                path_m.text = tnm["pathological_m"]
+        tnm_elem = ET.SubElement(diagnosis_elem, "TNMStaging")
         
-        # Tumour height above anal verge (CO5160) - for rectal cancer only
-        if cancer_data.get("distance_from_anal_verge_cm") is not None:
-            height = ET.SubElement(diagnosis_elem, "TumourHeightAboveAnalVerge")
-            height.text = str(cancer_data["distance_from_anal_verge_cm"])
+        # TNM version (CR2070)
+        if tumour.get("tnm_version"):
+            version = ET.SubElement(tnm_elem, "TNMVersionNumber")
+            version.text = str(tumour["tnm_version"])
         
-        # Lymph nodes (pathology)
-        if cancer_data.get("lymph_nodes_examined") is not None:
-            nodes_exam = ET.SubElement(diagnosis_elem, "NumberOfNodesExamined")
-            nodes_exam.text = str(cancer_data["lymph_nodes_examined"])
+        # Clinical staging date
+        if tumour.get("clinical_stage_date"):
+            clin_date = ET.SubElement(tnm_elem, "ClinicalStagingDate")
+            clin_date.text = format_date(tumour["clinical_stage_date"])
         
-        if cancer_data.get("lymph_nodes_positive") is not None:
-            nodes_pos = ET.SubElement(diagnosis_elem, "NumberOfNodesPositive")
-            nodes_pos.text = str(cancer_data["lymph_nodes_positive"])
+        # Clinical T (CR0520)
+        if tumour.get("clinical_t"):
+            t_cat = ET.SubElement(tnm_elem, "TCategoryFinalPretreatment")
+            t_cat.text = tumour["clinical_t"]
+        
+        # Clinical N (CR0540)
+        if tumour.get("clinical_n"):
+            n_cat = ET.SubElement(tnm_elem, "NCategoryFinalPretreatment")
+            n_cat.text = tumour["clinical_n"]
+        
+        # Clinical M (CR0560)
+        if tumour.get("clinical_m"):
+            m_cat = ET.SubElement(tnm_elem, "MCategoryFinalPretreatment")
+            m_cat.text = tumour["clinical_m"]
+        
+        # Pathological staging date
+        if tumour.get("pathological_stage_date"):
+            path_date = ET.SubElement(tnm_elem, "PathologicalStagingDate")
+            path_date.text = format_date(tumour["pathological_stage_date"])
+        
+        # Pathological T (pCR6820)
+        if tumour.get("pathological_t"):
+            path_t = ET.SubElement(tnm_elem, "TCategoryPathological")
+            path_t.text = tumour["pathological_t"]
+        
+        # Pathological N (pCR0910)
+        if tumour.get("pathological_n"):
+            path_n = ET.SubElement(tnm_elem, "NCategoryPathological")
+            path_n.text = tumour["pathological_n"]
+        
+        # Pathological M (pCR0920)
+        if tumour.get("pathological_m"):
+            path_m = ET.SubElement(tnm_elem, "MCategoryPathological")
+            path_m.text = tumour["pathological_m"]
+        
+        # Pathology details
+        pathology_elem = ET.SubElement(diagnosis_elem, "Pathology")
+        
+        # Differentiation/Grade (pCR0930)
+        if tumour.get("grade"):
+            grade = ET.SubElement(pathology_elem, "DifferentiationGrade")
+            grade.text = tumour["grade"]
+        
+        # Lymph nodes examined (pCR0890)
+        if tumour.get("lymph_nodes_examined") is not None:
+            nodes_exam = ET.SubElement(pathology_elem, "NumberOfNodesExamined")
+            nodes_exam.text = str(tumour["lymph_nodes_examined"])
+        
+        # Lymph nodes positive (pCR0900)
+        if tumour.get("lymph_nodes_positive") is not None:
+            nodes_pos = ET.SubElement(pathology_elem, "NumberOfNodesPositive")
+            nodes_pos.text = str(tumour["lymph_nodes_positive"])
+        
+        # CRM status (pCR1150) - CRITICAL for rectal cancer
+        if tumour.get("crm_status"):
+            crm = ET.SubElement(pathology_elem, "CircumferentialResectionMargin")
+            crm.text = tumour["crm_status"]
+        
+        # CRM distance
+        if tumour.get("crm_distance_mm") is not None:
+            crm_dist = ET.SubElement(pathology_elem, "CRMDistanceMM")
+            crm_dist.text = str(tumour["crm_distance_mm"])
+        
+        # Proximal margin
+        if tumour.get("proximal_margin_mm") is not None:
+            prox = ET.SubElement(pathology_elem, "ProximalMarginMM")
+            prox.text = str(tumour["proximal_margin_mm"])
+        
+        # Distal margin
+        if tumour.get("distal_margin_mm") is not None:
+            dist = ET.SubElement(pathology_elem, "DistalMarginMM")
+            dist.text = str(tumour["distal_margin_mm"])
+        
+        # Lymphovascular invasion
+        if tumour.get("lymphovascular_invasion") is not None:
+            lvi = ET.SubElement(pathology_elem, "LymphovascularInvasion")
+            lvi.text = "Yes" if tumour["lymphovascular_invasion"] else "No"
+        
+        # Perineural invasion
+        if tumour.get("perineural_invasion") is not None:
+            pni = ET.SubElement(pathology_elem, "PerineuralInvasion")
+            pni.text = "Yes" if tumour["perineural_invasion"] else "No"
+        
+        # Molecular markers
+        if tumour.get("kras_status"):
+            kras = ET.SubElement(pathology_elem, "KRASStatus")
+            kras.text = tumour["kras_status"]
+        
+        if tumour.get("braf_status"):
+            braf = ET.SubElement(pathology_elem, "BRAFStatus")
+            braf.text = tumour["braf_status"]
+        
+        if tumour.get("mismatch_repair_status"):
+            mmr = ET.SubElement(pathology_elem, "MismatchRepairStatus")
+            mmr.text = tumour["mismatch_repair_status"]
     
     # Treatment details
     if treatments:
@@ -369,12 +439,15 @@ async def export_nboca_xml(
         
         patient["_id"] = str(patient["_id"])
         
-        # Treatments and tumours are embedded in the episode document
-        treatments = episode.get("treatments", [])
-        tumours = episode.get("tumours", [])
+        # Fetch treatments and tumours from separate collections
+        treatments_cursor = db.treatments.find({"episode_id": str(episode["_id"])})
+        treatments = await treatments_cursor.to_list(length=None)
+        
+        tumours_cursor = db.tumours.find({"episode_id": str(episode["_id"])})
+        tumours = await tumours_cursor.to_list(length=None)
         
         # Create episode record with treatments and tumours
-        record = create_episode_xml(episode, patient, treatments)
+        record = create_episode_xml(episode, patient, treatments, tumours)
         records.append(record)
     
     # Generate pretty XML
@@ -457,7 +530,7 @@ async def check_data_completeness(
             completeness["patient_demographics"]["postcode"] += 1
         
         # Check diagnosis
-        cancer_data = episode.get("cancer_data", {})
+        cancer_data = episode.get("cancer_data") or {}
         if cancer_data.get("diagnosis_date"):
             completeness["diagnosis"]["diagnosis_date"] += 1
         if cancer_data.get("icd10_code"):
@@ -465,8 +538,9 @@ async def check_data_completeness(
         if cancer_data.get("tnm_staging"):
             completeness["diagnosis"]["tnm_staging"] += 1
         
-        # Treatments are embedded in episode document
-        treatments = episode.get("treatments", [])
+        # Fetch treatments from separate collection
+        treatments_cursor = db.treatments.find({"episode_id": str(episode["_id"])})
+        treatments = await treatments_cursor.to_list(length=None)
         surgical_treatments = [t for t in treatments if t.get("treatment_type") == "surgery"]
         
         if surgical_treatments:

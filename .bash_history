@@ -1,351 +1,3 @@
-- Remove CPT codes field
-- Add searchable multi-select for additional procedures with custom entry support
-- Remove category and indication fields from classification
-- Add searchable primary diagnosis field with 80+ common conditions
-- Implement usage tracking and frequency-based sorting for procedures and diagnoses
-- Convert patient ID field to searchable dropdown (MRN/NHS search only)
-- Auto-skip step 1 when creating episode from patient page
-- Store usage statistics in localStorage for personalized workflow optimization"
-python execution/init_surgeons.py
-python3 execution/init_surgeons.py
-python3 execution/init_surgeons.py
-python3 execution/init_surgeons.py
-python3 execution/init_surgeons.py
-cat /root/.env 2>/dev/null || echo "No .env file found"
-python3 execution/init_surgeons.py
-git add -A && git status
-cd /root && git commit -m "feat: add surgeon management system with admin interface
-
-- Create Surgeon model with first_name, surname, and gmc_number fields
-- Add surgeon CRUD API endpoints in /api/admin/surgeons
-- Update AdminPage with tabbed interface for Users and Surgeons management
-- Initialize database with 8 surgeons (sorted by surname)
-- Convert episode form primary surgeon field to dropdown populated from surgeon list
-- Add auto-calculated fields for perioperative timeline:
-  * Surgery end time defaults to surgery date
-  * Length of stay calculated from admission to discharge
-  * Induction and knife-to-skin times use time picker with automatic date linkage
-- Move read-only calculated fields to bottom of timeline form
-- All surgeons sorted alphabetically by surname in UI and API"
-cd /root/backend && grep -n "admission_date\|surgery_date" app/models/surgery.py | head -10
-cd /root/backend && tail -50 /tmp/backend.log 2>/dev/null || echo "No log file found"
-curl -X POST http://localhost:8000/api/episodes -H "Content-Type: application/json" -H "Authorization: Bearer $(cat /tmp/test_token.txt 2>/dev/null || echo 'test')" -d '{"surgery_id":"TEST-123","patient_id":"12345678","classification":{"urgency":"elective","category":"other","primary_diagnosis":"test"},"procedure":{"primary_procedure":"test","approach":"open"},"perioperative_timeline":{"admission_date":"2025-12-22","surgery_date":"2025-12-22"},"team":{"primary_surgeon":"Test Surgeon"},"audit_trail":{"created_by":"test"}}' 2>&1
-TOKEN=$(curl -s -X POST http://localhost:8000/api/auth/login -H "Content-Type: application/json" -d '{"email":"admin@example.com","password":"admin123"}' | grep -o '"access_token":"[^"]*"' | cut -d'"' -f4) && echo "Token: $TOKEN" && curl -X POST http://localhost:8000/api/episodes -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -d '{"surgery_id":"TEST-123","patient_id":"12345678","classification":{"urgency":"elective","category":"other","primary_diagnosis":"test"},"procedure":{"primary_procedure":"test","approach":"open","icd10_codes":[],"opcs_codes":[]},"perioperative_timeline":{"admission_date":"2025-12-22","surgery_date":"2025-12-22"},"team":{"primary_surgeon":"Test Surgeon"},"audit_trail":{"created_by":"admin"}}' 2>&1 | head -50
-curl -s -X POST http://localhost:8000/api/auth/login -H "Content-Type: application/json" -d '{"email":"admin@example.com","password":"admin123"}'
-ps aux | grep uvicorn | grep -v grep
-cd /root && git add -A && git commit -m "fix: improve episode creation error handling and date parsing
-
-- Add field validators to parse date and datetime strings in PerioperativeTimeline
-- Convert date-only strings (YYYY-MM-DD) to datetime objects at midnight
-- Fix patient lookup to use record_number instead of patient_id field
-- Add comprehensive error handling and logging in episode creation endpoint
-- Add GMC number validation (7 digits) in Surgeon model
-- Convert primary surgeon field to searchable dropdown with GMC number display
-- Ensure surgery end time auto-updates when surgery date changes"
-tail -100 ~/.tmp/backend.log
-python3 execution/update_surgery_schema.py
-pkill -f "uvicorn" && cd /root/backend && python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 > /tmp/backend.log 2>&1 &
-sleep 3 && tail -30 /tmp/backend.log
-chmod +x /root/execution/start_backend.sh
-pkill -f "uvicorn" && sleep 1 && /root/execution/start_backend.sh
-sleep 2 && tail -20 ~/.tmp/backend.log
-/root/execution/start_backend.sh && sleep 2 && tail -5 ~/.tmp/backend.log
-ls -lah ~/.tmp/backend.log /tmp/backend.log 2>&1 | head -10
-rm /tmp/backend.log && echo "Removed old log file from /tmp"
-curl -s http://localhost:8000/api/health 2>&1 || echo "Health endpoint not found (that's OK)" && ps aux | grep uvicorn | grep -v grep | head -2
-tail -50 ~/.tmp/backend.log
-ps aux | grep uvicorn | grep -v grep
-ps aux | grep vite | grep -v grep
-curl -s http://localhost:8000/api/episodes | head -20
-curl -v http://localhost:8000/api/episodes 2>&1 | head -30
-pkill -f "vite" && sleep 1 && cd /root/frontend && npm run dev -- --host 0.0.0.0 > ~/.tmp/frontend.log 2>&1 &
-sleep 3 && ss -tlnp | grep -E ':3000|:8000' && echo -e "\n--- Frontend log ---" && tail -10 ~/.tmp/frontend.log
-curl -s http://localhost:3000 | head -30
-tail -30 ~/.tmp/backend.log
-jobs -l && fg
-chmod +x /root/execution/start_frontend.sh && pkill -9 -f "vite|npm" && sleep 2 && /root/execution/start_frontend.sh
-sleep 3 && tail -15 ~/.tmp/frontend.log && echo -e "\n--- Checking ports ---" && ss -tlnp | grep -E ':3000|:8000'
-curl -s http://localhost:8000/api/episodes/ | python3 -m json.tool 2>&1 | head -50
-cd /root && python3 -c "
-from motor.motor_asyncio import AsyncIOMotorClient
-import asyncio
-
-async def check_db():
-    client = AsyncIOMotorClient('mongodb://admin:admin123@localhost:27017/surg_outcomes?authSource=admin')
-    db = client.surg_outcomes
-    count = await db.surgeries.count_documents({})
-    print(f'Total surgeries in database: {count}')
-    
-    if count > 0:
-        surgeries = await db.surgeries.find().limit(3).to_list(length=3)
-        print(f'\nFirst few surgeries:')
-        for s in surgeries:
-            print(f'  - Surgery ID: {s.get(\"surgery_id\")}, Patient: {s.get(\"patient_id\")}')
-
-asyncio.run(check_db())
-"
-curl -v http://localhost:8000/api/episodes/ 2>&1 | grep -A20 "< HTTP"
-tail -50 ~/.tmp/backend.log | grep -A5 -B5 "episodes"
-sleep 2 && curl -s http://localhost:8000/api/episodes/ | python3 -m json.tool | head -80
-curl -s http://localhost:8000/api/episodes/ | python3 -c "import sys, json; data = json.load(sys.stdin); print(f'✅ API returned {len(data)} episodes')"
-tail -30 ~/.tmp/backend.log | grep -E "POST|episodes"
-tail -20 ~/.tmp/frontend.log
-cd /root/frontend/src && grep -n 'className="w-full px-3 py-2 border' components/EpisodeForm.tsx | head -30
-cd /root/frontend/src && sed -i 's/className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"/className="w-full h-10 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"/g' components/EpisodeForm.tsx && echo "Updated focus:border-transparent bg-gray-50"
-cd /root/frontend/src && sed -i 's/className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"/className="w-full h-10 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"/g' components/EpisodeForm.tsx && echo "Updated bg-gray-50 text-gray-700"
-cd /root/frontend/src && sed -i 's/className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"/className="w-full h-10 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"/g' components/EpisodeForm.tsx && echo "Updated standard input fields"
-cd /root/frontend/src && grep -rn 'className="w-full px-' pages/ components/ | grep -v 'h-10' | grep -E '(input|select)' | head -20
-cd /root/frontend/src && grep -c 'h-10' components/EpisodeForm.tsx
-git add -A && git status
-cd /root && git commit -m "refactor: remove category field and improve UI consistency
-
-- Remove category field from surgery classification schema
-- Remove category from all backend endpoints and database queries
-- Remove category filter and column from frontend UI
-- Remove category breakdown from reports
-
-- Add searchable surgeon dropdown to episode filters
-- Fetch surgeon list from API for filtering episodes
-
-- Standardize all form input heights with h-10 class
-- Apply consistent styling to text, select, date, time inputs
-- Fix Button component to default type='button' to prevent form submission
-
-- Fix PyObjectId for Pydantic v2 compatibility
-- Update validator to use __get_pydantic_core_schema__
-
-- Add startup scripts for backend and frontend
-- Update log file location to ~/.tmp/ instead of /tmp/
-- Update documentation with new startup procedures"
-chmod +x /root/execution/create_indexes.py && python3 /root/execution/create_indexes.py
-python3 -c "
-from motor.motor_asyncio import AsyncIOMotorClient
-import asyncio
-
-async def fix_surgeons():
-    client = AsyncIOMotorClient('mongodb://admin:admin123@localhost:27017/surg_outcomes?authSource=admin')
-    db = client.surg_outcomes
-    
-    # First, try to drop the existing index if it exists
-    try:
-        await db.surgeons.drop_index('gmc_number_1')
-        print('Dropped existing gmc_number index')
-    except:
-        print('No existing gmc_number index to drop')
-    
-    # Create partial index that only indexes non-null gmc_numbers
-    await db.surgeons.create_index(
-        [('gmc_number', 1)], 
-        unique=True, 
-        partialFilterExpression={'gmc_number': {'\\$ne': None}}
-    )
-    print('✓ Created partial unique index on gmc_number')
-    
-    await db.surgeons.create_index([('first_name', 1), ('surname', 1)])
-    print('✓ Created compound index on first_name + surname')
-    
-    client.close()
-
-asyncio.run(fix_surgeons())
-"
-python3 -c "
-from motor.motor_asyncio import AsyncIOMotorClient
-import asyncio
-
-async def fix_surgeons():
-    client = AsyncIOMotorClient('mongodb://admin:admin123@localhost:27017/surg_outcomes?authSource=admin')
-    db = client.surg_outcomes
-    
-    # First, try to drop the existing index if it exists
-    try:
-        await db.surgeons.drop_index('gmc_number_1')
-        print('Dropped existing gmc_number index')
-    except:
-        print('No existing gmc_number index to drop')
-    
-    # Create partial index that only indexes non-null gmc_numbers
-    await db.surgeons.create_index(
-        [('gmc_number', 1)], 
-        unique=True, 
-        partialFilterExpression={'gmc_number': {'\$ne': None}}
-    )
-    print('✓ Created partial unique index on gmc_number')
-    
-    await db.surgeons.create_index([('first_name', 1), ('surname', 1)])
-    print('✓ Created compound index on first_name + surname')
-    
-    client.close()
-
-asyncio.run(fix_surgeons())
-"
-python3 -c "
-from motor.motor_asyncio import AsyncIOMotorClient
-import asyncio
-
-async def fix_surgeons():
-    client = AsyncIOMotorClient('mongodb://admin:admin123@localhost:27017/surg_outcomes?authSource=admin')
-    db = client.surg_outcomes
-    
-    # Create partial index that only indexes documents where gmc_number exists
-    await db.surgeons.create_index(
-        [('gmc_number', 1)], 
-        unique=True, 
-        partialFilterExpression={'gmc_number': {'\$exists': True, '\$type': 'string'}}
-    )
-    print('✓ Created partial unique index on gmc_number')
-    
-    await db.surgeons.create_index([('first_name', 1), ('surname', 1)])
-    print('✓ Created compound index on first_name + surname')
-    
-    client.close()
-
-asyncio.run(fix_surgeons())
-"
-git add -A && git status
-cd /root && git commit -m "perf: comprehensive performance optimization across backend and frontend
-
-Backend optimizations:
-- Fixed N+1 query in patients list endpoint - replaced individual count_documents() with single aggregation pipeline
-- Added pagination to surgeons endpoint (skip/limit with default 1000)
-- Reports endpoint already optimized with aggregation pipeline (previous commit)
-
-Frontend optimizations:
-- Added useMemo to EpisodesPage for filteredEpisodes to prevent recalculation on every render
-- Added useCallback to EpisodesPage for loadEpisodes, showToast, removeToast, formatDate, loadPatientInfo
-- Added useMemo to PatientsPage for filteredPatients search
-- Added useCallback to PatientsPage for loadPatients
-- Added useCallback to AdminPage for fetchUsers and fetchSurgeons
-
-Database optimizations:
-- Created comprehensive indexes for surgeries collection:
-  * patient_id (single index)
-  * classification.urgency (single index)
-  * team.primary_surgeon (single index)
-  * perioperative_timeline.surgery_date descending (single index)
-  * surgery_date + urgency (compound index for common filter combination)
-  * complications, readmission_30day, mortality_30day (analytics indexes)
-- Created unique index on patients.record_number
-- Created partial unique index on surgeons.gmc_number (non-null values only)
-- Created compound index on surgeons (first_name + surname)
-
-Performance impact:
-- Backend: Reduced patients list query from N+1 (1 + N count queries) to 2 queries total (1 fetch + 1 aggregation)
-- Frontend: Memoization prevents expensive filter/sort operations on every render
-- Database: Indexes provide O(log n) lookup vs O(n) collection scans for common queries
-
-All changes tested and validated with no compilation errors."
-tail -50 ~/.tmp/backend.log 2>/dev/null || echo "No backend log found"
-curl -s http://localhost:3000 2>&1 | head -20
-ps aux | grep -E 'vite|node.*frontend' | grep -v grep
-tail -100 ~/.tmp/backend.log 2>/dev/null | grep -i "error\|exception\|traceback" | tail -20
-curl -s http://localhost:8000/api/patients 2>&1 | head -50
-curl -s http://localhost:3000 2>&1 | head -20
-tail -100 ~/.tmp/backend.log 2>/dev/null || echo "No backend log found"
-ps aux | grep -E 'uvicorn|fastapi' | grep -v grep
-ps aux | grep vite | grep -v grep
-curl -s http://localhost:3000 2>&1 | head -5
-curl -s http://localhost:8000/api/patients 2>&1 | head -20
-curl -s -H "Authorization: Bearer $(cat ~/.tmp/test_token 2>/dev/null || echo 'test')" http://localhost:8000/api/reports 2>&1 | head -30
-curl -s http://localhost:3000 | grep -E '<title>|<script' | head -10
-git add -A && git status
-cd /root && git commit -m "fix: add missing dependency array to formatDate useCallback in EpisodesPage
-
-Fixed syntax error where formatDate useCallback was missing its dependency array [],
-causing Vite compilation error: 'Unexpected token, expected comma'"
-cd /root/frontend && npm run dev > ~/.tmp/frontend.log 2>&1 &
-sleep 3 && tail -20 ~/.tmp/frontend.log
-ps aux | grep "vite\|uvicorn" | grep -v grep
-netstat -tlnp | grep -E ':3000|:8000'
-ss -tlnp | grep -E ':3000|:8000'
-ls
-ls -al
-cd frontend/
-ls -al
-cd /tmp]ls -al
-cd /tmp
-ls -al
-exit
-cd /root/frontend && npm install
-mkdir -p ~/.tmp
-chmod +x /root/execution/*.sh
-systemctl status mongod 2>&1 | head -20
-mongodb --version 2>&1 | head -5
-docker ps -a | grep -i mongo
-bash /root/execution/start_backend.sh
-bash /root/execution/start_frontend.sh
-sleep 3 && tail -30 ~/.tmp/backend.log
-lsof -i :8000 | grep LISTEN
-kill 67270 74221 79213 2>/dev/null; sleep 1 && bash /root/execution/start_backend.sh
-sleep 2 && tail -20 ~/.tmp/frontend.log
-sleep 2 && tail -15 ~/.tmp/backend.log
-netstat -tlnp | grep -E ':(8000|3001|27017)' | grep LISTEN
-ss -tlnp | grep -E ':(8000|3001|27017)' | grep LISTEN
-lsof -i :3000 | grep LISTEN
-kill 69431
-lsof -i :3000 2>/dev/null | grep LISTEN || echo "Port 3000 is now free"
-lsof -i :3001 | grep LISTEN | awk '{print $2}' | xargs kill 2>/dev/null; sleep 1
-bash /root/execution/start_frontend.sh
-sleep 2 && tail -15 ~/.tmp/frontend.log
-wc -l /root/backend/app/models/episode.py /root/backend/app/models/treatment.py /root/backend/app/routes/episodes_v2.py /root/frontend/src/components/CancerEpisodeForm.tsx /root/frontend/src/components/CancerEpisodeDetailModal.tsx /root/frontend/src/components/AddTreatmentModal.tsx /root/execution/init_episodes_collection.py /root/execution/create_sample_cancer_episodes.py /root/execution/migrate_surgeries_to_episodes.py 2>/dev/null | tail -1
-pkill -f "vite --host" && sleep 1 && cd /root/frontend && nohup npm run dev -- --host 0.0.0.0 > ~/.tmp/frontend.log 2>&1 &
-sleep 2 && tail -20 ~/.tmp/frontend.log
-curl -s "https://www.natcan.org.uk" | grep -i "data" | head -20
-cd /root/backend && python -c "
-from app.models.episode import (
-    EpisodeCreate, CancerType, ConditionType,
-    BowelCancerData, BreastCancerData, ProstateCancerData
-)
-print('✓ Episode models imported successfully')
-print('✓ Cancer types:', [ct.value for ct in CancerType])
-print('✓ Condition types:', [ct.value for ct in ConditionType])
-"
-cd /root/backend && python3 -c "
-from app.models.episode import (
-    EpisodeCreate, CancerType, ConditionType,
-    BowelCancerData, BreastCancerData, ProstateCancerData
-)
-print('✓ Episode models imported successfully')
-print('✓ Cancer types:', [ct.value for ct in CancerType])
-print('✓ Condition types:', [ct.value for ct in ConditionType])
-"
-cd /root/backend && python3 -c "
-from app.models.treatment import (
-    TreatmentType, SurgeryTreatment, ChemotherapyTreatment,
-    RadiotherapyTreatment, ImmunotherapyTreatment
-)
-print('✓ Treatment models imported successfully')
-print('✓ Treatment types:', [tt.value for tt in TreatmentType])
-"
-cd /root/backend && python3 -c "
-from app.routes.episodes_v2 import router
-print('✓ Episodes V2 router imported successfully')
-print(f'✓ Router prefix: {router.prefix}')
-print(f'✓ Router tags: {router.tags}')
-print(f'✓ Number of routes: {len(router.routes)}')
-"
-chmod +x /root/execution/create_sample_cancer_episodes.py && ls -lh /root/execution/*.py | grep -E "(init_episodes|migrate|create_sample)"
-python3 execution/init_episodes_collection.py
-python3 /root/execution/init_episodes_collection.py
-python3 /root/execution/init_episodes_collection.py
-python3 /root/execution/create_sample_cancer_episodes.py
-pgrep -f "uvicorn.*app.main:app" || echo "Backend not running"
-curl -s http://localhost:8000/api/v2/episodes/stats/overview | python3 -m json.tool
-curl -s "http://localhost:8000/api/v2/episodes?cancer_type=bowel" | python3 -m json.tool | head -50
-curl -s "http://localhost:8000/api/v2/episodes?cancer_type=bowel"
-tail -30 ~/.tmp/backend.log 2>/dev/null || echo "Log file not found"
-curl -s "http://localhost:8000/api/v2/episodes/?cancer_type=bowel" | python3 -m json.tool | head -80
-curl -s "http://localhost:8000/api/v2/episodes/" | python3 -c "import sys, json; data=json.load(sys.stdin); print(f'Total episodes: {len(data)}'); [print(f\"  - {e['cancer_type']}: {e['episode_id']}\") for e in data]"
-curl -s "http://localhost:8000/api/v2/episodes/EPI-SAMPLE-BREAST-001" | python3 -m json.tool | head -60
-pgrep -f "vite" || echo "Frontend not running"
-cd /root/frontend && npm run dev -- --host 0.0.0.0 > ~/.tmp/frontend.log 2>&1 &
-sleep 3 && cat ~/.tmp/frontend.log
-curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/
-bash /root/execution/start_frontend.sh
-sleep 3 && curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/ && echo -e "\n✓ Frontend is accessible" || echo -e "\n✗ Frontend not responding"
-lsof -ti:3000 | xargs kill -9 2>/dev/null || true && sleep 2 && cd /root && bash execution/start_frontend.sh
-pkill -f "vite.*frontend" || true && sleep 2 && cd /root && bash execution/start_frontend.sh
-sleep 5 && tail -30 ~/.tmp/frontend.log | grep -E "(error|Error|ERROR|FAILED|ready in)"
-lsof -ti:8000 | xargs kill -9 2>/dev/null || true && sleep 2 && cd /root && bash execution/start_backend.sh
 sleep 3 && tail -30 ~/.tmp/backend.log | grep -A 10 "Application startup complete"
 tail -50 ~/.tmp/frontend.log 2>/dev/null | tail -20
 bash execution/start_backend.sh
@@ -498,3 +150,351 @@ chmod +x /root/execution/migrate_add_consultant_flag.py && cd /root && python ex
 python3 execution/migrate_add_consultant_flag.py
 python3 execution/migrate_add_consultant_flag.py
 ps aux | grep -E "(vite|node.*frontend|npm.*dev)" | grep -v grep
+tail -50 ~/.tmp/frontend.log
+pkill -f "vite" && sleep 2 && cd /root && bash execution/start_frontend.sh
+sleep 3 && tail -30 ~/.tmp/frontend.log
+git add -A
+git status --short
+git commit -m "feat: implement NBOCA COSD Phase 1 & 2 compliance with comprehensive surgical tracking
+
+NBOCA Data Collection (CR codes):
+- ASA Physical Status Classification (CR6010) - 5-grade dropdown
+- Provider Organisation tracking (CR1450) - Searchable NHS Trust codes
+- OPCS-4 procedure codes (CR0720) - Auto-captured from procedure selection
+- Referral pathway fields (CR1600, CR1410, CR2050, CR3190)
+- Enhanced SNOMED morphology prominence (CR6400)
+- CRM status tracking (pCR1150)
+- ICD-10 and diagnosis date tagging (CR0370, CR2030)
+
+Treatment Enhancements:
+- NHS Trust searchable dropdown (50+ trusts, defaults to Portsmouth RYR)
+- Comprehensive surgical detail capture (urgency, complexity, anesthesia type)
+- Timeline tracking (admission, discharge, operation duration)
+- Intraoperative details (blood loss, transfusion, drains, findings)
+- Post-operative complications section with:
+  * Clavien-Dindo grading (8 grades with descriptions)
+  * Return to theatre tracking with reasons
+  * 30-day readmission tracking with reasons
+
+Summary Display Improvements:
+- Treatment summary modal expanded with all captured fields
+- Color-coded Clavien-Dindo grade badges
+- Enhanced complications section with reasons
+- Timeline and duration displayed separately
+- Provider organisation and ASA score visible
+
+Backend Updates:
+- Episode models updated with NBOCA referral pathway fields
+- Treatment complications fields in episode schema
+- All new fields validated and stored in MongoDB
+
+Technical:
+- Fixed SearchableSelect generic type handling with getOptionValue/getOptionLabel
+- OPCS-4 procedure code list properly structured
+- Portsmouth (RYR) set as default provider organisation"
+git log --oneline -1
+cd /root && git add -A && git commit -m "feat: add NBOCA Phase 3 quick wins - Performance Status and No Treatment Reason
+
+NBOCA Compliance Enhancements:
+- Performance Status (ECOG) field (CR0510) - 6-point scale from fully active to death
+- No Treatment Reason tracking (CR0490) - 8 common reasons including patient choice, not fit, died before treatment
+- Enhanced Grade/Differentiation label clarity in tumour form
+
+Frontend Changes:
+- Added ECOG dropdown to CancerEpisodeForm with full descriptions
+- Added No Treatment Reason dropdown with common options
+- Updated episode detail modal to display performance status and no treatment reason
+- Enhanced grade field label to \"Grade (Differentiation)\" with help text
+
+Backend Changes:
+- Added performance_status field to EpisodeBase, EpisodeCreate, EpisodeUpdate
+- Both fields properly tagged with NBOCA codes in model descriptions
+- Fields stored as Optional[str] allowing flexible data entry
+
+Display Improvements:
+- Performance status shown as \"ECOG X\" in episode overview
+- No treatment reason displayed with proper formatting (converting underscores)
+- Conditional display - only shows no treatment reason when populated
+
+Data Quality:
+- All fields optional to support retrospective data entry
+- Clear labeling with NBOCA codes for audit compliance
+- Consistent with existing field patterns"
+git add -A
+cd /root && git commit -m "fix: standardize date format to DD-MM-YYYY and resolve code quality issues
+
+Date Formatting:
+- Updated formatDate utility to use DD-MM-YYYY format consistently
+- Applied formatting to PatientsPage date_of_birth display
+- All dates now display in British format throughout application
+
+Code Quality Fixes:
+- Removed unused imports from TumourModal, TumourSummaryModal, TreatmentSummaryModal
+- Fixed Python type imports (List, Any) in tumour.py
+- Updated deprecated datetime.utcnow to datetime.now(timezone.utc)
+- Changed 'any' to 'Any' in type annotations for proper typing
+- Removed unused sys import from check_surgeon_data.py
+- Ensures Python 3.12+ compatibility
+- Reduced VSCode problems from 115 to 101 (remaining are motor type inference)"
+git add -A
+cd /root && git commit -m "feat: implement NBOCA Phase 3 & 4 compliance fields
+
+Phase 3 - Enhanced Clinical Data:
+- Added ICD-10 diagnosis code (CR0370) to BowelCancerData
+- Added SNOMED morphology code (CR6400) to BowelCancerData
+- Added diagnosis date (CR2030) to BowelCancerData
+- Added TNM version tracking (CR2070/pCR6820) to TNMStaging models
+- Added CRM distance in mm and CRM status (pCR1150) to Pathology model
+- Added provider_organisation (CR1450) to SurgeryTreatment
+
+Phase 4 - Process & Quality Metrics:
+- Added referral_source dropdown (CR1600) to episode form
+- Added provider_first_seen NHS Trust selector (CR1410) to episode form
+- Added cns_involved indicator (CR2050) to episode form
+- All fields display in CancerEpisodeDetailModal
+- Enhanced TumourSummaryModal with SNOMED, CRM status badges
+
+Frontend Updates:
+- Added NHS Trust ODS codes array to CancerEpisodeForm
+- Integrated Phase 4 fields into episode creation workflow
+- Color-coded CRM status display (green=clear, red=involved)
+- All NBOCA field codes documented in labels
+
+This completes the NBOCA COSD Data Items V2.0 core requirements for 
+bowel cancer audit submissions."
+cd /root && git add -A && git commit -m "feat: add Edit Episode button to episode detail modal
+
+- Added onEdit prop to CancerEpisodeDetailModal interface
+- Added Edit Episode button with pencil icon in modal header
+- Button opens episode form in edit mode with current data pre-filled
+- Closes detail modal and shows edit form when clicked
+- Integrated with existing edit workflow in EpisodesPage"
+cd /root && git add -A && git commit -m "refactor: move Edit Episode button to footer for consistency
+
+- Moved Edit Episode button from header to footer
+- Updated header to use gradient blue style matching TumourSummaryModal
+- Added footer with Close (left) and Edit Episode (right) buttons
+- Changed modal structure to flex-col with overflow-hidden for proper scrolling
+- Content area now uses flex-1 overflow-y-auto
+- Consistent layout with Tumour and Treatment summary modals"
+cd /root && git add -A && git commit -m "fix: set fixed height for episode modal to prevent resize on tab change
+
+- Changed max-h-[90vh] to h-[85vh] for consistent modal height
+- Modal now maintains same size across Overview, Tumours, and Treatments tabs
+- Content area scrolls independently within fixed modal height
+- Prevents jarring resize when switching between tabs with different content lengths"
+cd /root && git add -A && git commit -m "fix: restore patient-filtered episode navigation
+
+- Reordered routes to place /episodes/:patientId before /episodes
+- More specific routes should come first to ensure proper matching
+- Clicking patient record number or episodes icon now correctly filters to that patient's episodes
+- Patient info displayed in page header when filtered"
+cd /root && git add -A && git commit -m "feat: make entire patient table row clickable to view episodes
+
+- Moved onClick handler from MRN cell to entire table row
+- Added cursor-pointer to row for visual feedback
+- Removed duplicate episodes icon button from actions column
+- Added stopPropagation to actions cell to prevent row click when using edit/delete buttons
+- Improved user experience with larger clickable area"
+cd /root && git add -A && git commit -m "style: change record number color from blue to gray
+
+- Changed MRN text color from text-blue-600 to text-gray-900
+- Maintains font-medium weight for emphasis
+- Consistent with entire row being clickable rather than just the MRN"
+cd /root && git add -A && git commit -m "fix: enable search filtering for cancer episodes
+
+- Added filteredCancerEpisodes useMemo to filter cancer episodes by search term
+- Searches episode ID, patient ID, cancer type, and lead clinician
+- Updated display to use filteredCancerEpisodes instead of unfiltered cancerEpisodes
+- Updated empty state check to use filtered cancer episodes count
+- Search text box now filters both legacy surgery episodes and cancer episodes"
+cd /root/execution && bash start_backend.sh
+cd /root/execution && bash start_frontend.sh
+tail -30 ~/.tmp/backend.log
+pkill -f "uvicorn app.main:app" && sleep 2 && cd /root/execution && bash start_backend.sh
+tail -20 ~/.tmp/backend.log
+tail -30 ~/.tmp/frontend.log
+pkill -f "vite --host" && sleep 2 && cd /root/execution && bash start_frontend.sh
+tail -30 ~/.tmp/frontend.log | grep -A 5 "ready"
+pkill -f "uvicorn app.main:app" && sleep 2 && cd /root/execution && bash start_backend.sh
+tail -15 ~/.tmp/backend.log
+cd /root && git add -A && git commit -m "feat: replace consultant checkbox with subspecialty leads selection
+
+Backend Changes:
+- Added subspecialty_leads array to SurgeonBase and SurgeonUpdate models
+- Supports: colorectal, urology, breast, upper_gi, gynae_onc, other
+- Kept is_consultant field for backward compatibility
+
+Frontend Changes:
+- Replaced 'Mark as Consultant' checkbox with multi-select checkboxes
+- Shows all 6 subspecialty options in a grid layout
+- Updated clinician table to display subspecialty lead badges
+- Badges show each subspecialty the clinician can lead
+- Updated TypeScript interfaces to include subspecialty_leads array
+- Updated all form reset calls to include empty array
+
+UI Improvements:
+- Subspecialty badges displayed with blue background in table
+- Clean grid layout for subspecialty selection in form
+- Capitalized subspecialty names with proper formatting
+- Maintains visual consistency with existing design"
+pkill -f "uvicorn app.main:app" && sleep 2 && cd /root/execution && bash start_backend.sh
+tail -15 ~/.tmp/backend.log
+cd /root && git add -A && git commit -m "fix: filter clinicians by subspecialty instead of replacing with dropdown
+
+Corrected Implementation:
+- Episode form still uses SurgeonSearch for lead_clinician selection
+- Clinicians are now filtered based on their subspecialty_leads matching cancer type
+- Added subspecialtyFilter prop to SurgeonSearch component
+- Maps cancer types to subspecialties (bowel→colorectal, kidney/prostate→urology, etc.)
+
+Backend Changes:
+- Kept subspecialty_leads array in surgeon model for filtering
+- Removed subspecialty_lead from episode model
+- Lead_clinician remains required field in episodes
+
+Frontend Changes:
+- Added getSubspecialtyForCancerType() helper function
+- SurgeonSearch filters by subspecialty_leads array
+- Shows helper text indicating which subspecialty is being filtered
+- Reverted episode displays to show lead_clinician name
+
+Cancer Type to Subspecialty Mapping:
+- bowel → colorectal
+ urology  
+- breast_primary/breast_metastatic → breast
+- oesophageal → upper_gi
+- ovarian → gynae_onc"
+cd /root && git add -A && git commit -m "fix: clear search text properly in SurgeonSearch component
+
+Issue: When clearing the search text in SurgeonSearch, the text would reappear
+because the input value was falling back to the value prop.
+
+Solution:
+- Changed input value from 'searchTerm || value' to just 'searchTerm'
+- Added onChange callback when typing/clearing to sync parent state
+- Now properly clears the input field when user deletes all text
+- Parent component state is updated in real-time as user types"
+cd /root && git add -A && git commit -m "fix: clear text properly in SearchableSelect component
+
+Issue: Same as SurgeonSearch - when clearing text in SearchableSelect fields
+(like referral source), the text would reappear because the component was
+falling back to displaying the selected value's label.
+
+Solution:
+- Added useEffect to sync searchTerm with value prop changes
+- Input now uses searchTerm directly instead of getDisplayValue()
+- When user clears the input, onChange('') is called to clear parent state
+- onBlur resets searchTerm to show selected label (or empty if no selection)
+- Properly handles clearing and maintains sync between local and parent state
+
+This fixes the issue for all SearchableSelect instances including:
+- Referral source
+- Provider first seen
+- CNS involved
+- MDT meeting type
+- Performance status
+- No treatment reason
+And any other fields using SearchableSelect component"
+cd /root && git add -A && git commit -m "fix: display formatted cancer type in episode summary
+
+- Imported formatCancerType utility function
+- Applied formatting to cancer type in the review step summary
+- Now displays 'Bowel (Colorectal)' instead of 'bowel'
+- Maintains consistency with episode display pages"
+cd /root && git add -A && git commit -m "fix: SearchableSelect value selection and clearing
+
+Issue: Values weren't being retained when selected from dropdown because
+the onChange handler was clearing selections during typing.
+
+Solution:
+- Removed aggressive clearing logic from onChange handler
+- Simplified onBlur to just reset searchTerm to current value's label
+- Added clear button (X) that appears when a value is selected
+- Clear button explicitly clears both value and searchTerm
+- User can now type to search and select values properly
+- User can explicitly clear using the X button
+
+Changes:
+- Added pr-10 padding to input for clear button space
+- Clear button positioned absolutely on the right side
+- Uses onMouseDown to prevent blur issues
+- Only shows when value exists and field is not disabled"
+cd /root && git add -A && git commit -m "refactor: use SearchableSelect in SurgeonSearch component
+
+- Refactored SurgeonSearch to use SearchableSelect internally
+- Provides consistent UX with other searchable fields
+- Added clear button (X) for surgeons like other fields
+- Custom renderOption shows surgeon name, GMC number, and subspecialty badges
+- Maintains all filtering capabilities (consultantsOnly, subspecialtyFilter)
+- Reduced code duplication by reusing SearchableSelect
+- Same API/props so no changes needed in consuming components"
+cd /root && git add -A && git commit -m "fix: remove duplicate surgeon filter from episodes page
+
+Issue: Episodes page had both a main search bar and a separate surgeon
+filter dropdown, causing confusion and duplicate functionality.
+
+Solution:
+- Removed surgeonFilter state and all related code
+- Removed separate surgeon dropdown UI
+- Main search bar already filters by surgeon/clinician name
+- Simplified filter section to 3 columns: Urgency, Start Date, End Date
+- Removed surgeon fetching logic that was only used for the dropdown
+- Updated Clear Filters to only clear remaining filters
+
+Benefits:
+- Simpler, cleaner UI
+- No confusion about which filter to use
+- Main search handles surgeon filtering naturally
+- Reduced code complexity and state management"
+cd /root && git add -A && git commit -m "fix: update search placeholder text for cancer episodes
+
+- Changed from 'Surgery ID, Patient ID, Procedure, or Surgeon'
+- Now reads 'Episode ID, Patient ID, Cancer Type, or Clinician'
+- Reflects actual searchable fields in cancer episode system
+- More accurate and clearer for users"
+cd /root && git add -A && git commit -m "fix: apply date and urgency filters to episode display
+
+- Updated filteredEpisodes useMemo to apply urgency, start date, and end date filters
+- Updated filteredCancerEpisodes useMemo to apply start date and end date filters
+- Filters now work both server-side (for data loading) and client-side (for display)
+- Cancer episodes filtered by diagnosis_date, legacy episodes by date
+- Both search and filters now work together properly"
+cd /root && git add -A && git commit -m "refactor: remove urgency filter and streamline filter layout
+
+- Removed urgency filter state and UI (no longer used in cancer episodes)
+- Moved date filters onto same row as search box for cleaner layout
+- Search takes 4 columns, start/end dates each take 1.5 columns (7-column grid)
+- Removed urgency filtering from loadEpisodes params and filteredEpisodes logic
+- Simplified filter card to single row with integrated search and dates
+- Removed labels from date inputs for compact inline display"
+cd /root && git add -A && git commit -m "fix: improve date input visual clarity when empty
+
+- Added placeholder text overlays ('Start Date', 'End Date') that appear when fields are empty
+- Set text color to transparent when empty to hide browser's default date display
+- Made calendar picker icon always visible
+- Used absolute positioning for placeholder text that disappears when date is selected
+- Prevents confusion between empty state and pre-populated dates"
+cd /root && git add -A && git commit -m "fix: correct date field path in filteredEpisodes
+
+- Changed episode.date to episode.perioperative_timeline.surgery_date
+- Matches the actual Episode interface structure
+- Fixes episodes page crash after removing urgency filter"
+tail -50 ~/.tmp/frontend.log
+cd /root && git add -A && git commit -m "fix: remove remaining urgencyFilter references
+
+- Removed urgencyFilter from Clear Filters button condition and onClick handler
+- Removed urgencyFilter from empty state filter check
+- Fixes page crash caused by referencing deleted variable"
+cd /root && git add -A && git commit -m "fix: use correct date fields for filtering episodes
+
+- Changed cancer episode filtering from diagnosis_date to referral_date
+- Matches the date field displayed in the table
+- Date filters now work correctly for cancer episodes"
+cd /root && git add -A && git commit -m "fix: remove redundant client-side date filtering
+
+- Backend already filters episodes by date range (start_date, end_date params)
+- Removed duplicate date filtering logic from frontend useMemo hooks
+- Frontend now only filters by search term, backend handles date filtering
+- Fixes date filter not working - was double-filtering incorrectly"
+tail -100 ~/.tmp/backend.log | grep -i "date\|episode" | tail -20

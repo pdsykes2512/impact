@@ -57,7 +57,7 @@ export function HomePage() {
     const fetchRecentActivity = async () => {
       try {
         // Fetch recent cancer episodes sorted by last_modified_at (last 5 edited)
-        const response = await fetch('http://localhost:8000/api/v2/episodes/?limit=5&sort_by=last_modified_at', {
+        const response = await fetch('http://localhost:8000/api/episodes/?limit=5&sort_by=last_modified_at', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
