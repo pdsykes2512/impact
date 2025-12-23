@@ -65,3 +65,8 @@ async def get_treatments_collection():
 async def get_tumours_collection():
     """Get tumours collection"""
     return Database.get_collection("tumours")
+
+
+async def get_clinicians_collection():
+    """Get clinicians collection"""
+    return Database.get_collection("clinicians")

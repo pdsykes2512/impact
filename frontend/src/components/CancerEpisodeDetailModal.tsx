@@ -12,6 +12,14 @@ interface Treatment {
   treatment_type: string
   treatment_date?: string
   surgeon?: string
+  surgeon_name?: string
+  anaesthetist_name?: string
+  oncologist?: string
+  procedure_name?: string
+  regimen?: string
+  cycle_number?: number
+  site?: string
+  total_dose?: number
   notes?: string
   [key: string]: any
 }
@@ -661,7 +669,7 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
                             )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {formatSurgeon(treatment.surgeon || treatment.oncologist)}
+                            {formatSurgeon(treatment.surgeon_name || treatment.anaesthetist_name || treatment.surgeon || treatment.oncologist)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             <div className="flex space-x-2">

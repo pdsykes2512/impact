@@ -11,7 +11,7 @@ from ..models.episode import (
     Episode, EpisodeCreate, EpisodeUpdate,
     ConditionType, CancerType
 )
-from ..database import get_episodes_collection, get_patients_collection, get_treatments_collection, get_tumours_collection
+from ..database import get_episodes_collection, get_patients_collection, get_treatments_collection, get_tumours_collection, get_clinicians_collection
 
 
 router = APIRouter(prefix="/api/episodes", tags=["episodes"])
@@ -162,6 +162,7 @@ async def get_episode(episode_id: str):
     episodes_collection = await get_episodes_collection()
     treatments_collection = await get_treatments_collection()
     tumours_collection = await get_tumours_collection()
+    clinicians_collection = await get_clinicians_collection()
     
     episode = await episodes_collection.find_one({"episode_id": episode_id})
     if not episode:
@@ -178,10 +179,32 @@ async def get_episode(episode_id: str):
     tumours_cursor = tumours_collection.find({"episode_id": episode["episode_id"]})
     tumours = await tumours_cursor.to_list(length=None)
     
+    # Build a map of all clinicians for efficient lookup
+    all_clinicians = await clinicians_collection.find({}).to_list(length=None)
+    clinician_map = {}
+    for clinician in all_clinicians:
+        # Map by _id string
+        clinician_map[str(clinician["_id"])] = f"{clinician.get('first_name', '')} {clinician.get('surname', '')}".strip()
+        # Also map by name (for cases where name is already stored)
+        full_name = f"{clinician.get('first_name', '')} {clinician.get('surname', '')}".strip()
+        if full_name:
+            clinician_map[full_name] = full_name
+    
     # Convert ObjectIds to strings
     episode["_id"] = str(episode["_id"])
     for treatment in treatments:
         treatment["_id"] = str(treatment["_id"])
+        
+        # Resolve clinician names for surgeon and anaesthetist fields
+        if "surgeon" in treatment and treatment["surgeon"]:
+            surgeon_id = treatment["surgeon"]
+            # If it's an ObjectId or a key in our map, resolve it
+            treatment["surgeon_name"] = clinician_map.get(surgeon_id, surgeon_id)
+        
+        if "anaesthetist" in treatment and treatment["anaesthetist"]:
+            anaesthetist_id = treatment["anaesthetist"]
+            treatment["anaesthetist_name"] = clinician_map.get(anaesthetist_id, anaesthetist_id)
+    
     for tumour in tumours:
         tumour["_id"] = str(tumour["_id"])
     
