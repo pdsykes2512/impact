@@ -142,3 +142,45 @@ async def delete_patient(record_number: str):
         )
     
     return None
+
+
+@router.post("/calculate-bmi")
+async def calculate_bmi(weight_kg: float, height_cm: float):
+    """Calculate BMI from weight (kg) and height (cm)"""
+    if weight_kg < 20 or weight_kg > 300:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Weight must be between 20 and 300 kg"
+        )
+    
+    if height_cm < 100 or height_cm > 250:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Height must be between 100 and 250 cm"
+        )
+    
+    # Calculate BMI = weight(kg) / (height(m))^2
+    height_m = height_cm / 100
+    bmi = round(weight_kg / (height_m ** 2), 1)
+    
+    # Determine BMI category (WHO classification)
+    if bmi < 18.5:
+        category = "Underweight"
+    elif bmi < 25:
+        category = "Normal weight"
+    elif bmi < 30:
+        category = "Overweight"
+    elif bmi < 35:
+        category = "Obesity Class I"
+    elif bmi < 40:
+        category = "Obesity Class II"
+    else:
+        category = "Obesity Class III"
+    
+    return {
+        "bmi": bmi,
+        "category": category,
+        "weight_kg": weight_kg,
+        "height_cm": height_cm,
+        "height_m": height_m
+    }

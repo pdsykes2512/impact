@@ -102,6 +102,15 @@ export function PatientsPage() {
         current = current[keys[i]];
       }
       current[keys[keys.length - 1]] = value;
+      
+      // Auto-calculate BMI when height or weight changes
+      if ((field === 'demographics.height_cm' || field === 'demographics.weight_kg') && 
+          updated.demographics.height_cm && updated.demographics.weight_kg) {
+        const height_m = updated.demographics.height_cm / 100;
+        const bmi = updated.demographics.weight_kg / (height_m ** 2);
+        updated.demographics.bmi = Math.round(bmi * 10) / 10; // Round to 1 decimal
+      }
+      
       return updated;
     });
   };
@@ -475,16 +484,30 @@ export function PatientsPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     BMI
+                    {formData.demographics.height_cm && formData.demographics.weight_kg && (
+                      <span className="ml-2 text-xs text-green-600">(Auto-calculated)</span>
+                    )}
                   </label>
                   <input
                     type="number"
                     step="0.1"
                     min="10"
                     max="80"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    readOnly={!!(formData.demographics.height_cm && formData.demographics.weight_kg)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
                     value={formData.demographics.bmi || ''}
                     onChange={(e) => handleInputChange('demographics.bmi', e.target.value ? parseFloat(e.target.value) : undefined)}
                   />
+                  {formData.demographics.bmi && (
+                    <p className="mt-1 text-xs text-gray-500">
+                      {formData.demographics.bmi < 18.5 ? '📉 Underweight' :
+                       formData.demographics.bmi < 25 ? '✅ Normal weight' :
+                       formData.demographics.bmi < 30 ? '⚠️ Overweight' :
+                       formData.demographics.bmi < 35 ? '🔴 Obesity Class I' :
+                       formData.demographics.bmi < 40 ? '🔴 Obesity Class II' :
+                       '🔴 Obesity Class III'}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

@@ -87,6 +87,19 @@ const OPCS4_PROCEDURES = [
 // NHS Trust ODS Codes - Common NHS Trusts
 // NHS Trust options imported from centralized utils
 
+// Calculate length of stay from admission to discharge
+const calculateLengthOfStay = (admissionDate: string, dischargeDate: string): number | null => {
+  if (!admissionDate || !dischargeDate) return null
+  
+  const admission = new Date(admissionDate)
+  const discharge = new Date(dischargeDate)
+  
+  const diffTime = discharge.getTime() - admission.getTime()
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+  
+  return diffDays >= 0 ? diffDays : null
+}
+
 export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'create', initialData }: AddTreatmentModalProps) {
   const [treatmentType, setTreatmentType] = useState(initialData?.treatment_type || 'surgery')
   const [procedureSearch, setProcedureSearch] = useState(initialData?.procedure_name || '')
@@ -509,17 +522,35 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
               </div>
 
               {/* Timeline */}
-              <div className="grid grid-cols-2 gap-4">
-                <DateInput
-                  label="Admission Date"
-                  value={formData.admission_date}
-                  onChange={(e) => setFormData({ ...formData, admission_date: e.target.value })}
-                />
-                <DateInput
-                  label="Discharge Date"
-                  value={formData.discharge_date}
-                  onChange={(e) => setFormData({ ...formData, discharge_date: e.target.value })}
-                />
+              <div className="space-y-4">
+                <h4 className="text-sm font-semibold text-gray-900">Timeline</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <DateInput
+                    label="Admission Date"
+                    value={formData.admission_date}
+                    onChange={(e) => setFormData({ ...formData, admission_date: e.target.value })}
+                  />
+                  <DateInput
+                    label="Discharge Date"
+                    value={formData.discharge_date}
+                    onChange={(e) => setFormData({ ...formData, discharge_date: e.target.value })}
+                  />
+                </div>
+                
+                {/* Length of Stay Display */}
+                {formData.admission_date && formData.discharge_date && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-blue-900">Length of Stay</span>
+                      <span className="text-lg font-bold text-blue-700">
+                        {(() => {
+                          const los = calculateLengthOfStay(formData.admission_date, formData.discharge_date)
+                          return los !== null ? `${los} ${los === 1 ? 'day' : 'days'}` : 'N/A'
+                        })()}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Intraoperative Details */}
