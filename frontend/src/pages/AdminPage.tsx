@@ -859,7 +859,7 @@ export function AdminPage() {
                     } catch (err: any) {
                       if (err.response?.status === 404) {
                         const detail = err.response?.data?.detail || 'No episodes found'
-                        setError(detail + '\n\nTip: Clear the date filters and try again to export all episodes.')
+                        setError(detail)
                       } else {
                         setError('Failed to generate export: ' + (err.response?.data?.detail || err.message))
                       }

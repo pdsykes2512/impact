@@ -324,10 +324,16 @@ async def export_nboca_xml(
     if not episodes:
         # Try without any filters to see if any episodes exist
         total_count = await db.cancer_episodes.count_documents({})
-        raise HTTPException(
-            status_code=404, 
-            detail=f"No episodes found for the specified criteria. Total episodes in database: {total_count}. Try removing date filters or ensure episodes have cancer_type='bowel'."
-        )
+        if total_count == 0:
+            raise HTTPException(
+                status_code=404, 
+                detail="No cancer episodes found in database. Please create cancer episodes using the Episodes page before exporting."
+            )
+        else:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"No episodes match the specified criteria. Total episodes in database: {total_count}. Try clearing date filters or check that episodes have cancer_type='bowel'."
+            )
     
     # Create root XML element
     root = ET.Element("COSDSubmission")
