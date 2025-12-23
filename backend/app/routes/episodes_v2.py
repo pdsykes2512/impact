@@ -104,12 +104,13 @@ async def list_episodes(
         query["episode_status"] = episode_status
     
     # Date range filtering
+    # Note: referral_date may be stored as string in database, so we compare as strings
     if start_date or end_date:
         date_query = {}
         if start_date:
-            date_query["$gte"] = datetime.fromisoformat(start_date)
+            date_query["$gte"] = start_date  # Compare as string: "2025-12-01"
         if end_date:
-            date_query["$lte"] = datetime.fromisoformat(end_date)
+            date_query["$lte"] = end_date  # Compare as string: "2025-12-22"
         query["referral_date"] = date_query
     
     cursor = collection.find(query).sort("referral_date", -1).skip(skip).limit(limit)
