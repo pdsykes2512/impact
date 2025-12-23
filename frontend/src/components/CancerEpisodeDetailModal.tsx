@@ -5,6 +5,7 @@ import { TumourModal } from './TumourModal'
 import { TumourSummaryModal } from './TumourSummaryModal'
 import { TreatmentSummaryModal } from './TreatmentSummaryModal'
 import { formatFieldValue, formatFieldName, formatDate, formatStatus, formatCancerType, formatTreatmentType, formatSurgeon, capitalize } from '../utils/formatters'
+import { formatTrustName } from '../utils/nhsTrusts'
 
 interface Treatment {
   treatment_id: string
@@ -395,7 +396,7 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
                   {episode.provider_first_seen && (
                     <div>
                       <label className="text-sm font-medium text-gray-500">Provider First Seen</label>
-                      <p className="text-sm text-gray-900 mt-1">{episode.provider_first_seen}</p>
+                      <p className="text-sm text-gray-900 mt-1">{formatTrustName(episode.provider_first_seen)}</p>
                     </div>
                   )}
                   {episode.cns_involved && (
