@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { PageHeader } from '../components/PageHeader'
 import { Card } from '../components/Card'
+import { formatDate, formatCancerType } from '../utils/formatters'
 import api from '../services/api'
 
 export function HomePage() {
@@ -12,6 +13,8 @@ export function HomePage() {
     thisMonth: 0,
     loading: true
   })
+  const [recentActivity, setRecentActivity] = useState<any[]>([])
+  const [activityLoading, setActivityLoading] = useState(true)
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -46,6 +49,30 @@ export function HomePage() {
     }
     
     fetchStats()
+  }, [])
+
+  useEffect(() => {
+    const fetchRecentActivity = async () => {
+      try {
+        // Fetch recent cancer episodes (last 5)
+        const response = await fetch('http://localhost:8000/api/v2/episodes/?limit=5', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        })
+        
+        if (response.ok) {
+          const episodes = await response.json()
+          setRecentActivity(episodes)
+        }
+      } catch (error) {
+        console.error('Failed to fetch recent activity:', error)
+      } finally {
+        setActivityLoading(false)
+      }
+    }
+    
+    fetchRecentActivity()
   }, [])
 
   return (
@@ -162,12 +189,54 @@ export function HomePage() {
           <div className="border-b border-gray-200 pb-4 mb-4">
             <h3 className="text-lg font-medium text-gray-900">Recent Activity</h3>
           </div>
-          <div className="text-center py-8 text-gray-500">
-            <svg className="mx-auto w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-sm">No recent activity</p>
-          </div>
+          {activityLoading ? (
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          ) : recentActivity.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <svg className="mx-auto w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-sm">No recent activity</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {recentActivity.map((episode) => (
+                <a
+                  key={episode.episode_id}
+                  href={`/episodes`}
+                  className="block p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-200"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-2">
+                        <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                          {formatCancerType(episode.cancer_type)}
+                        </span>
+                        <span className="text-sm font-medium text-gray-900 truncate">
+                          {episode.episode_id}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Patient: <span className="font-medium">{episode.patient_id}</span>
+                      </p>
+                      {episode.lead_clinician && (
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Clinician: {episode.lead_clinician}
+                        </p>
+                      )}
+                    </div>
+                    <div className="ml-4 flex-shrink-0 text-right">
+                      <p className="text-xs text-gray-500">
+                        {formatDate(episode.referral_date)}
+                      </p>
+                    </div>
+                  </div>
+                </a>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
     </div>
