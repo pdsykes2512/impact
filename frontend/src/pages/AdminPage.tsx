@@ -32,7 +32,7 @@ interface Surgeon {
 
 export function AdminPage() {
   const { token } = useAuth()
-  const [activeTab, setActiveTab] = useState<'users' | 'surgeons'>('users')
+  const [activeTab, setActiveTab] = useState<'users' | 'surgeons' | 'exports'>('users')
   const [users, setUsers] = useState<User[]>([])
   const [surgeons, setSurgeons] = useState<Surgeon[]>([])
   const [loading, setLoading] = useState(true)
@@ -272,6 +272,16 @@ export function AdminPage() {
             }`}
           >
             Clinicians
+          </button>
+          <button
+            onClick={() => setActiveTab('exports')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'exports'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Exports
           </button>
         </nav>
       </div>
@@ -758,6 +768,152 @@ export function AdminPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Exports Tab */}
+      {activeTab === 'exports' && (
+        <>
+          <Card>
+            <div className="border-b border-gray-200 pb-4 mb-6">
+              <h3 className="text-lg font-medium text-gray-900">NBOCA/COSD Data Export</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Export bowel cancer episode data in XML format for National Bowel Cancer Audit (NBOCA) submission.
+              </p>
+            </div>
+
+            <div className="space-y-6">
+              {/* Date Range Filter */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Start Date (Diagnosis Date)
+                  </label>
+                  <input
+                    type="date"
+                    id="export-start-date"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    End Date (Diagnosis Date)
+                  </label>
+                  <input
+                    type="date"
+                    id="export-end-date"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* Export Actions */}
+              <div className="flex space-x-4">
+                <Button
+                  variant="primary"
+                  onClick={async () => {
+                    const startDate = (document.getElementById('export-start-date') as HTMLInputElement)?.value
+                    const endDate = (document.getElementById('export-end-date') as HTMLInputElement)?.value
+                    
+                    try {
+                      const params = new URLSearchParams()
+                      if (startDate) params.append('start_date', startDate)
+                      if (endDate) params.append('end_date', endDate)
+                      
+                      const url = `${API_URL}/api/admin/exports/nboca-xml${params.toString() ? '?' + params.toString() : ''}`
+                      
+                      const response = await axios.get(url, {
+                        headers: { Authorization: `Bearer ${token}` },
+                        responseType: 'blob'
+                      })
+                      
+                      // Create download link
+                      const blob = new Blob([response.data], { type: 'application/xml' })
+                      const downloadUrl = window.URL.createObjectURL(blob)
+                      const link = document.createElement('a')
+                      link.href = downloadUrl
+                      link.download = `nboca_export_${new Date().toISOString().split('T')[0]}.xml`
+                      document.body.appendChild(link)
+                      link.click()
+                      link.remove()
+                      window.URL.revokeObjectURL(downloadUrl)
+                      
+                      setError('')
+                    } catch (err: any) {
+                      if (err.response?.status === 404) {
+                        setError('No episodes found for the specified date range')
+                      } else {
+                        setError('Failed to generate export: ' + (err.response?.data?.detail || err.message))
+                      }
+                    }
+                  }}
+                >
+                  Download NBOCA XML Export
+                </Button>
+
+                <Button
+                  variant="secondary"
+                  onClick={async () => {
+                    try {
+                      const response = await axios.get(`${API_URL}/api/admin/exports/data-completeness`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                      })
+                      
+                      const data = response.data
+                      
+                      // Format completeness report
+                      let report = `NBOCA Data Completeness Report\n`
+                      report += `Total Episodes: ${data.total_episodes}\n\n`
+                      
+                      report += `Patient Demographics:\n`
+                      for (const [field, value] of Object.entries(data.patient_demographics)) {
+                        if (typeof value === 'object' && value !== null) {
+                          const v = value as { count: number; percentage: number }
+                          report += `  ${field}: ${v.count}/${data.total_episodes} (${v.percentage}%)\n`
+                        }
+                      }
+                      
+                      report += `\nDiagnosis:\n`
+                      for (const [field, value] of Object.entries(data.diagnosis)) {
+                        if (typeof value === 'object' && value !== null) {
+                          const v = value as { count: number; percentage: number }
+                          report += `  ${field}: ${v.count}/${data.total_episodes} (${v.percentage}%)\n`
+                        }
+                      }
+                      
+                      const surgeryTotal = data.surgery.total_surgical_episodes
+                      report += `\nSurgery (${surgeryTotal} surgical episodes):\n`
+                      for (const [field, value] of Object.entries(data.surgery)) {
+                        if (field !== 'total_surgical_episodes' && typeof value === 'object' && value !== null) {
+                          const v = value as { count: number; percentage: number }
+                          report += `  ${field}: ${v.count}/${surgeryTotal} (${v.percentage}%)\n`
+                        }
+                      }
+                      
+                      alert(report)
+                      setError('')
+                    } catch (err: any) {
+                      setError('Failed to check data completeness: ' + (err.response?.data?.detail || err.message))
+                    }
+                  }}
+                >
+                  Check Data Completeness
+                </Button>
+              </div>
+
+              {/* Information */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-blue-900 mb-2">Export Information</h4>
+                <ul className="text-sm text-blue-800 space-y-1">
+                  <li>• XML format conforms to COSD v9/v10 standard</li>
+                  <li>• Only bowel cancer episodes are included</li>
+                  <li>• Filter by diagnosis date range (optional)</li>
+                  <li>• Includes patient demographics, diagnosis, TNM staging, and treatment details</li>
+                  <li>• Check data completeness before submitting to NBOCA</li>
+                </ul>
+              </div>
+            </div>
+          </Card>
+        </>
       )}
     </div>
   )

@@ -1,0 +1,477 @@
+from datetime import datetime
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Response
+from motor.motor_asyncio import AsyncIOMotorDatabase
+from bson import ObjectId
+import xml.etree.ElementTree as ET
+from xml.dom import minidom
+
+from ..database import get_database
+from ..models.user import User
+from ..auth import get_current_user, require_admin
+
+router = APIRouter(prefix="/api/admin/exports", tags=["Admin - Exports"])
+
+
+def prettify_xml(elem: ET.Element) -> str:
+    """Return a pretty-printed XML string for the Element."""
+    rough_string = ET.tostring(elem, encoding='unicode')
+    reparsed = minidom.parseString(rough_string)
+    return reparsed.toprettyxml(indent="  ")
+
+
+def format_date(date_value) -> str:
+    """Format datetime/date to YYYY-MM-DD for COSD."""
+    if not date_value:
+        return ""
+    if isinstance(date_value, str):
+        # Try to parse if it's already a string
+        try:
+            dt = datetime.fromisoformat(date_value.replace('Z', '+00:00'))
+            return dt.strftime('%Y-%m-%d')
+        except:
+            return date_value
+    if isinstance(date_value, datetime):
+        return date_value.strftime('%Y-%m-%d')
+    return str(date_value)
+
+
+def create_patient_xml(patient: dict, episode: dict) -> ET.Element:
+    """Create COSD XML patient record."""
+    patient_elem = ET.Element("Patient")
+    
+    # NHS Number (CR0010) - MANDATORY
+    if patient.get("nhs_number"):
+        nhs = ET.SubElement(patient_elem, "NHSNumber")
+        nhs.text = str(patient["nhs_number"])
+    
+    # Demographics
+    demographics = patient.get("demographics", {})
+    
+    # Date of Birth (CR0100) - MANDATORY
+    if demographics.get("date_of_birth"):
+        dob = ET.SubElement(patient_elem, "PersonBirthDate")
+        dob.text = format_date(demographics["date_of_birth"])
+    
+    # Gender (CR3170) - MANDATORY
+    if demographics.get("gender"):
+        gender = ET.SubElement(patient_elem, "PersonStatedGenderCode")
+        gender_map = {"male": "1", "female": "2", "other": "9"}
+        gender.text = gender_map.get(demographics["gender"].lower(), "9")
+    
+    # Ethnicity (CR0150) - MANDATORY
+    if demographics.get("ethnicity"):
+        ethnicity = ET.SubElement(patient_elem, "EthnicCategory")
+        ethnicity.text = demographics["ethnicity"]
+    
+    # Postcode (CR0080) - MANDATORY
+    if demographics.get("postcode"):
+        postcode = ET.SubElement(patient_elem, "PostcodeOfUsualAddress")
+        postcode.text = demographics["postcode"]
+    
+    return patient_elem
+
+
+def create_episode_xml(episode: dict, patient: dict, treatments: list) -> ET.Element:
+    """Create COSD XML cancer episode record."""
+    record = ET.Element("CancerRecord")
+    
+    # Add patient demographics
+    record.append(create_patient_xml(patient, episode))
+    
+    # Episode details
+    episode_elem = ET.SubElement(record, "Episode")
+    
+    # Episode ID (local identifier)
+    ep_id = ET.SubElement(episode_elem, "LocalPatientIdentifier")
+    ep_id.text = str(episode.get("_id", ""))
+    
+    # Provider first seen (CR1410)
+    if episode.get("provider_first_seen"):
+        provider = ET.SubElement(episode_elem, "ProviderFirstSeen")
+        provider.text = episode["provider_first_seen"]
+    
+    # Referral source (CR1600)
+    if episode.get("referral_source"):
+        ref_source = ET.SubElement(episode_elem, "SourceOfReferral")
+        ref_source.text = episode["referral_source"]
+    
+    # CNS involved (CR2050)
+    if episode.get("cns_involved") is not None:
+        cns = ET.SubElement(episode_elem, "CNSIndicationCode")
+        cns.text = "01" if episode["cns_involved"] else "02"
+    
+    # MDT meeting type (CR3190)
+    if episode.get("mdt_meeting_type"):
+        mdt = ET.SubElement(episode_elem, "MDTMeetingType")
+        mdt.text = episode["mdt_meeting_type"]
+    
+    # Performance status (CR0510)
+    if episode.get("performance_status"):
+        perf = ET.SubElement(episode_elem, "PerformanceStatusAdult")
+        perf.text = str(episode["performance_status"].get("ecog_score", ""))
+    
+    # Diagnosis details for bowel cancer
+    cancer_data = episode.get("cancer_data", {})
+    if episode.get("cancer_type") == "bowel" and cancer_data:
+        diagnosis_elem = ET.SubElement(episode_elem, "Diagnosis")
+        
+        # Diagnosis date (CR2030)
+        if cancer_data.get("diagnosis_date"):
+            diag_date = ET.SubElement(diagnosis_elem, "PrimaryDiagnosisDate")
+            diag_date.text = format_date(cancer_data["diagnosis_date"])
+        
+        # ICD-10 code (CR0370) - MANDATORY for NBOCA
+        if cancer_data.get("icd10_code"):
+            icd = ET.SubElement(diagnosis_elem, "PrimaryDiagnosisICD")
+            icd.text = cancer_data["icd10_code"]
+        
+        # SNOMED morphology code (CR6400)
+        if cancer_data.get("snomed_morphology_code"):
+            snomed = ET.SubElement(diagnosis_elem, "MorphologySNOMED")
+            snomed.text = cancer_data["snomed_morphology_code"]
+        
+        # TNM Staging
+        tnm = cancer_data.get("tnm_staging", {})
+        if tnm:
+            tnm_elem = ET.SubElement(diagnosis_elem, "TNMStaging")
+            
+            # TNM version (CR2070)
+            if tnm.get("version"):
+                version = ET.SubElement(tnm_elem, "TNMVersionNumber")
+                version.text = str(tnm["version"])
+            
+            # Clinical T (CR0520)
+            if tnm.get("clinical_t"):
+                t_cat = ET.SubElement(tnm_elem, "TCategoryFinalPretreatment")
+                t_cat.text = tnm["clinical_t"]
+            
+            # Clinical N (CR0540)
+            if tnm.get("clinical_n"):
+                n_cat = ET.SubElement(tnm_elem, "NCategoryFinalPretreatment")
+                n_cat.text = tnm["clinical_n"]
+            
+            # Clinical M (CR0560)
+            if tnm.get("clinical_m"):
+                m_cat = ET.SubElement(tnm_elem, "MCategoryFinalPretreatment")
+                m_cat.text = tnm["clinical_m"]
+            
+            # Pathological staging
+            if tnm.get("pathological_t"):
+                path_t = ET.SubElement(tnm_elem, "TCategoryPathological")
+                path_t.text = tnm["pathological_t"]
+            
+            if tnm.get("pathological_n"):
+                path_n = ET.SubElement(tnm_elem, "NCategoryPathological")
+                path_n.text = tnm["pathological_n"]
+            
+            if tnm.get("pathological_m"):
+                path_m = ET.SubElement(tnm_elem, "MCategoryPathological")
+                path_m.text = tnm["pathological_m"]
+        
+        # Tumour height above anal verge (CO5160) - for rectal cancer only
+        if cancer_data.get("distance_from_anal_verge_cm") is not None:
+            height = ET.SubElement(diagnosis_elem, "TumourHeightAboveAnalVerge")
+            height.text = str(cancer_data["distance_from_anal_verge_cm"])
+        
+        # Lymph nodes (pathology)
+        if cancer_data.get("lymph_nodes_examined") is not None:
+            nodes_exam = ET.SubElement(diagnosis_elem, "NumberOfNodesExamined")
+            nodes_exam.text = str(cancer_data["lymph_nodes_examined"])
+        
+        if cancer_data.get("lymph_nodes_positive") is not None:
+            nodes_pos = ET.SubElement(diagnosis_elem, "NumberOfNodesPositive")
+            nodes_pos.text = str(cancer_data["lymph_nodes_positive"])
+    
+    # Treatment details
+    if treatments:
+        treatments_elem = ET.SubElement(episode_elem, "Treatments")
+        
+        for treatment in treatments:
+            treatment_elem = ET.SubElement(treatments_elem, "Treatment")
+            
+            # Treatment type
+            t_type = ET.SubElement(treatment_elem, "TreatmentType")
+            t_type.text = treatment.get("treatment_type", "").upper()
+            
+            # Treatment date (CR0710 for surgery)
+            if treatment.get("treatment_date"):
+                t_date = ET.SubElement(treatment_elem, "TreatmentDate")
+                t_date.text = format_date(treatment["treatment_date"])
+            
+            # Treatment intent (CR0680)
+            if treatment.get("treatment_intent"):
+                intent = ET.SubElement(treatment_elem, "TreatmentIntent")
+                intent.text = treatment["treatment_intent"]
+            
+            # Provider organisation (CR1450)
+            if treatment.get("provider_organisation"):
+                provider_org = ET.SubElement(treatment_elem, "ProviderOrganisation")
+                provider_org.text = treatment["provider_organisation"]
+            
+            # Surgery-specific fields
+            if treatment.get("treatment_type") == "surgery":
+                surgery_elem = ET.SubElement(treatment_elem, "Surgery")
+                
+                # OPCS-4 procedure code (CR0720) - MANDATORY for surgical patients
+                if treatment.get("opcs4_code"):
+                    opcs = ET.SubElement(surgery_elem, "PrimaryProcedureOPCS")
+                    opcs.text = treatment["opcs4_code"]
+                
+                # ASA score (CR6010) - MANDATORY for surgical patients
+                if treatment.get("asa_score"):
+                    asa = ET.SubElement(surgery_elem, "ASAScore")
+                    asa.text = str(treatment["asa_score"])
+                
+                # Surgical approach (CR6310)
+                if treatment.get("approach"):
+                    approach = ET.SubElement(surgery_elem, "SurgicalAccessType")
+                    approach_map = {
+                        "open": "01",
+                        "laparoscopic": "02",
+                        "laparoscopic_converted": "03",
+                        "robotic": "04"
+                    }
+                    approach.text = approach_map.get(treatment["approach"], "99")
+                
+                # Urgency (CO6000)
+                if treatment.get("urgency"):
+                    urgency = ET.SubElement(surgery_elem, "SurgicalUrgencyType")
+                    urgency_map = {
+                        "elective": "01",
+                        "urgent": "02",
+                        "emergency": "03"
+                    }
+                    urgency.text = urgency_map.get(treatment["urgency"], "99")
+                
+                # CRM status (pCR1150) - for resections
+                if treatment.get("circumferential_resection_margin") is not None:
+                    crm = ET.SubElement(surgery_elem, "CircumferentialResectionMargin")
+                    crm.text = "R0" if treatment["circumferential_resection_margin"] else "R1"
+            
+            # Chemotherapy-specific fields
+            elif treatment.get("treatment_type") == "chemotherapy":
+                chemo_elem = ET.SubElement(treatment_elem, "Chemotherapy")
+                
+                if treatment.get("regimen"):
+                    regimen = ET.SubElement(chemo_elem, "ChemoRegimen")
+                    regimen.text = treatment["regimen"]
+                
+                if treatment.get("cycles_planned"):
+                    cycles = ET.SubElement(chemo_elem, "CyclesPlanned")
+                    cycles.text = str(treatment["cycles_planned"])
+            
+            # Radiotherapy-specific fields
+            elif treatment.get("treatment_type") == "radiotherapy":
+                radio_elem = ET.SubElement(treatment_elem, "Radiotherapy")
+                
+                if treatment.get("total_dose_gy"):
+                    dose = ET.SubElement(radio_elem, "TotalDose")
+                    dose.text = str(treatment["total_dose_gy"])
+                
+                if treatment.get("fractions"):
+                    fractions = ET.SubElement(radio_elem, "Fractions")
+                    fractions.text = str(treatment["fractions"])
+    
+    return record
+
+
+@router.get("/nboca-xml")
+async def export_nboca_xml(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    current_user: User = Depends(require_admin),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """
+    Export NBOCA/COSD data as XML for NatCan submission.
+    
+    - **start_date**: Filter episodes by diagnosis date (YYYY-MM-DD)
+    - **end_date**: Filter episodes by diagnosis date (YYYY-MM-DD)
+    
+    Returns XML formatted according to COSD v9/v10 standard.
+    """
+    
+    # Build query for cancer episodes (bowel cancer only for NBOCA)
+    query = {"cancer_type": "bowel"}
+    
+    if start_date or end_date:
+        date_query = {}
+        if start_date:
+            date_query["$gte"] = datetime.fromisoformat(start_date)
+        if end_date:
+            date_query["$lte"] = datetime.fromisoformat(end_date)
+        query["cancer_data.diagnosis_date"] = date_query
+    
+    # Fetch cancer episodes
+    episodes_cursor = db.cancer_episodes.find(query)
+    episodes = []
+    async for doc in episodes_cursor:
+        doc["_id"] = str(doc["_id"])
+        episodes.append(doc)
+    
+    if not episodes:
+        raise HTTPException(status_code=404, detail="No episodes found for the specified criteria")
+    
+    # Create root XML element
+    root = ET.Element("COSDSubmission")
+    root.set("version", "9.0")
+    root.set("xmlns", "http://www.datadictionary.nhs.uk/messages/COSD-v9-0")
+    
+    # Add metadata
+    metadata = ET.SubElement(root, "SubmissionMetadata")
+    org = ET.SubElement(metadata, "OrganisationCode")
+    org.text = "SYSTEM"  # Should be replaced with actual org code
+    
+    extract_date = ET.SubElement(metadata, "ExtractDate")
+    extract_date.text = datetime.now().strftime('%Y-%m-%d')
+    
+    record_count = ET.SubElement(metadata, "RecordCount")
+    record_count.text = str(len(episodes))
+    
+    # Add patient records
+    records = ET.SubElement(root, "Records")
+    
+    for episode in episodes:
+        # Fetch patient details
+        patient = await db.patients.find_one({"_id": ObjectId(episode["patient_id"])})
+        if not patient:
+            continue
+        
+        patient["_id"] = str(patient["_id"])
+        
+        # Fetch treatments for this episode
+        treatments_cursor = db.treatments.find({"episode_id": episode["_id"]})
+        treatments = []
+        async for t in treatments_cursor:
+            t["_id"] = str(t["_id"])
+            treatments.append(t)
+        
+        # Create episode record
+        record = create_episode_xml(episode, patient, treatments)
+        records.append(record)
+    
+    # Generate pretty XML
+    xml_string = prettify_xml(root)
+    
+    # Return as XML response
+    return Response(
+        content=xml_string,
+        media_type="application/xml",
+        headers={
+            "Content-Disposition": f"attachment; filename=nboca_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xml"
+        }
+    )
+
+
+@router.get("/data-completeness")
+async def check_data_completeness(
+    current_user: User = Depends(require_admin),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """
+    Check NBOCA data completeness for all bowel cancer episodes.
+    
+    Returns metrics on % complete for mandatory COSD fields.
+    """
+    
+    # Fetch all bowel cancer episodes
+    episodes_cursor = db.cancer_episodes.find({"cancer_type": "bowel"})
+    episodes = []
+    async for doc in episodes_cursor:
+        episodes.append(doc)
+    
+    total = len(episodes)
+    if total == 0:
+        return {
+            "total_episodes": 0,
+            "message": "No bowel cancer episodes found"
+        }
+    
+    # Track completeness for mandatory fields
+    completeness = {
+        "total_episodes": total,
+        "patient_demographics": {
+            "nhs_number": 0,
+            "date_of_birth": 0,
+            "gender": 0,
+            "ethnicity": 0,
+            "postcode": 0
+        },
+        "diagnosis": {
+            "diagnosis_date": 0,
+            "icd10_code": 0,
+            "tnm_staging": 0
+        },
+        "surgery": {
+            "total_surgical_episodes": 0,
+            "opcs4_code": 0,
+            "asa_score": 0
+        }
+    }
+    
+    for episode in episodes:
+        # Fetch patient
+        patient = await db.patients.find_one({"_id": ObjectId(episode["patient_id"])})
+        if not patient:
+            continue
+        
+        # Check patient demographics
+        if patient.get("nhs_number"):
+            completeness["patient_demographics"]["nhs_number"] += 1
+        
+        demographics = patient.get("demographics", {})
+        if demographics.get("date_of_birth"):
+            completeness["patient_demographics"]["date_of_birth"] += 1
+        if demographics.get("gender"):
+            completeness["patient_demographics"]["gender"] += 1
+        if demographics.get("ethnicity"):
+            completeness["patient_demographics"]["ethnicity"] += 1
+        if demographics.get("postcode"):
+            completeness["patient_demographics"]["postcode"] += 1
+        
+        # Check diagnosis
+        cancer_data = episode.get("cancer_data", {})
+        if cancer_data.get("diagnosis_date"):
+            completeness["diagnosis"]["diagnosis_date"] += 1
+        if cancer_data.get("icd10_code"):
+            completeness["diagnosis"]["icd10_code"] += 1
+        if cancer_data.get("tnm_staging"):
+            completeness["diagnosis"]["tnm_staging"] += 1
+        
+        # Check surgery-specific fields
+        treatments = await db.treatments.find({"episode_id": str(episode["_id"])}).to_list(None)
+        surgical_treatments = [t for t in treatments if t.get("treatment_type") == "surgery"]
+        
+        if surgical_treatments:
+            completeness["surgery"]["total_surgical_episodes"] += 1
+            
+            # Check for OPCS and ASA in any surgical treatment
+            has_opcs = any(t.get("opcs4_code") for t in surgical_treatments)
+            has_asa = any(t.get("asa_score") for t in surgical_treatments)
+            
+            if has_opcs:
+                completeness["surgery"]["opcs4_code"] += 1
+            if has_asa:
+                completeness["surgery"]["asa_score"] += 1
+    
+    # Calculate percentages
+    for category in ["patient_demographics", "diagnosis"]:
+        for field in completeness[category]:
+            count = completeness[category][field]
+            completeness[category][field] = {
+                "count": count,
+                "percentage": round((count / total) * 100, 1)
+            }
+    
+    # Surgery percentages based on surgical episodes
+    surgery_total = completeness["surgery"]["total_surgical_episodes"]
+    if surgery_total > 0:
+        for field in ["opcs4_code", "asa_score"]:
+            count = completeness["surgery"][field]
+            completeness["surgery"][field] = {
+                "count": count,
+                "percentage": round((count / surgery_total) * 100, 1)
+            }
+    
+    return completeness

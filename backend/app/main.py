@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 
 from .config import settings
 from .database import Database
-from .routes import patients, episodes, episodes_v2, reports, auth, admin, surgeons
+from .routes import patients, episodes, episodes_v2, reports, auth, admin, surgeons, exports
 
 
 @asynccontextmanager
@@ -44,6 +44,7 @@ app.include_router(episodes_v2.router)  # New condition-based episodes
 app.include_router(reports.router)
 app.include_router(admin.router)
 app.include_router(surgeons.router)
+app.include_router(exports.router)
 
 
 @app.get("/")
