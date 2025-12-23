@@ -85,7 +85,8 @@ async def list_episodes(
     lead_clinician: Optional[str] = Query(None, description="Filter by lead clinician"),
     episode_status: Optional[str] = Query(None, description="Filter by episode status"),
     start_date: Optional[str] = Query(None, description="Filter episodes after this date (YYYY-MM-DD)"),
-    end_date: Optional[str] = Query(None, description="Filter episodes before this date (YYYY-MM-DD)")
+    end_date: Optional[str] = Query(None, description="Filter episodes before this date (YYYY-MM-DD)"),
+    sort_by: Optional[str] = Query("referral_date", description="Field to sort by (referral_date or last_modified_at)")
 ):
     """List all episodes with pagination and filters"""
     collection = await get_episodes_collection()
@@ -113,7 +114,9 @@ async def list_episodes(
             date_query["$lte"] = end_date  # Compare as string: "2025-12-22"
         query["referral_date"] = date_query
     
-    cursor = collection.find(query).sort("referral_date", -1).skip(skip).limit(limit)
+    # Determine sort field (default to referral_date)
+    sort_field = "last_modified_at" if sort_by == "last_modified_at" else "referral_date"
+    cursor = collection.find(query).sort(sort_field, -1).skip(skip).limit(limit)
     episodes = await cursor.to_list(length=limit)
     
     # Convert ObjectIds to strings

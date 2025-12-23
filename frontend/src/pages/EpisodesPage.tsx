@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { PageHeader } from '../components/PageHeader'
 import { Card } from '../components/Card'
 import { Button } from '../components/Button'
@@ -40,6 +40,7 @@ interface Episode {
 export function EpisodesPage() {
   const { patientId } = useParams<{ patientId: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const [episodes, setEpisodes] = useState<Episode[]>([])
   const [cancerEpisodes, setCancerEpisodes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -124,6 +125,20 @@ export function EpisodesPage() {
       loadPatientInfo()
     }
   }, [loadEpisodes, patientId, loadPatientInfo])
+
+  // Handle opening edit modal from navigation state
+  useEffect(() => {
+    const state = location.state as { editEpisodeId?: string }
+    if (state?.editEpisodeId && cancerEpisodes.length > 0) {
+      const episode = cancerEpisodes.find(ep => ep.episode_id === state.editEpisodeId)
+      if (episode) {
+        setEditingCancerEpisode(episode)
+        setShowCancerModal(true)
+        // Clear the state to avoid reopening on refresh
+        navigate(location.pathname, { replace: true, state: {} })
+      }
+    }
+  }, [location.state, cancerEpisodes, navigate, location.pathname])
 
   const handleCreate = async (data: any) => {
     try {

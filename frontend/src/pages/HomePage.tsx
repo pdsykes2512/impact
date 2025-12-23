@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { PageHeader } from '../components/PageHeader'
 import { Card } from '../components/Card'
@@ -7,6 +8,7 @@ import api from '../services/api'
 
 export function HomePage() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [stats, setStats] = useState({
     totalPatients: 0,
     totalEpisodes: 0,
@@ -54,8 +56,8 @@ export function HomePage() {
   useEffect(() => {
     const fetchRecentActivity = async () => {
       try {
-        // Fetch recent cancer episodes (last 5)
-        const response = await fetch('http://localhost:8000/api/v2/episodes/?limit=5', {
+        // Fetch recent cancer episodes sorted by last_modified_at (last 5 edited)
+        const response = await fetch('http://localhost:8000/api/v2/episodes/?limit=5&sort_by=last_modified_at', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -74,6 +76,26 @@ export function HomePage() {
     
     fetchRecentActivity()
   }, [])
+
+  const handleActivityClick = (episode: any) => {
+    // Navigate to episodes page with the episode ID in state to open edit modal
+    navigate('/episodes', { state: { editEpisodeId: episode.episode_id } })
+  }
+
+  const formatRelativeTime = (dateStr: string) => {
+    const date = new Date(dateStr)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+    
+    if (diffMins < 1) return 'Just now'
+    if (diffMins < 60) return `${diffMins}m ago`
+    if (diffHours < 24) return `${diffHours}h ago`
+    if (diffDays < 7) return `${diffDays}d ago`
+    return formatDate(dateStr)
+  }
 
   return (
     <div className="space-y-6">
@@ -203,10 +225,10 @@ export function HomePage() {
           ) : (
             <div className="space-y-3">
               {recentActivity.map((episode) => (
-                <a
+                <button
                   key={episode.episode_id}
-                  href={`/episodes`}
-                  className="block p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-200"
+                  onClick={() => handleActivityClick(episode)}
+                  className="w-full text-left p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-200"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
@@ -226,14 +248,19 @@ export function HomePage() {
                           Clinician: {episode.lead_clinician}
                         </p>
                       )}
+                      {episode.last_modified_by && (
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Modified by: {episode.last_modified_by}
+                        </p>
+                      )}
                     </div>
                     <div className="ml-4 flex-shrink-0 text-right">
                       <p className="text-xs text-gray-500">
-                        {formatDate(episode.referral_date)}
+                        {formatRelativeTime(episode.last_modified_at)}
                       </p>
                     </div>
                   </div>
-                </a>
+                </button>
               ))}
             </div>
           )}
