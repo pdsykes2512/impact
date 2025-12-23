@@ -610,7 +610,7 @@ export function PatientsPage() {
                 {filteredPatients.map((patient) => (
                   <tr 
                     key={patient._id} 
-                    className="hover:bg-gray-50 cursor-pointer"
+                    className="hover:bg-blue-50 cursor-pointer transition-colors"
                     onClick={() => navigate(`/episodes/${patient.record_number}`)}
                     title="Click to view episodes for this patient"
                   >

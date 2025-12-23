@@ -421,7 +421,7 @@ export function AdminPage() {
                 </tr>
               ) : (
                 users.map((user) => (
-                  <tr key={user._id} className="hover:bg-gray-50">
+                  <tr key={user._id} className="hover:bg-blue-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {user.full_name}
                     </td>
@@ -642,7 +642,7 @@ export function AdminPage() {
                     </tr>
                   ) : (
                     surgeons.map((surgeon) => (
-                      <tr key={surgeon._id} className="hover:bg-gray-50">
+                      <tr key={surgeon._id} className="hover:bg-blue-50 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {surgeon.surname}
                         </td>

@@ -221,7 +221,7 @@ export function ReportsPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {surgeonPerf.map((surgeon) => (
-                  <tr key={surgeon._id} className="hover:bg-gray-50">
+                  <tr key={surgeon._id} className="hover:bg-blue-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {surgeon._id || 'Unknown'}
                     </td>
