@@ -608,10 +608,13 @@ export function PatientsPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredPatients.map((patient) => (
-                  <tr key={patient._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 cursor-pointer hover:text-blue-600"
-                        onClick={() => navigate(`/episodes/${patient.record_number}`)}
-                        title="Click to view episodes for this patient">
+                  <tr 
+                    key={patient._id} 
+                    onClick={() => navigate(`/episodes/${patient.record_number}`)}
+                    className="hover:bg-blue-50 cursor-pointer transition-colors"
+                    title="Click to view episodes for this patient"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {patient.record_number}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -628,16 +631,10 @@ export function PatientsPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <div className="flex items-center gap-3">
                         <button
-                          onClick={() => navigate(`/episodes/${patient.record_number}`)}
-                          className="text-indigo-600 hover:text-indigo-800"
-                          title="View episodes for this patient"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => handleEdit(patient)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleEdit(patient)
+                          }}
                           className="text-blue-600 hover:text-blue-800"
                           title="Edit patient"
                         >
@@ -646,7 +643,10 @@ export function PatientsPage() {
                           </svg>
                         </button>
                         <button
-                          onClick={() => handleDeleteClick(patient)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeleteClick(patient)
+                          }}
                           className="text-red-600 hover:text-red-800"
                           title="Delete patient"
                         >
