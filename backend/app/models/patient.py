@@ -1,0 +1,116 @@
+"""
+Patient data models
+"""
+from pydantic import BaseModel, Field, field_validator, ConfigDict
+from typing import Optional, List, Any
+from datetime import datetime
+from bson import ObjectId
+import re
+
+
+class PyObjectId(str):
+    """Custom ObjectId type for Pydantic v2"""
+    @classmethod
+    def __get_pydantic_core_schema__(cls, _source_type, _handler):
+        from pydantic_core import core_schema
+        
+        def validate(value):
+            if isinstance(value, ObjectId):
+                return str(value)
+            if isinstance(value, str):
+                if not ObjectId.is_valid(value):
+                    raise ValueError("Invalid ObjectId")
+                return value
+            raise ValueError("Invalid ObjectId type")
+        
+        return core_schema.no_info_plain_validator_function(validate)
+    
+    @classmethod
+    def __get_pydantic_json_schema__(cls, field_schema, _handler):
+        field_schema.update(type="string")
+
+
+class Demographics(BaseModel):
+    """Patient demographics"""
+    date_of_birth: str = Field(..., description="Date of birth in YYYY-MM-DD format")
+    age: Optional[int] = Field(None, ge=0, le=150)
+    gender: str = Field(..., min_length=1)
+    ethnicity: Optional[str] = None
+    postcode: Optional[str] = None
+    bmi: Optional[float] = Field(None, ge=10, le=80)
+    weight_kg: Optional[float] = Field(None, ge=20, le=300)
+    height_cm: Optional[float] = Field(None, ge=100, le=250)
+    
+    def model_post_init(self, __context):
+        """Auto-calculate BMI if height and weight are provided but BMI is not"""
+        if self.height_cm and self.weight_kg and not self.bmi:
+            # BMI = weight(kg) / (height(m))^2
+            height_m = self.height_cm / 100
+            self.bmi = round(self.weight_kg / (height_m ** 2), 1)
+
+
+class MedicalHistory(BaseModel):
+    """Patient medical history"""
+    conditions: List[str] = Field(default_factory=list)
+    previous_surgeries: List[dict] = Field(default_factory=list)
+    medications: List[str] = Field(default_factory=list)
+    allergies: List[str] = Field(default_factory=list)
+    smoking_status: Optional[str] = Field(None, description="never/former/current")
+    alcohol_use: Optional[str] = None
+
+
+class PatientBase(BaseModel):
+    """Base patient model"""
+    record_number: str = Field(..., min_length=1, description="Unique patient record number: 8 digits or IW + 6 digits")
+    nhs_number: str = Field(..., description="NHS number: 10 digits formatted as XXX XXX XXXX")
+    demographics: Demographics
+    medical_history: Optional[MedicalHistory] = Field(default_factory=MedicalHistory)
+    
+    @field_validator('record_number')
+    @classmethod
+    def validate_record_number(cls, v: str) -> str:
+        """Validate record number format: 8 digits or IW followed by 6 digits"""
+        if not re.match(r'^(\d{8}|IW\d{6})$', v):
+            raise ValueError('Record number must be either 8 digits or IW followed by 6 digits')
+        return v
+    
+    @field_validator('nhs_number')
+    @classmethod
+    def validate_nhs_number(cls, v: str) -> str:
+        """Validate NHS number format: XXX XXX XXXX"""
+        if not re.match(r'^\d{3} \d{3} \d{4}$', v):
+            raise ValueError('NHS number must be 10 digits formatted as XXX XXX XXXX')
+        return v
+
+
+class PatientCreate(PatientBase):
+    """Patient creation model"""
+    pass
+
+
+class PatientUpdate(BaseModel):
+    """Patient update model - all fields optional"""
+    record_number: Optional[str] = None
+    nhs_number: Optional[str] = None
+    demographics: Optional[Demographics] = None
+    medical_history: Optional[MedicalHistory] = None
+
+
+class PatientInDB(PatientBase):
+    """Patient model as stored in database"""
+    id: str = Field(alias="_id")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_by: Optional[str] = None
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_by: Optional[str] = None
+    
+    model_config = ConfigDict(
+        populate_by_name=True,
+        arbitrary_types_allowed=True
+    )
+
+
+class Patient(PatientInDB):
+    """Patient response model"""
+    episode_count: Optional[int] = Field(default=0, description="Count of episodes associated with this patient")
+

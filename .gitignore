@@ -38,7 +38,12 @@ env/
 .venv
 
 # IDE
+.cache/
+.config/
+.dotnet/
+.npm/
 .vscode/
+.vscode-server/
 .idea/
 *.swp
 *.swo
@@ -47,3 +52,10 @@ env/
 # OS
 .DS_Store
 Thumbs.db
+.bash_history
+.ssh/
+.profile
+.wget-hsts
+get-docker.sh
+.git-credentials
+.gitignore

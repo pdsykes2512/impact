@@ -1,0 +1,186 @@
+"""
+Patient API routes
+"""
+from fastapi import APIRouter, HTTPException, status
+from typing import List, Optional
+from datetime import datetime
+from bson import ObjectId
+
+from ..models.patient import Patient, PatientCreate, PatientUpdate
+from ..database import get_patients_collection, get_surgeries_collection, get_episodes_collection
+
+
+router = APIRouter(prefix="/api/patients", tags=["patients"])
+
+
+@router.post("/", response_model=Patient, status_code=status.HTTP_201_CREATED)
+async def create_patient(patient: PatientCreate):
+    """Create a new patient"""
+    collection = await get_patients_collection()
+    
+    # Check if record_number already exists
+    existing = await collection.find_one({"record_number": patient.record_number})
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Patient with record number {patient.record_number} already exists"
+        )
+    
+    # Insert patient
+    patient_dict = patient.model_dump()
+    patient_dict["created_at"] = datetime.utcnow()
+    patient_dict["created_by"] = "system"  # TODO: Replace with actual user from auth
+    patient_dict["updated_at"] = datetime.utcnow()
+    patient_dict["updated_by"] = None
+    
+    result = await collection.insert_one(patient_dict)
+    
+    # Retrieve and return created patient
+    created_patient = await collection.find_one({"_id": result.inserted_id})
+    created_patient["_id"] = str(created_patient["_id"])
+    return Patient(**created_patient)
+
+
+@router.get("/", response_model=List[Patient])
+async def list_patients(skip: int = 0, limit: int = 100):
+    """List all patients with pagination"""
+    collection = await get_patients_collection()
+    surgeries_collection = await get_surgeries_collection()
+    
+    # Fetch patients
+    cursor = collection.find().skip(skip).limit(limit)
+    patients = await cursor.to_list(length=limit)
+    
+    # Get all record numbers
+    record_numbers = [p["record_number"] for p in patients]
+    
+    # Count episodes from both surgeries (legacy) and episodes (cancer) collections
+    episode_counts = {}
+    if record_numbers:
+        # Count legacy surgery episodes
+        surgery_pipeline = [
+            {"$match": {"patient_id": {"$in": record_numbers}}},
+            {"$group": {"_id": "$patient_id", "count": {"$sum": 1}}}
+        ]
+        async for doc in surgeries_collection.aggregate(surgery_pipeline):
+            episode_counts[doc["_id"]] = doc["count"]
+        
+        # Count cancer episodes and add to totals
+        episodes_collection = await get_episodes_collection()
+        cancer_pipeline = [
+            {"$match": {"patient_id": {"$in": record_numbers}}},
+            {"$group": {"_id": "$patient_id", "count": {"$sum": 1}}}
+        ]
+        async for doc in episodes_collection.aggregate(cancer_pipeline):
+            # Add to existing count or initialize
+            episode_counts[doc["_id"]] = episode_counts.get(doc["_id"], 0) + doc["count"]
+    
+    # Convert ObjectId to string and add episode count
+    for patient in patients:
+        patient["_id"] = str(patient["_id"])
+        patient["episode_count"] = episode_counts.get(patient["record_number"], 0)
+    
+    return [Patient(**patient) for patient in patients]
+
+
+@router.get("/{record_number}", response_model=Patient)
+async def get_patient(record_number: str):
+    """Get a specific patient by record_number"""
+    collection = await get_patients_collection()
+    
+    patient = await collection.find_one({"record_number": record_number})
+    if not patient:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Patient {record_number} not found"
+        )
+    
+    patient["_id"] = str(patient["_id"])
+    return Patient(**patient)
+
+
+@router.put("/{record_number}", response_model=Patient)
+async def update_patient(record_number: str, patient_update: PatientUpdate):
+    """Update a patient"""
+    collection = await get_patients_collection()
+    
+    # Check if patient exists
+    existing = await collection.find_one({"record_number": record_number})
+    if not existing:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Patient {record_number} not found"
+        )
+    
+    # Update only provided fields
+    update_data = patient_update.model_dump(exclude_unset=True)
+    if update_data:
+        update_data["updated_at"] = datetime.utcnow()
+        update_data["updated_by"] = "system"  # TODO: Replace with actual user from auth
+        await collection.update_one(
+            {"record_number": record_number},
+            {"$set": update_data}
+        )
+    
+    # Return updated patient
+    updated_patient = await collection.find_one({"record_number": record_number})
+    updated_patient["_id"] = str(updated_patient["_id"])
+    return Patient(**updated_patient)
+
+
+@router.delete("/{record_number}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_patient(record_number: str):
+    """Delete a patient"""
+    collection = await get_patients_collection()
+    
+    result = await collection.delete_one({"record_number": record_number})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Patient {record_number} not found"
+        )
+    
+    return None
+
+
+@router.post("/calculate-bmi")
+async def calculate_bmi(weight_kg: float, height_cm: float):
+    """Calculate BMI from weight (kg) and height (cm)"""
+    if weight_kg < 20 or weight_kg > 300:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Weight must be between 20 and 300 kg"
+        )
+    
+    if height_cm < 100 or height_cm > 250:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Height must be between 100 and 250 cm"
+        )
+    
+    # Calculate BMI = weight(kg) / (height(m))^2
+    height_m = height_cm / 100
+    bmi = round(weight_kg / (height_m ** 2), 1)
+    
+    # Determine BMI category (WHO classification)
+    if bmi < 18.5:
+        category = "Underweight"
+    elif bmi < 25:
+        category = "Normal weight"
+    elif bmi < 30:
+        category = "Overweight"
+    elif bmi < 35:
+        category = "Obesity Class I"
+    elif bmi < 40:
+        category = "Obesity Class II"
+    else:
+        category = "Obesity Class III"
+    
+    return {
+        "bmi": bmi,
+        "category": category,
+        "weight_kg": weight_kg,
+        "height_cm": height_cm,
+        "height_m": height_m
+    }
