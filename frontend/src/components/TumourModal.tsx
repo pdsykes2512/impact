@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from './Button'
 import { DateInput } from './DateInput'
 import { SearchableSelect } from './SearchableSelect'
@@ -12,10 +12,14 @@ interface TumourModalProps {
   initialData?: any
 }
 
-const generateTumourId = () => {
-  const timestamp = Date.now().toString(36)
-  const randomStr = Math.random().toString(36).substring(2, 6)
-  return `TUM-${timestamp}-${randomStr}`.toUpperCase()
+const generateTumourId = (nhsNumber: string, count: number) => {
+  // Clean NHS number (remove spaces)
+  const cleanNHS = nhsNumber.replace(/\s/g, '')
+  
+  // Format count as 2-digit number
+  const incrementalNum = String(count + 1).padStart(2, '0')
+  
+  return `TUM-${cleanNHS}-${incrementalNum}`
 }
 
 const TUMOUR_TYPES = [
@@ -87,7 +91,43 @@ const CRM_STATUS = [
   { value: 'not_applicable', label: 'Not Applicable' }
 ]
 
-export function TumourModal({ onSubmit, onCancel, mode = 'create', initialData }: TumourModalProps) {
+export function TumourModal({ episodeId, onSubmit, onCancel, mode = 'create', initialData }: TumourModalProps) {
+  const [patientNhsNumber, setPatientNhsNumber] = useState<string>('')
+  const [tumourCount, setTumourCount] = useState<number>(0)
+  
+  // Fetch episode to get patient NHS number
+  useEffect(() => {
+    const fetchEpisodeData = async () => {
+      try {
+        // Fetch episode to get patient_id
+        const episodeResponse = await fetch(`http://localhost:8000/api/episodes/${episodeId}`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        })
+        const episodeData = await episodeResponse.json()
+        
+        // Fetch patient to get NHS number
+        const patientResponse = await fetch(`http://localhost:8000/api/patients/${episodeData.patient_id}`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        })
+        const patientData = await patientResponse.json()
+        setPatientNhsNumber(patientData.nhs_number)
+        
+        // Fetch existing tumours for this episode to get count
+        const tumoursResponse = await fetch(`http://localhost:8000/api/tumours?episode_id=${episodeId}`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        })
+        const tumours = await tumoursResponse.json()
+        setTumourCount(Array.isArray(tumours) ? tumours.length : 0)
+      } catch (error) {
+        console.error('Failed to fetch episode data:', error)
+      }
+    }
+    
+    if (mode === 'create') {
+      fetchEpisodeData()
+    }
+  }, [episodeId, mode])
+  
   const [formData, setFormData] = useState(() => {
     if (initialData) {
       return {
@@ -96,7 +136,7 @@ export function TumourModal({ onSubmit, onCancel, mode = 'create', initialData }
       }
     }
     return {
-      tumour_id: generateTumourId(),
+      tumour_id: '', // Will be generated when NHS number is available
       tumour_type: 'primary',
       site: '',
       diagnosis_date: '',
@@ -133,6 +173,14 @@ export function TumourModal({ onSubmit, onCancel, mode = 'create', initialData }
   })
 
   const [activeTab, setActiveTab] = useState<'basic' | 'staging' | 'pathology' | 'molecular'>('basic')
+
+  // Generate tumour ID when NHS number is available
+  useEffect(() => {
+    if (patientNhsNumber && mode === 'create' && !formData.tumour_id) {
+      const newTumourId = generateTumourId(patientNhsNumber, tumourCount)
+      setFormData(prev => ({ ...prev, tumour_id: newTumourId }))
+    }
+  }, [patientNhsNumber, tumourCount, mode])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

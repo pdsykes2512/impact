@@ -10,7 +10,7 @@ interface Patient {
 
 interface PatientSearchProps {
   value: string
-  onChange: (mrn: string) => void
+  onChange: (mrn: string, patient?: Patient) => void
   label?: string
   required?: boolean
   placeholder?: string
@@ -61,7 +61,7 @@ export function PatientSearch({
   })
 
   const handleSelect = (patient: Patient) => {
-    onChange(patient.record_number)
+    onChange(patient.record_number, patient)
     setSearchTerm(patient.record_number)
     setShowDropdown(false)
   }

@@ -16,11 +16,12 @@ interface CancerEpisodeFormProps {
   mode?: 'create' | 'edit'
 }
 
-// Generate unique episode ID
-const generateEpisodeId = () => {
-  const timestamp = Date.now().toString(36)
-  const randomStr = Math.random().toString(36).substring(2, 8)
-  return `EPI-${timestamp}-${randomStr}`.toUpperCase()
+// Generate unique episode ID based on NHS Number and count
+const generateEpisodeId = (nhsNumber: string, count: number) => {
+  if (!nhsNumber) return ''
+  const cleanNHS = nhsNumber.replace(/\s/g, '')
+  const incrementalNum = (count + 1).toString().padStart(2, '0')
+  return `EPI-${cleanNHS}-${incrementalNum}`
 }
 
 // NHS Trust ODS Codes - NBOCA requirement (CR1410, CR1450)
@@ -50,7 +51,7 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
     }
     
     return {
-      episode_id: generateEpisodeId(),
+      episode_id: '',
       patient_id: '',
       condition_type: 'cancer',
       cancer_type: '',
@@ -155,7 +156,28 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
       {/* Patient Selection */}
       <PatientSearch
         value={formData.patient_id}
-        onChange={(mrn) => updateFormData('patient_id', mrn)}
+        onChange={async (mrn, patientData) => {
+          updateFormData('patient_id', mrn)
+          
+          // Generate episode ID when patient is selected
+          if (patientData?.nhs_number && mode === 'create') {
+            try {
+              // Fetch existing episodes for this patient to get count
+              const response = await fetch(`http://localhost:8000/api/episodes?patient_id=${mrn}`, {
+                headers: {
+                  'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+              })
+              const episodes = await response.json()
+              const episodeCount = Array.isArray(episodes) ? episodes.length : 0
+              
+              const newEpisodeId = generateEpisodeId(patientData.nhs_number, episodeCount)
+              updateFormData('episode_id', newEpisodeId)
+            } catch (error) {
+              console.error('Failed to generate episode ID:', error)
+            }
+          }
+        }}
         label="Patient"
         required
       />
@@ -828,7 +850,7 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
 
           {/* Progress Steps */}
           <div className="mt-4 flex items-center justify-between">
-            {[1, 2, 3].map((stepNum) => (
+            {(mode === 'edit' ? [1, 3] : [1, 2, 3]).map((stepNum, index, array) => (
               <div key={stepNum} className="flex items-center flex-1">
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
@@ -837,7 +859,7 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
                       : 'bg-gray-200 text-gray-600'
                   }`}
                 >
-                  {stepNum}
+                  {mode === 'edit' ? index + 1 : stepNum}
                 </div>
                 <div className="ml-3 text-sm">
                   <div className={`font-medium ${step >= stepNum ? 'text-blue-600' : 'text-gray-600'}`}>
@@ -846,7 +868,7 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
                     {stepNum === 3 && 'Review'}
                   </div>
                 </div>
-                {stepNum < 3 && (
+                {index < array.length - 1 && (
                   <div
                     className={`flex-1 h-1 mx-4 ${
                       step > stepNum ? 'bg-blue-600' : 'bg-gray-200'
@@ -861,7 +883,7 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
         {/* Body */}
         <div className="px-6 py-6">
           {step === 1 && renderStep1()}
-          {step === 2 && renderStep2()}
+          {step === 2 && mode === 'create' && renderStep2()}
           {step === 3 && renderStep3()}
         </div>
 
@@ -873,14 +895,17 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
 
           <div className="flex gap-3">
             {step > 1 && (
-              <Button onClick={() => setStep(step - 1)} variant="secondary">
+              <Button onClick={() => setStep(mode === 'edit' && step === 3 ? 1 : step - 1)} variant="secondary">
                 Previous
               </Button>
             )}
             {step < 3 ? (
               <Button 
                 onClick={() => {
-                  if (step === 2) {
+                  if (step === 1 && mode === 'edit') {
+                    // Skip step 2 in edit mode
+                    setStep(3)
+                  } else if (step === 2) {
                     if (addTumourNow) {
                       // Show tumour modal first
                       setShowTumourModal(true)

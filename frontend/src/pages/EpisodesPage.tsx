@@ -97,7 +97,6 @@ export function EpisodesPage() {
         // Clear the state to avoid reopening on refresh
         navigate(location.pathname, { replace: true, state: {} })
       }
-      }
     }
   }, [location.state, episodes, navigate, location.pathname])
 
@@ -449,56 +448,6 @@ export function EpisodesPage() {
           </div>
         )}
       </Card>
-
-      {/* Modal for Create/Edit */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900">
-                {selectedEpisode ? 'Edit Episode' : 'Create New Episode'}
-              </h2>
-              <button
-                onClick={() => {
-                  setShowModal(false)
-                  setSelectedEpisode(null)
-                }}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="p-6">
-              <EpisodeForm
-                mode={selectedEpisode ? 'edit' : 'create'}
-                initialData={selectedEpisode || (patientId ? { patient_id: patientId } : undefined)}
-                onSubmit={selectedEpisode ? handleEdit : handleCreate}
-                onCancel={() => {
-                  setShowModal(false)
-                  setSelectedEpisode(null)
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Detail Modal */}
-      {showDetailModal && selectedEpisode && (
-        <EpisodeDetailModal
-          episode={selectedEpisode}
-          onClose={() => {
-            setShowDetailModal(false)
-            setSelectedEpisode(null)
-          }}
-          onEdit={() => {
-            setShowDetailModal(false)
-            setShowModal(true)
-          }}
-        />
-      )}
 
       {/* Cancer Episode Detail Modal */}
       {showDetailModal && selectedEpisode && (
