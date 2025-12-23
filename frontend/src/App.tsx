@@ -1,7 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { HomePage } from './pages/HomePage'
 import { PatientsPage } from './pages/PatientsPage'
-import { EpisodesPage } from './pages/EpisodesPage'
 import { ReportsPage } from './pages/ReportsPage'
 import { LoginPage } from './pages/LoginPage'
 import { AdminPage } from './pages/AdminPage'
@@ -36,23 +35,11 @@ function App() {
         />
         <Route
           path="/episodes/:patientId"
-          element={
-            <ProtectedRoute requiredRoles={['data_entry', 'surgeon', 'admin']}>
-              <Layout>
-                <EpisodesPage />
-              </Layout>
-            </ProtectedRoute>
-          }
+          element={<Navigate to="/" replace />}
         />
         <Route
           path="/episodes"
-          element={
-            <ProtectedRoute requiredRoles={['data_entry', 'surgeon', 'admin']}>
-              <Layout>
-                <EpisodesPage />
-              </Layout>
-            </ProtectedRoute>
-          }
+          element={<Navigate to="/" replace />}
         />
         <Route
           path="/reports"
