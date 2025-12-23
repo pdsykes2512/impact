@@ -826,3 +826,141 @@ async def export_nboca_anastomotic_leak_excel():
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
+
+
+@router.get("/data-quality")
+async def get_data_quality_report() -> Dict[str, Any]:
+    """
+    Get data quality metrics for NBOCA COSD compliance
+    Shows completeness of critical fields across episodes and treatments
+    """
+    episodes_collection = await get_episodes_collection()
+    treatments_collection = await get_treatments_collection()
+    
+    # Get total counts
+    total_episodes = await episodes_collection.count_documents({"condition_type": "cancer", "cancer_type": "bowel"})
+    total_treatments = await treatments_collection.count_documents({"treatment_type": "surgery"})
+    
+    if total_episodes == 0:
+        return {
+            "total_episodes": 0,
+            "total_treatments": 0,
+            "episode_fields": [],
+            "treatment_fields": [],
+            "overall_completeness": 0,
+            "generated_at": datetime.utcnow().isoformat()
+        }
+    
+    # Define NBOCA COSD critical fields for episodes
+    episode_fields = [
+        {"field": "referral_date", "label": "Referral Date", "category": "Process"},
+        {"field": "referral_source", "label": "Referral Source (CR1600)", "category": "Process"},
+        {"field": "provider_first_seen", "label": "Provider First Seen (CR1410)", "category": "Process"},
+        {"field": "cns_involved", "label": "CNS Involved (CR2050)", "category": "Process"},
+        {"field": "mdt_discussion_date", "label": "MDT Discussion Date", "category": "Process"},
+        {"field": "mdt_meeting_type", "label": "MDT Meeting Type (CR3190)", "category": "Process"},
+        {"field": "performance_status", "label": "Performance Status (CR0510)", "category": "Clinical"},
+        {"field": "cancer_data.diagnosis_date", "label": "Diagnosis Date (CR2030)", "category": "Clinical"},
+        {"field": "cancer_data.icd10_code", "label": "ICD-10 Code (CR0370)", "category": "Clinical"},
+        {"field": "cancer_data.tnm_staging.tnm_version", "label": "TNM Version (CR2070)", "category": "Clinical"},
+        {"field": "cancer_data.tnm_staging.clinical_t", "label": "Clinical T Stage", "category": "Clinical"},
+        {"field": "cancer_data.tnm_staging.clinical_n", "label": "Clinical N Stage", "category": "Clinical"},
+        {"field": "cancer_data.tnm_staging.clinical_m", "label": "Clinical M Stage", "category": "Clinical"},
+    ]
+    
+    # Define NBOCA COSD critical fields for treatments/surgeries
+    treatment_fields = [
+        {"field": "treatment_date", "label": "Surgery Date", "category": "Process"},
+        {"field": "provider_organisation", "label": "Provider Organisation (CR1450)", "category": "Process"},
+        {"field": "opcs4_code", "label": "OPCS-4 Code", "category": "Process"},
+        {"field": "approach", "label": "Surgical Approach", "category": "Clinical"},
+        {"field": "urgency", "label": "Urgency", "category": "Clinical"},
+        {"field": "asa_score", "label": "ASA Score (CR6010)", "category": "Clinical"},
+        {"field": "admission_date", "label": "Admission Date", "category": "Process"},
+        {"field": "discharge_date", "label": "Discharge Date", "category": "Process"},
+        {"field": "length_of_stay", "label": "Length of Stay", "category": "Outcome"},
+        {"field": "clavien_dindo_grade", "label": "Clavien-Dindo Grade", "category": "Outcome"},
+        {"field": "return_to_theatre", "label": "Return to Theatre", "category": "Outcome"},
+        {"field": "readmission_30d", "label": "30-Day Readmission", "category": "Outcome"},
+    ]
+    
+    # Calculate completeness for episode fields
+    episode_stats = []
+    for field_def in episode_fields:
+        field_path = field_def["field"]
+        
+        # Build query to check if field exists and is not null/empty
+        query = {
+            "condition_type": "cancer",
+            "cancer_type": "bowel",
+            field_path: {"$exists": True, "$ne": None, "$ne": ""}
+        }
+        
+        complete_count = await episodes_collection.count_documents(query)
+        completeness = (complete_count / total_episodes * 100) if total_episodes > 0 else 0
+        
+        episode_stats.append({
+            "field": field_def["label"],
+            "category": field_def["category"],
+            "complete_count": complete_count,
+            "total_count": total_episodes,
+            "completeness": round(completeness, 1),
+            "missing_count": total_episodes - complete_count
+        })
+    
+    # Calculate completeness for treatment fields
+    treatment_stats = []
+    for field_def in treatment_fields:
+        field_path = field_def["field"]
+        
+        query = {
+            "treatment_type": "surgery",
+            field_path: {"$exists": True, "$ne": None, "$ne": ""}
+        }
+        
+        complete_count = await treatments_collection.count_documents(query)
+        completeness = (complete_count / total_treatments * 100) if total_treatments > 0 else 0
+        
+        treatment_stats.append({
+            "field": field_def["label"],
+            "category": field_def["category"],
+            "complete_count": complete_count,
+            "total_count": total_treatments,
+            "completeness": round(completeness, 1),
+            "missing_count": total_treatments - complete_count
+        })
+    
+    # Calculate overall completeness
+    all_fields = episode_stats + treatment_stats
+    overall_completeness = sum(f["completeness"] for f in all_fields) / len(all_fields) if all_fields else 0
+    
+    # Group by category
+    categories = {}
+    for stat in all_fields:
+        cat = stat["category"]
+        if cat not in categories:
+            categories[cat] = {
+                "name": cat,
+                "total_fields": 0,
+                "avg_completeness": 0,
+                "fields": []
+            }
+        categories[cat]["total_fields"] += 1
+        categories[cat]["fields"].append(stat)
+    
+    # Calculate average completeness per category
+    for cat_data in categories.values():
+        cat_data["avg_completeness"] = round(
+            sum(f["completeness"] for f in cat_data["fields"]) / len(cat_data["fields"]),
+            1
+        )
+    
+    return {
+        "total_episodes": total_episodes,
+        "total_treatments": total_treatments,
+        "overall_completeness": round(overall_completeness, 1),
+        "categories": list(categories.values()),
+        "episode_fields": episode_stats,
+        "treatment_fields": treatment_stats,
+        "generated_at": datetime.utcnow().isoformat()
+    }
