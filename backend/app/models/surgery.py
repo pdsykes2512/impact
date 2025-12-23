@@ -302,5 +302,6 @@ class SurgeryInDB(SurgeryBase):
 
 
 class Surgery(SurgeryInDB):
-    """Surgery response model"""
-    pass
+    """Surgery/Episode response model with related entities"""
+    treatments: List[dict] = Field(default_factory=list, description="Treatments associated with this episode")
+    tumours: List[dict] = Field(default_factory=list, description="Tumours associated with this episode")
