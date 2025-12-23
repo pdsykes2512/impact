@@ -16,6 +16,21 @@
 
 ## High Priority
 
+### Surgery Recording Enhancements (CRITICAL)
+- [ ] **Record of anastomosis in surgery section**
+  - Add anastomosis field (yes/no) to surgery/treatment model
+  - Add anastomosis type (e.g., hand-sewn, stapled, end-to-end, side-to-side)
+  - Include location of anastomosis in form
+  - NBOCA requirement for anastomotic leak tracking
+- [ ] **Record of stoma formation and status**
+  - Add stoma creation field (yes/no) to surgery model
+  - Add stoma type (ileostomy/colostomy/other)
+  - Add stoma intent field: temporary vs permanent
+  - For temporary stomas: add planned reversal date field
+  - Add validation: temporary stoma must have reversal date within 2 years
+  - Track actual reversal date when it occurs
+  - Link reversal surgery to original stoma creation
+
 ### NBOCA COSD Compliance (NEW - Critical for Bowel Cancer)
 - [x] **Phase 1: Critical Fields** (see NBOCA_FIELDS_STATUS.md)
   - ✅ NHS Number (already in patient model with validation)
