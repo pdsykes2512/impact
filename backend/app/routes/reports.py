@@ -13,62 +13,135 @@ router = APIRouter(prefix="/api/reports", tags=["reports"])
 
 @router.get("/summary")
 async def get_summary_report() -> Dict[str, Any]:
-    """Get overall cancer episode statistics"""
+    """Get overall surgical outcome statistics from treatments"""
     db = Database.get_database()
-    episodes_collection = db.episodes
     treatments_collection = db.treatments
     
-    # Get total episodes
-    total_episodes = await episodes_collection.count_documents({"condition_type": "cancer"})
+    # Get all surgical treatments
+    all_treatments = await treatments_collection.find({"treatment_type": "surgery"}).to_list(length=None)
+    total_surgeries = len(all_treatments)
     
-    # Get episodes with treatments
-    episodes_with_treatments = await treatments_collection.count_documents({})
+    if total_surgeries == 0:
+        return {
+            "total_surgeries": 0,
+            "complication_rate": 0,
+            "readmission_rate": 0,
+            "mortality_rate": 0,
+            "return_to_theatre_rate": 0,
+            "escalation_rate": 0,
+            "avg_length_of_stay_days": 0,
+            "urgency_breakdown": {},
+            "generated_at": datetime.utcnow().isoformat()
+        }
     
-    # Get cancer type breakdown
-    cancer_pipeline = [
-        {"$match": {"condition_type": "cancer"}},
-        {"$group": {"_id": "$cancer_type", "count": {"$sum": 1}}}
-    ]
-    cancer_breakdown = await episodes_collection.aggregate(cancer_pipeline).to_list(length=100)
-    cancer_types = {item["_id"]: item["count"] for item in cancer_breakdown if item["_id"]}
+    # Calculate metrics
+    surgeries_with_complications = sum(1 for t in all_treatments if t.get('postoperative_events', {}).get('complications'))
+    readmissions = sum(1 for t in all_treatments if t.get('outcomes', {}).get('readmission_30day'))
+    mortality_count = sum(1 for t in all_treatments if t.get('outcomes', {}).get('mortality_30day'))
+    return_to_theatre = sum(1 for t in all_treatments if t.get('postoperative_events', {}).get('return_to_theatre', {}).get('occurred'))
+    escalation_of_care = sum(1 for t in all_treatments if t.get('postoperative_events', {}).get('escalation_of_care', {}).get('occurred'))
     
-    # Get status breakdown
-    status_pipeline = [
-        {"$match": {"condition_type": "cancer"}},
-        {"$group": {"_id": "$episode_status", "count": {"$sum": 1}}}
-    ]
-    status_breakdown = await episodes_collection.aggregate(status_pipeline).to_list(length=100)
-    statuses = {item["_id"]: item["count"] for item in status_breakdown if item["_id"]}
+    # Calculate rates
+    complication_rate = (surgeries_with_complications / total_surgeries * 100) if total_surgeries > 0 else 0
+    readmission_rate = (readmissions / total_surgeries * 100) if total_surgeries > 0 else 0
+    mortality_rate = (mortality_count / total_surgeries * 100) if total_surgeries > 0 else 0
+    return_to_theatre_rate = (return_to_theatre / total_surgeries * 100) if total_surgeries > 0 else 0
+    escalation_rate = (escalation_of_care / total_surgeries * 100) if total_surgeries > 0 else 0
+    
+    # Calculate average length of stay
+    los_values = [t.get('perioperative_timeline', {}).get('length_of_stay_days') for t in all_treatments if t.get('perioperative_timeline', {}).get('length_of_stay_days')]
+    avg_length_of_stay = sum(los_values) / len(los_values) if los_values else 0
+    
+    # Urgency breakdown
+    urgency_breakdown = {}
+    for treatment in all_treatments:
+        urgency = treatment.get('classification', {}).get('urgency', 'unknown')
+        urgency_breakdown[urgency] = urgency_breakdown.get(urgency, 0) + 1
     
     return {
-        "total_episodes": total_episodes,
-        "episodes_with_treatments": episodes_with_treatments,
-        "cancer_type_breakdown": cancer_types,
-        "status_breakdown": statuses,
+        "total_surgeries": total_surgeries,
+        "complication_rate": round(complication_rate, 2),
+        "readmission_rate": round(readmission_rate, 2),
+        "mortality_rate": round(mortality_rate, 2),
+        "return_to_theatre_rate": round(return_to_theatre_rate, 2),
+        "escalation_rate": round(escalation_rate, 2),
+        "avg_length_of_stay_days": round(avg_length_of_stay, 2),
+        "urgency_breakdown": urgency_breakdown,
         "generated_at": datetime.utcnow().isoformat()
     }
 
 
 @router.get("/surgeon-performance")
 async def get_surgeon_performance() -> Dict[str, Any]:
-    """Get clinician-specific performance metrics"""
+    """Get surgeon-specific performance metrics from surgical treatments"""
     db = Database.get_database()
-    episodes_collection = db.episodes
+    treatments_collection = db.treatments
     
-    pipeline = [
-        {"$match": {"condition_type": "cancer"}},
-        {"$group": {
-            "_id": "$lead_clinician",
-            "total_episodes": {"$sum": 1},
-            "cancer_types": {"$addToSet": "$cancer_type"}
-        }},
-        {"$sort": {"total_episodes": -1}}
-    ]
+    # Get all surgical treatments
+    all_treatments = await treatments_collection.find({"treatment_type": "surgery"}).to_list(length=None)
     
-    clinician_stats = await episodes_collection.aggregate(pipeline).to_list(length=100)
+    # Group by surgeon
+    surgeon_stats = {}
+    for treatment in all_treatments:
+        surgeon = treatment.get('team', {}).get('primary_surgeon', 'Unknown')
+        if surgeon not in surgeon_stats:
+            surgeon_stats[surgeon] = {
+                '_id': surgeon,
+                'total_surgeries': 0,
+                'surgeries_with_complications': 0,
+                'readmissions': 0,
+                'mortality_30day': 0,
+                'return_to_theatre_count': 0,
+                'icu_admissions': 0,
+                'duration_sum': 0,
+                'duration_count': 0,
+                'los_sum': 0,
+                'los_count': 0
+            }
+        
+        stats = surgeon_stats[surgeon]
+        stats['total_surgeries'] += 1
+        
+        if treatment.get('postoperative_events', {}).get('complications'):
+            stats['surgeries_with_complications'] += 1
+        if treatment.get('outcomes', {}).get('readmission_30day'):
+            stats['readmissions'] += 1
+        if treatment.get('outcomes', {}).get('mortality_30day'):
+            stats['mortality_30day'] += 1
+        if treatment.get('postoperative_events', {}).get('return_to_theatre', {}).get('occurred'):
+            stats['return_to_theatre_count'] += 1
+        if treatment.get('postoperative_events', {}).get('escalation_of_care', {}).get('occurred'):
+            stats['icu_admissions'] += 1
+        
+        duration = treatment.get('perioperative_timeline', {}).get('operation_duration_minutes')
+        if duration:
+            stats['duration_sum'] += duration
+            stats['duration_count'] += 1
+        
+        los = treatment.get('perioperative_timeline', {}).get('length_of_stay_days')
+        if los:
+            stats['los_sum'] += los
+            stats['los_count'] += 1
+    
+    # Calculate rates and averages
+    surgeon_list = []
+    for surgeon, stats in surgeon_stats.items():
+        total = stats['total_surgeries']
+        surgeon_list.append({
+            '_id': surgeon,
+            'total_surgeries': total,
+            'complication_rate': round((stats['surgeries_with_complications'] / total * 100) if total > 0 else 0, 2),
+            'readmission_rate': round((stats['readmissions'] / total * 100) if total > 0 else 0, 2),
+            'mortality_rate': round((stats['mortality_30day'] / total * 100) if total > 0 else 0, 2),
+            'avg_duration': round(stats['duration_sum'] / stats['duration_count'], 2) if stats['duration_count'] > 0 else None,
+            'avg_los': round(stats['los_sum'] / stats['los_count'], 2) if stats['los_count'] > 0 else None
+        })
+    
+    # Sort by total surgeries
+    surgeon_list.sort(key=lambda x: x['total_surgeries'], reverse=True)
     
     return {
-        "surgeons": clinician_stats,
+        "surgeons": surgeon_list,
         "generated_at": datetime.utcnow().isoformat()
     }
 

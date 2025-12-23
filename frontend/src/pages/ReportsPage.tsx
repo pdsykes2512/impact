@@ -5,16 +5,24 @@ import { Button } from '../components/Button'
 import { apiService } from '../services/api'
 
 interface SummaryReport {
-  total_episodes: number
-  episodes_with_treatments: number
-  cancer_type_breakdown: Record<string, number>
-  status_breakdown: Record<string, number>
+  total_surgeries: number
+  complication_rate: number
+  readmission_rate: number
+  mortality_rate: number
+  return_to_theatre_rate: number
+  escalation_rate: number
+  avg_length_of_stay_days: number
+  urgency_breakdown: Record<string, number>
 }
 
-interface ClinicianPerformance {
+interface SurgeonPerformance {
   _id: string
-  total_episodes: number
-  cancer_types: string[]
+  total_surgeries: number
+  complication_rate: number
+  readmission_rate: number
+  mortality_rate: number
+  avg_duration: number
+  avg_los: number
 }
 
 interface FieldStat {
@@ -46,7 +54,7 @@ type Tab = 'outcomes' | 'quality'
 export function ReportsPage() {
   const [activeTab, setActiveTab] = useState<Tab>('outcomes')
   const [summary, setSummary] = useState<SummaryReport | null>(null)
-  const [clinicianPerf, setClinicianPerf] = useState<ClinicianPerformance[]>([])
+  const [surgeonPerf, setSurgeonPerf] = useState<SurgeonPerformance[]>([])
   const [dataQuality, setDataQuality] = useState<DataQualityReport | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -58,12 +66,12 @@ export function ReportsPage() {
     try {
       setLoading(true)
       if (activeTab === 'outcomes') {
-        const [summaryRes, clinicianRes] = await Promise.all([
+        const [summaryRes, surgeonRes] = await Promise.all([
           apiService.reports.summary(),
           apiService.reports.surgeonPerformance()
         ])
         setSummary(summaryRes.data)
-        setClinicianPerf(clinicianRes.data.surgeons || [])
+        setSurgeonPerf(surgeonRes.data.surgeons || [])
       } else {
         const response = await fetch('http://localhost:8000/api/reports/data-quality', {
           headers: {
@@ -174,7 +182,7 @@ export function ReportsPage() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
           >
-            Cancer Episodes
+            Surgery Outcomes
           </button>
           <button
             onClick={() => setActiveTab('quality')}
@@ -202,26 +210,49 @@ export function ReportsPage() {
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="p-6">
-              <h3 className="text-sm font-medium text-gray-500">Total Episodes</h3>
-              <p className="mt-2 text-3xl font-bold text-gray-900">{summary.total_episodes}</p>
+              <h3 className="text-sm font-medium text-gray-500">Total Surgeries</h3>
+              <p className="mt-2 text-3xl font-bold text-gray-900">{summary.total_surgeries}</p>
             </Card>
 
-            <Card className="p-6">
-              <h3 className="text-sm font-medium text-gray-500">Episodes with Treatments</h3>
-              <p className="mt-2 text-3xl font-bold text-blue-600">{summary.episodes_with_treatments}</p>
+            <Card className={`p-6 border-2 ${getOutcomeCardColor(summary.complication_rate)}`}>
+              <h3 className="text-sm font-medium text-gray-600">Complication Rate</h3>
+              <p className={`mt-2 text-3xl font-bold ${getOutcomeTextColor(summary.complication_rate)}`}>
+                {summary.complication_rate.toFixed(1)}%
+              </p>
             </Card>
 
-            <Card className="p-6">
-              <h3 className="text-sm font-medium text-gray-500">Cancer Types Tracked</h3>
-              <p className="mt-2 text-3xl font-bold text-gray-900">
-                {Object.keys(summary.cancer_type_breakdown || {}).length}
+            <Card className={`p-6 border-2 ${getOutcomeCardColor(summary.readmission_rate)}`}>
+              <h3 className="text-sm font-medium text-gray-600">Readmission Rate</h3>
+              <p className={`mt-2 text-3xl font-bold ${getOutcomeTextColor(summary.readmission_rate)}`}>
+                {summary.readmission_rate.toFixed(1)}%
+              </p>
+            </Card>
+
+            <Card className={`p-6 border-2 ${getOutcomeCardColor(summary.mortality_rate)}`}>
+              <h3 className="text-sm font-medium text-gray-600">Mortality Rate</h3>
+              <p className={`mt-2 text-3xl font-bold ${getOutcomeTextColor(summary.mortality_rate)}`}>
+                {summary.mortality_rate.toFixed(1)}%
+              </p>
+            </Card>
+
+            <Card className={`p-6 border-2 ${getOutcomeCardColor(summary.return_to_theatre_rate)}`}>
+              <h3 className="text-sm font-medium text-gray-600">Return to Theatre</h3>
+              <p className={`mt-2 text-3xl font-bold ${getOutcomeTextColor(summary.return_to_theatre_rate)}`}>
+                {summary.return_to_theatre_rate.toFixed(1)}%
+              </p>
+            </Card>
+
+            <Card className={`p-6 border-2 ${getOutcomeCardColor(summary.escalation_rate)}`}>
+              <h3 className="text-sm font-medium text-gray-600">ICU Escalation</h3>
+              <p className={`mt-2 text-3xl font-bold ${getOutcomeTextColor(summary.escalation_rate)}`}>
+                {summary.escalation_rate.toFixed(1)}%
               </p>
             </Card>
 
             <Card className="p-6">
-              <h3 className="text-sm font-medium text-gray-500">Active Episodes</h3>
-              <p className="mt-2 text-3xl font-bold text-green-600">
-                {summary.status_breakdown?.active || 0}
+              <h3 className="text-sm font-medium text-gray-500">Avg Length of Stay</h3>
+              <p className="mt-2 text-3xl font-bold text-gray-900">
+                {summary.avg_length_of_stay_days?.toFixed(1) || 'N/A'} days
               </p>
             </Card>
           </div>
@@ -241,36 +272,66 @@ export function ReportsPage() {
             </Card>
           )}
 
-          {/* Clinician Performance */}
-          {clinicianPerf.length > 0 && (
+          {/* Surgeon Performance */}
+          {surgeonPerf.length > 0 && (
             <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Clinician Performance</h3>
+              <h3 className="text-lg font-semibold mb-4">Surgeon Performance</h3>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Lead Clinician
+                        Surgeon
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Total Episodes
+                        Surgeries
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        Cancer Types
+                        Complication Rate
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Readmission Rate
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Mortality Rate
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Avg Duration (min)
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Avg LOS (days)
                       </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {clinicianPerf.map((clinician) => (
-                      <tr key={clinician._id}>
+                    {surgeonPerf.map((surgeon) => (
+                      <tr key={surgeon._id}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {clinician._id || 'Not specified'}
+                          {surgeon._id}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {clinician.total_episodes}
+                          {surgeon.total_surgeries}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-500">
-                          {clinician.cancer_types.filter(Boolean).join(', ') || 'N/A'}
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`text-sm font-semibold px-2 py-1 rounded ${getOutcomeColor(surgeon.complication_rate)}`}>
+                            {surgeon.complication_rate.toFixed(1)}%
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`text-sm font-semibold px-2 py-1 rounded ${getOutcomeColor(surgeon.readmission_rate)}`}>
+                            {surgeon.readmission_rate.toFixed(1)}%
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`text-sm font-semibold px-2 py-1 rounded ${getOutcomeColor(surgeon.mortality_rate)}`}>
+                            {surgeon.mortality_rate.toFixed(1)}%
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {surgeon.avg_duration?.toFixed(0) || 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {surgeon.avg_los?.toFixed(1) || 'N/A'}
                         </td>
                       </tr>
                     ))}
