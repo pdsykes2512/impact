@@ -53,17 +53,17 @@
 - ✅ Create length of stay statistics
 - ✅ Build readmission tracking reports
 - ✅ Add surgeon performance analytics (aggregated)
-- [ ] Export reports to PDF/Excel
-- [ ] Add NBOCA-specific reports (30-day mortality, anastomotic leak rates)
+- ✅ Export reports to PDF/Excel
+- ✅ Add NBOCA-specific reports (30-day mortality, anastomotic leak rates, conversion rates)
 
 ### Data Validation & Quality
 - ✅ Add comprehensive form validation on frontend
 - ✅ Implement date range validation (surgery dates, follow-up dates)
-- [ ] Add BMI calculation from height/weight
-- [ ] Validate ASA score ranges (1-5)
-- [ ] Add ICD-10 code lookup/validation
-- [ ] Add OPCS-4 code lookup/validation
-- [ ] Validate COSD mandatory fields
+- ✅ Add BMI calculation from height/weight (auto-calculated)
+- ✅ Validate ASA score ranges (1-5)
+- ✅ Add ICD-10 code lookup/validation (63 codes with API endpoints)
+- ✅ Add OPCS-4 code lookup/validation (126 codes with API endpoints)
+- ✅ Validate COSD mandatory fields
 
 ## Medium Priority
 
