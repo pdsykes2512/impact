@@ -109,7 +109,12 @@ def create_episode_xml(episode: dict, patient: dict, treatments: list) -> ET.Ele
     # Performance status (CR0510)
     if episode.get("performance_status"):
         perf = ET.SubElement(episode_elem, "PerformanceStatusAdult")
-        perf.text = str(episode["performance_status"].get("ecog_score", ""))
+        perf_status = episode["performance_status"]
+        # Handle both dict format (with ecog_score) and string format
+        if isinstance(perf_status, dict):
+            perf.text = str(perf_status.get("ecog_score", ""))
+        else:
+            perf.text = str(perf_status)
     
     # Diagnosis details for bowel cancer
     cancer_data = episode.get("cancer_data", {})
