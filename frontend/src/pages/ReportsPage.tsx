@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { PageHeader } from '../components/PageHeader'
 import { Card } from '../components/Card'
+import { Button } from '../components/Button'
 import { apiService } from '../services/api'
 
 interface SummaryReport {
@@ -45,6 +46,31 @@ export function ReportsPage() {
       console.error('Failed to load reports:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const downloadExcel = async (endpoint: string, filename: string) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${endpoint}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+      
+      if (!response.ok) throw new Error('Failed to download')
+      
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Failed to download Excel:', error)
+      alert('Failed to download report. Please try again.')
     }
   }
 
@@ -103,6 +129,40 @@ export function ReportsPage() {
           </svg>
         }
       />
+
+      {/* Export Buttons */}
+      <Card>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Export Reports</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Button
+            variant="primary"
+            onClick={() => downloadExcel('/api/reports/export/summary-excel', 'summary.xlsx')}
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Summary Report
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => downloadExcel('/api/reports/export/surgeon-performance-excel', 'surgeon_performance.xlsx')}
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Surgeon Performance
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => downloadExcel('/api/reports/export/trends-excel?days=30', 'trends_30days.xlsx')}
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Trends (30 Days)
+          </Button>
+        </div>
+      </Card>
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -253,6 +313,54 @@ export function ReportsPage() {
           </div>
         </Card>
       )}
+
+      {/* NBOCA-Specific Reports */}
+      <Card>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">NBOCA-Specific Reports</h3>
+        <p className="text-sm text-gray-600 mb-4">
+          National Bowel Cancer Audit reports including mortality rates, anastomotic leak rates, and conversion rates
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Button
+            variant="secondary"
+            onClick={() => downloadExcel('/api/reports/export/nboca-mortality-excel', 'nboca_mortality.xlsx')}
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Mortality Rates
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => downloadExcel('/api/reports/export/nboca-anastomotic-leak-excel', 'nboca_leak.xlsx')}
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Anastomotic Leak
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={async () => {
+              // Show conversion rates report data first
+              try {
+                const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/reports/nboca/conversion-rates`, {
+                  headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                })
+                const data = await response.json()
+                alert(`Conversion Rates:\n\nTotal Laparoscopic: ${data.total_laparoscopic}\nConversions: ${data.conversion_count}\nConversion Rate: ${data.conversion_rate}%`)
+              } catch (error) {
+                console.error('Failed to fetch conversion rates:', error)
+              }
+            }}
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            </svg>
+            Conversion Rates
+          </Button>
+        </div>
+      </Card>
     </div>
   )
 }

@@ -17,26 +17,26 @@
 ## High Priority
 
 ### NBOCA COSD Compliance (NEW - Critical for Bowel Cancer)
-- [ ] **Phase 1: Critical Fields** (see directives/bowel_cancer_nboca_cosd_mapping.md)
+- [x] **Phase 1: Critical Fields** (see NBOCA_FIELDS_STATUS.md)
   - ✅ NHS Number (already in patient model with validation)
   - ✅ Postcode (already in demographics)
   - ✅ Ethnicity (already in demographics)
-  - [ ] Add ICD-10 diagnosis code to bowel cancer data
-  - [ ] Add TNM version field (v7/v8) to staging
-  - [ ] Add date of diagnosis to bowel cancer data
-  - [ ] Add OPCS-4 procedure codes to surgery
-  - [ ] Add ASA score to surgical classification
-  - [ ] Add circumferential resection margin (CRM) to pathology
-- [ ] **Phase 2: Process Metrics**
-  - [ ] Add referral source tracking to episodes
-  - [ ] Add provider organisation identifiers
-  - [ ] Add MDT meeting type classification
-  - [ ] Add CNS involvement indicator
-- [ ] **Data Export & Quality**
-  - [ ] Create COSD XML export endpoint
-  - [ ] Add data completeness checker
-  - [ ] Implement NBOCA submission validator
-  - [ ] Build data quality dashboard for COSD fields
+  - ✅ Add ICD-10 diagnosis code to bowel cancer data
+  - ✅ Add TNM version field (v7/v8) to staging
+  - ✅ Add date of diagnosis to bowel cancer data
+  - ✅ Add OPCS-4 procedure codes to surgery
+  - ✅ Add ASA score to surgical classification
+  - ✅ Add circumferential resection margin (CRM) to pathology
+- [x] **Phase 2: Process Metrics**
+  - ✅ Add referral source tracking to episodes
+  - ✅ Add provider organisation identifiers
+  - ✅ Add MDT meeting type classification
+  - ✅ Add CNS involvement indicator
+- [x] **Data Export & Quality**
+  - ✅ Create COSD XML export endpoint
+  - ✅ Add data completeness checker
+  - ✅ Implement NBOCA submission validator
+  - [ ] Build data quality dashboard for COSD fields (visual dashboard - nice to have)
 
 ### Episode Management
 - ✅ Build complete Episode CRUD interface in frontend

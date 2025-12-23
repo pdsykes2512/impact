@@ -848,7 +848,59 @@ export function AdminPage() {
               </div>
 
               {/* Export Actions */}
-              <div className="flex space-x-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Button
+                  variant="success"
+                  onClick={async () => {
+                    try {
+                      const response = await axios.get(`${API_URL}/api/admin/exports/nboca-validator`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                      })
+                      
+                      const data = response.data
+                      const summary = data.summary
+                      
+                      // Create detailed report
+                      let report = `🔍 NBOCA Submission Validator\n\n`
+                      report += `📊 Summary:\n`
+                      report += `Total Episodes: ${summary.total_episodes}\n`
+                      report += `Valid Episodes: ${summary.valid_episodes} (${summary.valid_percentage}%)\n`
+                      report += `Episodes with Errors: ${summary.episodes_with_errors}\n`
+                      report += `Episodes with Warnings: ${summary.episodes_with_warnings}\n\n`
+                      
+                      if (summary.submission_ready) {
+                        report += `✅ SUBMISSION READY - All episodes pass validation!\n\n`
+                      } else {
+                        report += `❌ NOT READY FOR SUBMISSION\n\n`
+                        report += `Issues Found:\n\n`
+                        
+                        data.episodes.forEach((ep: any) => {
+                          report += `Episode: ${ep.patient_id}\n`
+                          
+                          if (ep.errors.length > 0) {
+                            report += `  ❌ Errors:\n`
+                            ep.errors.forEach((err: string) => report += `     - ${err}\n`)
+                          }
+                          
+                          if (ep.warnings.length > 0) {
+                            report += `  ⚠️  Warnings:\n`
+                            ep.warnings.forEach((warn: string) => report += `     - ${warn}\n`)
+                          }
+                          
+                          report += `\n`
+                        })
+                      }
+                      
+                      alert(report)
+                      setError('')
+                    } catch (err: any) {
+                      setError('Failed to validate data: ' + (err.response?.data?.detail || err.message))
+                    }
+                  }}
+                >
+                  🔍 Validate NBOCA Submission
+                </Button>
+                
                 <Button
                   variant="primary"
                   onClick={async () => {
@@ -889,7 +941,7 @@ export function AdminPage() {
                     }
                   }}
                 >
-                  Download NBOCA XML Export
+                  📥 Download NBOCA XML
                 </Button>
 
                 <Button
@@ -938,19 +990,19 @@ export function AdminPage() {
                     }
                   }}
                 >
-                  Check Data Completeness
+                  📊 Check Data Completeness
                 </Button>
               </div>
 
               {/* Information */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="text-sm font-medium text-blue-900 mb-2">Export Information</h4>
+                <h4 className="text-sm font-medium text-blue-900 mb-2">NBOCA Submission Tools</h4>
                 <ul className="text-sm text-blue-800 space-y-1">
-                  <li>• XML format conforms to COSD v9/v10 standard</li>
-                  <li>• Only bowel cancer episodes are included</li>
-                  <li>• Filter by diagnosis date range (optional)</li>
-                  <li>• Includes patient demographics, diagnosis, TNM staging, and treatment details</li>
-                  <li>• Check data completeness before submitting to NBOCA</li>
+                  <li>• <strong>Validate:</strong> Check all episodes for NBOCA compliance before export</li>
+                  <li>• <strong>Download XML:</strong> Export data in COSD v9/v10 format for NBOCA submission</li>
+                  <li>• <strong>Check Completeness:</strong> View data completeness percentages</li>
+                  <li>• Only bowel cancer episodes are included in validation and export</li>
+                  <li>• Validation checks: mandatory fields, code formats, date logic, CRM for rectal cancers</li>
                 </ul>
               </div>
             </div>

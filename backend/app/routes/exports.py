@@ -575,3 +575,255 @@ async def check_data_completeness(
             }
     
     return completeness
+
+
+@router.get("/nboca-validator")
+async def validate_nboca_submission(
+    current_user: User = Depends(require_admin),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """
+    Validate NBOCA/COSD data readiness before submission.
+    
+    Checks:
+    - All mandatory fields populated
+    - Valid ICD-10 and OPCS-4 codes
+    - Date logic (diagnosis < treatment)
+    - Rectal cancer CRM requirements
+    - NHS number format
+    
+    Returns detailed validation report with errors and warnings per episode.
+    """
+    
+    # Valid ICD-10 codes for bowel cancer
+    VALID_ICD10_BOWEL = {
+        "C18.0", "C18.1", "C18.2", "C18.3", "C18.4", "C18.5", 
+        "C18.6", "C18.7", "C18.8", "C18.9", "C19", "C20"
+    }
+    
+    # Valid OPCS-4 codes for colorectal surgery (common procedures)
+    VALID_OPCS4_COLORECTAL = {
+        "H01", "H02", "H04", "H05", "H06", "H07", "H08", "H09", 
+        "H10", "H11", "H33", "H34", "H35", "H46", "H47", "H48", "H49"
+    }
+    
+    # Rectal cancer ICD-10 codes (CRM mandatory)
+    RECTAL_ICD10 = {"C19", "C20"}
+    
+    validation_report = {
+        "summary": {
+            "total_episodes": 0,
+            "valid_episodes": 0,
+            "episodes_with_errors": 0,
+            "episodes_with_warnings": 0
+        },
+        "episodes": []
+    }
+    
+    # Fetch all bowel cancer episodes
+    query = {"condition_type": "cancer", "cancer_type": "bowel"}
+    episodes_cursor = db.episodes.find(query)
+    
+    async for episode in episodes_cursor:
+        validation_report["summary"]["total_episodes"] += 1
+        episode_id = str(episode["_id"])
+        patient_id = episode.get("patient_id")
+        
+        episode_validation = {
+            "episode_id": episode_id,
+            "patient_id": patient_id,
+            "errors": [],
+            "warnings": []
+        }
+        
+        # Fetch related data
+        patient = await db.patients.find_one({"record_number": patient_id})
+        tumours_cursor = db.tumours.find({"episode_id": episode_id})
+        tumours = await tumours_cursor.to_list(length=None)
+        treatments_cursor = db.treatments.find({"episode_id": episode_id})
+        treatments = await treatments_cursor.to_list(length=None)
+        
+        # === PATIENT VALIDATION ===
+        if not patient:
+            episode_validation["errors"].append("Patient record not found")
+        else:
+            demographics = patient.get("demographics", {})
+            
+            # NHS Number
+            if not patient.get("nhs_number"):
+                episode_validation["errors"].append("NHS Number missing")
+            else:
+                nhs = patient["nhs_number"].replace(" ", "")
+                if not nhs.isdigit() or len(nhs) != 10:
+                    episode_validation["errors"].append(f"Invalid NHS Number format: {patient['nhs_number']}")
+            
+            # Date of Birth
+            if not demographics.get("date_of_birth"):
+                episode_validation["errors"].append("Date of Birth missing")
+            
+            # Gender
+            if not demographics.get("gender"):
+                episode_validation["errors"].append("Gender missing")
+            elif demographics["gender"] not in ["male", "female", "other"]:
+                episode_validation["warnings"].append(f"Unusual gender value: {demographics['gender']}")
+            
+            # Ethnicity
+            if not demographics.get("ethnicity"):
+                episode_validation["warnings"].append("Ethnicity missing (recommended)")
+            
+            # Postcode
+            contact = patient.get("contact_details", {})
+            if not contact.get("address", {}).get("postcode"):
+                episode_validation["errors"].append("Postcode missing")
+        
+        # === EPISODE VALIDATION ===
+        
+        # Referral source
+        if not episode.get("referral_source"):
+            episode_validation["warnings"].append("Referral source missing")
+        
+        # Provider first seen
+        if not episode.get("provider_first_seen"):
+            episode_validation["warnings"].append("Provider first seen missing")
+        
+        # MDT discussion
+        if not episode.get("mdt_discussion_date"):
+            episode_validation["warnings"].append("MDT discussion date missing")
+        
+        if not episode.get("mdt_type"):
+            episode_validation["warnings"].append("MDT type missing")
+        
+        # Performance status
+        if not episode.get("performance_status"):
+            episode_validation["warnings"].append("Performance status missing")
+        
+        # === TUMOUR VALIDATION ===
+        
+        if not tumours:
+            episode_validation["errors"].append("No tumour record found")
+        else:
+            tumour = tumours[0]  # Primary tumour
+            
+            # Diagnosis date
+            if not tumour.get("diagnosis_date"):
+                episode_validation["errors"].append("Diagnosis date missing")
+            
+            # ICD-10 code
+            if not tumour.get("icd10_code"):
+                episode_validation["errors"].append("ICD-10 code missing")
+            elif tumour["icd10_code"] not in VALID_ICD10_BOWEL:
+                episode_validation["warnings"].append(f"Unusual ICD-10 code for bowel cancer: {tumour['icd10_code']}")
+            
+            # TNM version
+            if not tumour.get("tnm_version"):
+                episode_validation["errors"].append("TNM version missing")
+            elif str(tumour["tnm_version"]) not in ["7", "8"]:
+                episode_validation["warnings"].append(f"Unusual TNM version: {tumour['tnm_version']}")
+            
+            # Clinical TNM
+            if not tumour.get("clinical_t"):
+                episode_validation["errors"].append("Clinical T stage missing")
+            if not tumour.get("clinical_n"):
+                episode_validation["errors"].append("Clinical N stage missing")
+            if not tumour.get("clinical_m"):
+                episode_validation["errors"].append("Clinical M stage missing")
+            
+            # Pathological TNM
+            if not tumour.get("pathological_t"):
+                episode_validation["warnings"].append("Pathological T stage missing")
+            if not tumour.get("pathological_n"):
+                episode_validation["warnings"].append("Pathological N stage missing")
+            if not tumour.get("pathological_m"):
+                episode_validation["warnings"].append("Pathological M stage missing")
+            
+            # Grade
+            if not tumour.get("grade"):
+                episode_validation["errors"].append("Tumour grade/differentiation missing")
+            
+            # Lymph nodes
+            if tumour.get("lymph_nodes_examined") is None:
+                episode_validation["warnings"].append("Lymph nodes examined not recorded")
+            elif tumour["lymph_nodes_examined"] < 12:
+                episode_validation["warnings"].append(f"Low lymph node yield: {tumour['lymph_nodes_examined']} (minimum 12 recommended)")
+            
+            if tumour.get("lymph_nodes_positive") is None:
+                episode_validation["warnings"].append("Lymph nodes positive not recorded")
+            
+            # CRM for rectal cancer
+            is_rectal = tumour.get("icd10_code") in RECTAL_ICD10
+            if is_rectal:
+                if not tumour.get("crm_status") or tumour.get("crm_status") == "not_applicable":
+                    episode_validation["errors"].append("CRM status mandatory for rectal cancer but missing")
+                if tumour.get("crm_status") == "clear" and tumour.get("crm_distance_mm") is None:
+                    episode_validation["warnings"].append("CRM distance should be recorded when CRM is clear")
+        
+        # === TREATMENT VALIDATION ===
+        
+        surgical_treatments = [t for t in treatments if t.get("treatment_type") == "surgery"]
+        
+        if not surgical_treatments:
+            episode_validation["warnings"].append("No surgical treatment recorded")
+        else:
+            for idx, treatment in enumerate(surgical_treatments):
+                treatment_num = f"Treatment {idx + 1}"
+                
+                # Treatment date
+                if not treatment.get("treatment_date"):
+                    episode_validation["errors"].append(f"{treatment_num}: Treatment date missing")
+                
+                # OPCS-4 code
+                if not treatment.get("opcs4_code"):
+                    episode_validation["errors"].append(f"{treatment_num}: OPCS-4 code missing")
+                elif treatment["opcs4_code"] not in VALID_OPCS4_COLORECTAL:
+                    episode_validation["warnings"].append(f"{treatment_num}: OPCS-4 code {treatment['opcs4_code']} not in common colorectal list")
+                
+                # ASA score
+                if not treatment.get("asa_score"):
+                    episode_validation["errors"].append(f"{treatment_num}: ASA score missing")
+                elif not (1 <= treatment["asa_score"] <= 5):
+                    episode_validation["errors"].append(f"{treatment_num}: Invalid ASA score {treatment['asa_score']} (must be 1-5)")
+                
+                # Surgical approach
+                if not treatment.get("approach"):
+                    episode_validation["warnings"].append(f"{treatment_num}: Surgical approach missing")
+                
+                # Urgency
+                if not treatment.get("urgency"):
+                    episode_validation["warnings"].append(f"{treatment_num}: Urgency missing")
+                
+                # Date logic validation
+                if tumours and treatment.get("treatment_date") and tumours[0].get("diagnosis_date"):
+                    try:
+                        diag_date = datetime.fromisoformat(tumours[0]["diagnosis_date"])
+                        treat_date = datetime.fromisoformat(treatment["treatment_date"])
+                        if treat_date < diag_date:
+                            episode_validation["errors"].append(f"{treatment_num}: Treatment date before diagnosis date")
+                    except:
+                        pass
+        
+        # Update summary counts
+        if episode_validation["errors"]:
+            validation_report["summary"]["episodes_with_errors"] += 1
+        elif episode_validation["warnings"]:
+            validation_report["summary"]["episodes_with_warnings"] += 1
+        else:
+            validation_report["summary"]["valid_episodes"] += 1
+        
+        # Only include episodes with issues in the report
+        if episode_validation["errors"] or episode_validation["warnings"]:
+            validation_report["episodes"].append(episode_validation)
+    
+    # Calculate percentages
+    total = validation_report["summary"]["total_episodes"]
+    if total > 0:
+        validation_report["summary"]["valid_percentage"] = round(
+            (validation_report["summary"]["valid_episodes"] / total) * 100, 1
+        )
+        validation_report["summary"]["submission_ready"] = (
+            validation_report["summary"]["episodes_with_errors"] == 0
+        )
+    else:
+        validation_report["summary"]["valid_percentage"] = 0.0
+        validation_report["summary"]["submission_ready"] = False
+    
+    return validation_report
