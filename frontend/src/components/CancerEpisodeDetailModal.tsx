@@ -640,7 +640,7 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                             {treatment.treatment_id}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getTreatmentTypeColor(treatment.treatment_type)}`}>
                               {formatTreatmentType(treatment.treatment_type)}
                             </span>
