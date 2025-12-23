@@ -34,12 +34,12 @@ async def get_summary_report() -> Dict[str, Any]:
             "generated_at": datetime.utcnow().isoformat()
         }
     
-    # Calculate metrics
-    surgeries_with_complications = sum(1 for t in all_treatments if t.get('postoperative_events', {}).get('complications'))
-    readmissions = sum(1 for t in all_treatments if t.get('outcomes', {}).get('readmission_30day'))
-    mortality_count = sum(1 for t in all_treatments if t.get('outcomes', {}).get('mortality_30day'))
-    return_to_theatre = sum(1 for t in all_treatments if t.get('postoperative_events', {}).get('return_to_theatre', {}).get('occurred'))
-    escalation_of_care = sum(1 for t in all_treatments if t.get('postoperative_events', {}).get('escalation_of_care', {}).get('occurred'))
+    # Calculate metrics - using flat structure from AddTreatmentModal
+    surgeries_with_complications = sum(1 for t in all_treatments if t.get('complications'))
+    readmissions = sum(1 for t in all_treatments if t.get('readmission_30day'))
+    mortality_count = sum(1 for t in all_treatments if t.get('mortality_30day'))
+    return_to_theatre = sum(1 for t in all_treatments if t.get('return_to_theatre'))
+    escalation_of_care = sum(1 for t in all_treatments if t.get('icu_admission'))
     
     # Calculate rates
     complication_rate = (surgeries_with_complications / total_surgeries * 100) if total_surgeries > 0 else 0
@@ -48,14 +48,14 @@ async def get_summary_report() -> Dict[str, Any]:
     return_to_theatre_rate = (return_to_theatre / total_surgeries * 100) if total_surgeries > 0 else 0
     escalation_rate = (escalation_of_care / total_surgeries * 100) if total_surgeries > 0 else 0
     
-    # Calculate average length of stay
-    los_values = [t.get('perioperative_timeline', {}).get('length_of_stay_days') for t in all_treatments if t.get('perioperative_timeline', {}).get('length_of_stay_days')]
+    # Calculate average length of stay - using flat field
+    los_values = [t.get('length_of_stay') for t in all_treatments if t.get('length_of_stay') is not None]
     avg_length_of_stay = sum(los_values) / len(los_values) if los_values else 0
     
-    # Urgency breakdown
+    # Urgency breakdown - using flat field
     urgency_breakdown = {}
     for treatment in all_treatments:
-        urgency = treatment.get('classification', {}).get('urgency', 'unknown')
+        urgency = treatment.get('urgency', 'unknown')
         urgency_breakdown[urgency] = urgency_breakdown.get(urgency, 0) + 1
     
     return {
@@ -80,10 +80,10 @@ async def get_surgeon_performance() -> Dict[str, Any]:
     # Get all surgical treatments
     all_treatments = await treatments_collection.find({"treatment_type": "surgery"}).to_list(length=None)
     
-    # Group by surgeon
+    # Group by surgeon - using flat structure
     surgeon_stats = {}
     for treatment in all_treatments:
-        surgeon = treatment.get('team', {}).get('primary_surgeon', 'Unknown')
+        surgeon = treatment.get('surgeon', 'Unknown')
         if surgeon not in surgeon_stats:
             surgeon_stats[surgeon] = {
                 '_id': surgeon,
@@ -102,24 +102,25 @@ async def get_surgeon_performance() -> Dict[str, Any]:
         stats = surgeon_stats[surgeon]
         stats['total_surgeries'] += 1
         
-        if treatment.get('postoperative_events', {}).get('complications'):
+        # Using flat fields from AddTreatmentModal
+        if treatment.get('complications'):
             stats['surgeries_with_complications'] += 1
-        if treatment.get('outcomes', {}).get('readmission_30day'):
+        if treatment.get('readmission_30day'):
             stats['readmissions'] += 1
-        if treatment.get('outcomes', {}).get('mortality_30day'):
+        if treatment.get('mortality_30day'):
             stats['mortality_30day'] += 1
-        if treatment.get('postoperative_events', {}).get('return_to_theatre', {}).get('occurred'):
+        if treatment.get('return_to_theatre'):
             stats['return_to_theatre_count'] += 1
-        if treatment.get('postoperative_events', {}).get('escalation_of_care', {}).get('occurred'):
+        if treatment.get('icu_admission'):
             stats['icu_admissions'] += 1
         
-        duration = treatment.get('perioperative_timeline', {}).get('operation_duration_minutes')
+        duration = treatment.get('operation_duration_minutes')
         if duration:
             stats['duration_sum'] += duration
             stats['duration_count'] += 1
         
-        los = treatment.get('perioperative_timeline', {}).get('length_of_stay_days')
-        if los:
+        los = treatment.get('length_of_stay')
+        if los is not None:
             stats['los_sum'] += los
             stats['los_count'] += 1
     
