@@ -182,17 +182,21 @@ async def get_data_quality_report() -> Dict[str, Any]:
     
     # Calculate completeness
     categories = []
+    episode_fields_flat = []
     for category_name, fields in episode_fields.items():
         field_stats = []
         for field in fields:
             complete_count = sum(1 for ep in all_episodes if ep.get(field))
-            field_stats.append({
+            field_data = {
                 "field": field,
+                "category": category_name,
                 "complete_count": complete_count,
                 "total_count": total_episodes,
                 "completeness": round((complete_count / total_episodes * 100) if total_episodes > 0 else 0, 2),
                 "missing_count": total_episodes - complete_count
-            })
+            }
+            field_stats.append(field_data)
+            episode_fields_flat.append(field_data)
         
         avg_completeness = sum(f["completeness"] for f in field_stats) / len(field_stats) if field_stats else 0
         categories.append({
@@ -202,6 +206,30 @@ async def get_data_quality_report() -> Dict[str, Any]:
             "fields": field_stats
         })
     
+    # Treatment fields
+    all_treatments = await treatments_collection.find({}).to_list(length=None)
+    total_treatment_count = len(all_treatments)
+    
+    treatment_field_defs = {
+        "Core": ["treatment_id", "treatment_type", "treatment_date", "provider_organisation"],
+        "Surgery": ["procedure_name", "surgeon", "approach", "urgency", "complexity"],
+        "Timeline": ["admission_date", "discharge_date", "operation_duration_minutes", "length_of_stay"],
+        "Outcomes": ["complications", "readmission_30d", "return_to_theatre", "clavien_dindo_grade"]
+    }
+    
+    treatment_fields_flat = []
+    for category_name, fields in treatment_field_defs.items():
+        for field in fields:
+            complete_count = sum(1 for t in all_treatments if t.get(field))
+            treatment_fields_flat.append({
+                "field": field,
+                "category": category_name,
+                "complete_count": complete_count,
+                "total_count": total_treatment_count,
+                "completeness": round((complete_count / total_treatment_count * 100) if total_treatment_count > 0 else 0, 2),
+                "missing_count": total_treatment_count - complete_count
+            })
+    
     overall_completeness = sum(c["avg_completeness"] for c in categories) / len(categories) if categories else 0
     
     return {
@@ -210,6 +238,8 @@ async def get_data_quality_report() -> Dict[str, Any]:
         "total_tumours": total_tumours,
         "overall_completeness": round(overall_completeness, 2),
         "categories": categories,
+        "episode_fields": episode_fields_flat,
+        "treatment_fields": treatment_fields_flat,
         "generated_at": datetime.utcnow().isoformat()
     }
 
