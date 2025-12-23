@@ -33,14 +33,7 @@ export function DateInput({
         value={normalizedValue}
         onChange={onChange}
         className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent
-          [&::-webkit-datetime-edit-text]:text-gray-400
-          [&::-webkit-datetime-edit-month-field]:text-transparent
-          [&::-webkit-datetime-edit-day-field]:text-transparent
-          [&::-webkit-datetime-edit-year-field]:text-transparent
-          [&:not(:focus)::-webkit-datetime-edit-month-field:not([value])]:text-transparent
-          [&:not(:focus)::-webkit-datetime-edit-day-field:not([value])]:text-transparent
-          [&:not(:focus)::-webkit-datetime-edit-year-field:not([value])]:text-transparent
-          ${normalizedValue ? '' : 'text-gray-400'}
+          ${!normalizedValue ? '[&::-webkit-datetime-edit-month-field]:text-transparent [&::-webkit-datetime-edit-day-field]:text-transparent [&::-webkit-datetime-edit-year-field]:text-transparent [&::-webkit-datetime-edit-text]:text-gray-400' : ''}
           ${error ? 'border-red-500' : ''} ${className}`}
         {...props}
       />
