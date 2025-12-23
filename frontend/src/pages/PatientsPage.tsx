@@ -521,47 +521,43 @@ export function PatientsPage() {
         </Card>
       )}
 
-      {/* Patient List */}
-      <Card>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold">Patient List</h2>
-          {patients.length > 0 && (
-            <div className="text-sm text-gray-500">
-              Showing {filteredPatients.length} of {patients.length} patients
+      {/* Filters */}
+      {patients.length > 0 && (
+        <Card>
+          <div className="space-y-4">
+            <div className="flex items-center space-x-4">
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
             </div>
-          )}
-        </div>
-        
-        {/* Search Box */}
-        {patients.length > 0 && (
-          <div className="mb-4">
+
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
               <input
                 type="text"
                 placeholder="Search by Record Number or NHS Number..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full h-10 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
-                >
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
             </div>
+
+            {searchTerm && (
+              <div className="flex justify-end">
+                <Button
+                  variant="secondary"
+                  onClick={() => setSearchTerm('')}
+                >
+                  Clear Filters
+                </Button>
+              </div>
+            )}
           </div>
-        )}
-        
+        </Card>
+      )}
+
+      {/* Patient List */}
+      <Card>
         {loading && !showForm && <p className="text-gray-500">Loading...</p>}
         {!loading && patients.length === 0 && (
           <div className="text-center py-12">
