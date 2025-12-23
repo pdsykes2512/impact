@@ -11,7 +11,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
 
-from ..database import get_surgeries_collection, get_episodes_collection, get_treatments_collection
+from ..database import get_surgeries_collection, get_episodes_collection, get_treatments_collection, get_tumours_collection
 
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
@@ -889,6 +889,7 @@ async def get_data_quality_report() -> Dict[str, Any]:
     """
     episodes_collection = await get_episodes_collection()
     treatments_collection = await get_treatments_collection()
+    tumours_collection = await get_tumours_collection()
     
     # Get total counts
     total_episodes = await episodes_collection.count_documents({"condition_type": "cancer", "cancer_type": "bowel"})
@@ -901,8 +902,11 @@ async def get_data_quality_report() -> Dict[str, Any]:
             "episode_fields": [],
             "treatment_fields": [],
             "overall_completeness": 0,
+            "categories": [],
             "generated_at": datetime.utcnow().isoformat()
         }
+    
+    # Get tumours collection for TNM data (stored separately)
     
     # Define NBOCA COSD critical fields for episodes
     episode_fields = [
@@ -915,10 +919,14 @@ async def get_data_quality_report() -> Dict[str, Any]:
         {"field": "performance_status", "label": "Performance Status (CR0510)", "category": "Clinical"},
         {"field": "cancer_data.diagnosis_date", "label": "Diagnosis Date (CR2030)", "category": "Clinical"},
         {"field": "cancer_data.icd10_code", "label": "ICD-10 Code (CR0370)", "category": "Clinical"},
-        {"field": "cancer_data.tnm_staging.tnm_version", "label": "TNM Version (CR2070)", "category": "Clinical"},
-        {"field": "cancer_data.tnm_staging.clinical_t", "label": "Clinical T Stage", "category": "Clinical"},
-        {"field": "cancer_data.tnm_staging.clinical_n", "label": "Clinical N Stage", "category": "Clinical"},
-        {"field": "cancer_data.tnm_staging.clinical_m", "label": "Clinical M Stage", "category": "Clinical"},
+    ]
+    
+    # TNM fields - stored in separate tumours collection
+    tnm_fields = [
+        {"field": "tnm_version", "label": "TNM Version (CR2070)", "category": "Clinical"},
+        {"field": "clinical_t", "label": "Clinical T Stage", "category": "Clinical"},
+        {"field": "clinical_n", "label": "Clinical N Stage", "category": "Clinical"},
+        {"field": "clinical_m", "label": "Clinical M Stage", "category": "Clinical"},
     ]
     
     # Define NBOCA COSD critical fields for treatments/surgeries
@@ -950,6 +958,27 @@ async def get_data_quality_report() -> Dict[str, Any]:
         }
         
         complete_count = await episodes_collection.count_documents(query)
+        completeness = (complete_count / total_episodes * 100) if total_episodes > 0 else 0
+        
+        episode_stats.append({
+            "field": field_def["label"],
+            "category": field_def["category"],
+            "complete_count": complete_count,
+            "total_count": total_episodes,
+            "completeness": round(completeness, 1),
+            "missing_count": total_episodes - complete_count
+        })
+    
+    # Calculate completeness for TNM fields from tumours collection
+    for field_def in tnm_fields:
+        field_path = field_def["field"]
+        
+        # Count tumours with this field populated
+        query = {
+            field_path: {"$exists": True, "$ne": None, "$ne": ""}
+        }
+        
+        complete_count = await tumours_collection.count_documents(query)
         completeness = (complete_count / total_episodes * 100) if total_episodes > 0 else 0
         
         episode_stats.append({
