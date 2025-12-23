@@ -137,6 +137,14 @@ export function ReportsPage() {
     return 'text-red-600 bg-red-100'
   }
 
+  const getOutcomeCardColor = (rate: number) => {
+    const percentage = rate * 100
+    if (percentage <= 5) return 'bg-green-50 border-green-200'
+    if (percentage <= 10) return 'bg-yellow-50 border-yellow-200'
+    if (percentage <= 20) return 'bg-orange-50 border-orange-200'
+    return 'bg-red-50 border-red-200'
+  }
+
   const getOutcomeTextColor = (rate: number) => {
     const percentage = rate * 100
     if (percentage <= 5) return 'text-green-600'
@@ -192,37 +200,37 @@ export function ReportsPage() {
               <p className="mt-2 text-3xl font-bold text-gray-900">{summary.total_surgeries}</p>
             </Card>
 
-            <Card className="p-6">
-              <h3 className="text-sm font-medium text-gray-500">Complication Rate</h3>
-              <p className={`mt-2 text-3xl font-bold rounded-lg px-3 py-1 inline-block ${getOutcomeColor(summary.complication_rate)}`}>
+            <Card className={`p-6 border-2 ${getOutcomeCardColor(summary.complication_rate)}`}>
+              <h3 className="text-sm font-medium text-gray-600">Complication Rate</h3>
+              <p className={`mt-2 text-3xl font-bold ${getOutcomeTextColor(summary.complication_rate)}`}>
                 {(summary.complication_rate * 100).toFixed(1)}%
               </p>
             </Card>
 
-            <Card className="p-6">
-              <h3 className="text-sm font-medium text-gray-500">Readmission Rate</h3>
-              <p className={`mt-2 text-3xl font-bold rounded-lg px-3 py-1 inline-block ${getOutcomeColor(summary.readmission_rate)}`}>
+            <Card className={`p-6 border-2 ${getOutcomeCardColor(summary.readmission_rate)}`}>
+              <h3 className="text-sm font-medium text-gray-600">Readmission Rate</h3>
+              <p className={`mt-2 text-3xl font-bold ${getOutcomeTextColor(summary.readmission_rate)}`}>
                 {(summary.readmission_rate * 100).toFixed(1)}%
               </p>
             </Card>
 
-            <Card className="p-6">
-              <h3 className="text-sm font-medium text-gray-500">Mortality Rate</h3>
-              <p className={`mt-2 text-3xl font-bold rounded-lg px-3 py-1 inline-block ${getOutcomeColor(summary.mortality_rate)}`}>
+            <Card className={`p-6 border-2 ${getOutcomeCardColor(summary.mortality_rate)}`}>
+              <h3 className="text-sm font-medium text-gray-600">Mortality Rate</h3>
+              <p className={`mt-2 text-3xl font-bold ${getOutcomeTextColor(summary.mortality_rate)}`}>
                 {(summary.mortality_rate * 100).toFixed(1)}%
               </p>
             </Card>
 
-            <Card className="p-6">
-              <h3 className="text-sm font-medium text-gray-500">Return to Theatre</h3>
-              <p className={`mt-2 text-3xl font-bold rounded-lg px-3 py-1 inline-block ${getOutcomeColor(summary.return_to_theatre_rate)}`}>
+            <Card className={`p-6 border-2 ${getOutcomeCardColor(summary.return_to_theatre_rate)}`}>
+              <h3 className="text-sm font-medium text-gray-600">Return to Theatre</h3>
+              <p className={`mt-2 text-3xl font-bold ${getOutcomeTextColor(summary.return_to_theatre_rate)}`}>
                 {(summary.return_to_theatre_rate * 100).toFixed(1)}%
               </p>
             </Card>
 
-            <Card className="p-6">
-              <h3 className="text-sm font-medium text-gray-500">ICU Escalation</h3>
-              <p className={`mt-2 text-3xl font-bold rounded-lg px-3 py-1 inline-block ${getOutcomeColor(summary.escalation_rate)}`}>
+            <Card className={`p-6 border-2 ${getOutcomeCardColor(summary.escalation_rate)}`}>
+              <h3 className="text-sm font-medium text-gray-600">ICU Escalation</h3>
+              <p className={`mt-2 text-3xl font-bold ${getOutcomeTextColor(summary.escalation_rate)}`}>
                 {(summary.escalation_rate * 100).toFixed(1)}%
               </p>
             </Card>
