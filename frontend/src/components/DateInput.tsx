@@ -1,4 +1,4 @@
-import { InputHTMLAttributes } from 'react'
+import { InputHTMLAttributes, useState } from 'react'
 
 interface DateInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type'> {
   value: string
@@ -19,6 +19,8 @@ export function DateInput({
   className = '',
   ...props
 }: DateInputProps) {
+  const [isFocused, setIsFocused] = useState(false)
+  
   // If no placeholder provided, use label as placeholder
   const displayPlaceholder = placeholder || label
 
@@ -31,7 +33,7 @@ export function DateInput({
         </label>
       )}
       <div className="relative">
-        {!value && displayPlaceholder && (
+        {!value && !isFocused && displayPlaceholder && (
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-sm">
             {displayPlaceholder}
           </span>
@@ -40,10 +42,12 @@ export function DateInput({
           type="date"
           value={value}
           onChange={onChange}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
           className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent [&::-webkit-calendar-picker-indicator]:opacity-100 ${
             error ? 'border-red-500' : ''
           } ${className}`}
-          style={!value ? { color: 'transparent' } : {}}
+          style={!value && !isFocused ? { color: 'transparent' } : {}}
           {...props}
         />
       </div>
