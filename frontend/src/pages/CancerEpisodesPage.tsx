@@ -282,14 +282,9 @@ export function CancerEpisodesPage() {
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredEpisodes.map((episode) => (
-                      <tr key={episode.episode_id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <button
-                            onClick={() => handleViewDetails(episode)}
-                            className="text-sm font-medium text-blue-600 hover:text-blue-800"
-                          >
-                            {episode.episode_id}
-                          </button>
+                      <tr key={episode.episode_id} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleViewDetails(episode)}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {episode.episode_id}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {episode.patient_id}
