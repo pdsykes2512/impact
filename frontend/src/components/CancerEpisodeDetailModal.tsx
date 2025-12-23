@@ -58,6 +58,12 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
   const [viewingTumour, setViewingTumour] = useState<any>(null)
   const [viewingTreatment, setViewingTreatment] = useState<Treatment | null>(null)
 
+  // Delete confirmation states
+  const [deleteTumourConfirmation, setDeleteTumourConfirmation] = useState<{ show: boolean; tumour: any | null }>({ show: false, tumour: null })
+  const [deleteTumourConfirmText, setDeleteTumourConfirmText] = useState('')
+  const [deleteTreatmentConfirmation, setDeleteTreatmentConfirmation] = useState<{ show: boolean; treatment: Treatment | null }>({ show: false, treatment: null })
+  const [deleteTreatmentConfirmText, setDeleteTreatmentConfirmText] = useState('')
+
   useEffect(() => {
     if (episode) {
       loadTreatments()
@@ -200,19 +206,17 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
     }
   }
 
-  const handleDeleteTumour = async (tumourId: string) => {
-    const userInput = prompt(`To confirm deletion, type this Tumour ID:\n\n${tumourId}`)
-    
-    if (userInput !== tumourId) {
-      if (userInput !== null) {
-        alert('Tumour ID does not match. Deletion cancelled.')
-      }
-      return
-    }
+  const handleDeleteTumourClick = (tumour: any) => {
+    setDeleteTumourConfirmation({ show: true, tumour })
+    setDeleteTumourConfirmText('')
+  }
+
+  const handleDeleteTumourConfirm = async () => {
+    if (!deleteTumourConfirmation.tumour) return
     
     try {
       const response = await fetch(
-        `http://localhost:8000/api/episodes/${episode.episode_id}/tumours/${tumourId}`,
+        `http://localhost:8000/api/episodes/${episode.episode_id}/tumours/${deleteTumourConfirmation.tumour.tumour_id}`,
         {
           method: 'DELETE',
           headers: {
@@ -222,6 +226,8 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
       )
       
       if (response.ok) {
+        setDeleteTumourConfirmation({ show: false, tumour: null })
+        setDeleteTumourConfirmText('')
         await loadTreatments()
       } else {
         const error = await response.json()
@@ -233,19 +239,17 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
     }
   }
 
-  const handleDeleteTreatment = async (treatmentId: string) => {
-    const userInput = prompt(`To confirm deletion, type this Treatment ID:\n\n${treatmentId}`)
-    
-    if (userInput !== treatmentId) {
-      if (userInput !== null) {
-        alert('Treatment ID does not match. Deletion cancelled.')
-      }
-      return
-    }
+  const handleDeleteTreatmentClick = (treatment: Treatment) => {
+    setDeleteTreatmentConfirmation({ show: true, treatment })
+    setDeleteTreatmentConfirmText('')
+  }
+
+  const handleDeleteTreatmentConfirm = async () => {
+    if (!deleteTreatmentConfirmation.treatment) return
     
     try {
       const response = await fetch(
-        `http://localhost:8000/api/episodes/${episode.episode_id}/treatments/${treatmentId}`,
+        `http://localhost:8000/api/episodes/${episode.episode_id}/treatments/${deleteTreatmentConfirmation.treatment.treatment_id}`,
         {
           method: 'DELETE',
           headers: {
@@ -255,6 +259,8 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
       )
       
       if (response.ok) {
+        setDeleteTreatmentConfirmation({ show: false, treatment: null })
+        setDeleteTreatmentConfirmText('')
         await loadTreatments()
       } else {
         const error = await response.json()
@@ -573,7 +579,7 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  handleDeleteTumour(tumour.tumour_id)
+                                  handleDeleteTumourClick(tumour)
                                 }}
                                 className="text-red-600 hover:text-red-900"
                                 title="Delete tumour"
@@ -689,7 +695,7 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  handleDeleteTreatment(treatment.treatment_id)
+                                  handleDeleteTreatmentClick(treatment)
                                 }}
                                 className="text-red-600 hover:text-red-900"
                                 title="Delete treatment"
@@ -780,6 +786,166 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
               setShowAddTreatment(true)
             }}
           />
+        )}
+
+        {/* Delete Tumour Confirmation Modal */}
+        {deleteTumourConfirmation.show && deleteTumourConfirmation.tumour && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+              <div className="flex items-center mb-4">
+                <div className="flex-shrink-0">
+                  <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <h3 className="ml-3 text-lg font-medium text-gray-900">Delete Tumour</h3>
+              </div>
+              
+              <div className="mb-4">
+                <p className="text-sm text-gray-500 mb-4">
+                  You are about to delete the following tumour:
+                </p>
+                
+                <div className="bg-gray-50 rounded-md p-4 mb-4">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="text-gray-500">Tumour ID:</div>
+                    <div className="font-medium text-gray-900">{deleteTumourConfirmation.tumour.tumour_id}</div>
+                    
+                    <div className="text-gray-500">Site:</div>
+                    <div className="text-gray-900">{deleteTumourConfirmation.tumour.site || 'N/A'}</div>
+                    
+                    {deleteTumourConfirmation.tumour.size && (
+                      <>
+                        <div className="text-gray-500">Size:</div>
+                        <div className="text-gray-900">{deleteTumourConfirmation.tumour.size}mm</div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
+                  <p className="text-sm text-red-800 font-medium">
+                    ⚠️ This action cannot be undone
+                  </p>
+                </div>
+
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Type the tumour ID <span className="font-mono font-bold">{deleteTumourConfirmation.tumour.tumour_id}</span> to confirm:
+                </label>
+                <input
+                  type="text"
+                  value={deleteTumourConfirmText}
+                  onChange={(e) => setDeleteTumourConfirmText(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                  placeholder="Enter tumour ID"
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setDeleteTumourConfirmation({ show: false, tumour: null })
+                    setDeleteTumourConfirmText('')
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteTumourConfirm}
+                  disabled={deleteTumourConfirmText !== deleteTumourConfirmation.tumour.tumour_id}
+                  className={`px-4 py-2 text-sm font-medium text-white rounded-md ${
+                    deleteTumourConfirmText === deleteTumourConfirmation.tumour.tumour_id
+                      ? 'bg-red-600 hover:bg-red-700'
+                      : 'bg-red-300 cursor-not-allowed'
+                  }`}
+                >
+                  Delete Tumour
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Treatment Confirmation Modal */}
+        {deleteTreatmentConfirmation.show && deleteTreatmentConfirmation.treatment && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+              <div className="flex items-center mb-4">
+                <div className="flex-shrink-0">
+                  <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <h3 className="ml-3 text-lg font-medium text-gray-900">Delete Treatment</h3>
+              </div>
+              
+              <div className="mb-4">
+                <p className="text-sm text-gray-500 mb-4">
+                  You are about to delete the following treatment:
+                </p>
+                
+                <div className="bg-gray-50 rounded-md p-4 mb-4">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="text-gray-500">Treatment ID:</div>
+                    <div className="font-medium text-gray-900">{deleteTreatmentConfirmation.treatment.treatment_id}</div>
+                    
+                    <div className="text-gray-500">Type:</div>
+                    <div className="text-gray-900">{formatTreatmentType(deleteTreatmentConfirmation.treatment.treatment_type)}</div>
+                    
+                    {deleteTreatmentConfirmation.treatment.treatment_date && (
+                      <>
+                        <div className="text-gray-500">Date:</div>
+                        <div className="text-gray-900">{formatDate(deleteTreatmentConfirmation.treatment.treatment_date)}</div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
+                  <p className="text-sm text-red-800 font-medium">
+                    ⚠️ This action cannot be undone
+                  </p>
+                </div>
+
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Type the treatment ID <span className="font-mono font-bold">{deleteTreatmentConfirmation.treatment.treatment_id}</span> to confirm:
+                </label>
+                <input
+                  type="text"
+                  value={deleteTreatmentConfirmText}
+                  onChange={(e) => setDeleteTreatmentConfirmText(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                  placeholder="Enter treatment ID"
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setDeleteTreatmentConfirmation({ show: false, treatment: null })
+                    setDeleteTreatmentConfirmText('')
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteTreatmentConfirm}
+                  disabled={deleteTreatmentConfirmText !== deleteTreatmentConfirmation.treatment.treatment_id}
+                  className={`px-4 py-2 text-sm font-medium text-white rounded-md ${
+                    deleteTreatmentConfirmText === deleteTreatmentConfirmation.treatment.treatment_id
+                      ? 'bg-red-600 hover:bg-red-700'
+                      : 'bg-red-300 cursor-not-allowed'
+                  }`}
+                >
+                  Delete Treatment
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

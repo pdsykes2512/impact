@@ -34,6 +34,13 @@ export function EpisodesPage() {
   const [startDateFilter, setStartDateFilter] = useState('')
   const [endDateFilter, setEndDateFilter] = useState('')
 
+  // Delete confirmation state
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ show: boolean; episode: any | null }>({ 
+    show: false, 
+    episode: null 
+  })
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
     const id = Date.now().toString()
     setToasts(prev => [...prev, { id, message, type }])
@@ -180,11 +187,18 @@ export function EpisodesPage() {
     }
   }
 
-  const handleDelete = async (episodeId: string) => {
-    if (!confirm('Are you sure you want to delete this episode?')) return
+  const handleDeleteClick = (episode: any) => {
+    setDeleteConfirmation({ show: true, episode })
+    setDeleteConfirmText('')
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirmation.episode) return
     
     try {
-      await api.delete(`/episodes/${episodeId}`)
+      await api.delete(`/episodes/${deleteConfirmation.episode.episode_id}`)
+      setDeleteConfirmation({ show: false, episode: null })
+      setDeleteConfirmText('')
       loadEpisodes()
       showToast('Episode deleted successfully', 'success')
     } catch (error) {
@@ -439,6 +453,18 @@ export function EpisodesPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                           </svg>
                         </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeleteClick(episode)
+                          }}
+                          className="text-red-600 hover:text-red-900"
+                          title="Delete episode"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -475,6 +501,88 @@ export function EpisodesPage() {
           mode={editingEpisode ? 'edit' : 'create'}
           initialData={editingEpisode || (patientId ? { patient_id: patientId } : undefined)}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmation.show && deleteConfirmation.episode && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center mb-4">
+              <div className="flex-shrink-0">
+                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="ml-3 text-lg font-medium text-gray-900">Delete Episode</h3>
+            </div>
+            
+            <div className="mb-4">
+              <p className="text-sm text-gray-500 mb-4">
+                You are about to delete the following episode and all associated treatments and tumours:
+              </p>
+              
+              <div className="bg-gray-50 rounded-md p-4 mb-4">
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="text-gray-500">Episode ID:</div>
+                  <div className="font-medium text-gray-900">{deleteConfirmation.episode.episode_id}</div>
+                  
+                  <div className="text-gray-500">Patient ID:</div>
+                  <div className="text-gray-900">{deleteConfirmation.episode.patient_id}</div>
+                  
+                  <div className="text-gray-500">Type:</div>
+                  <div className="text-gray-900">{formatCancerType(deleteConfirmation.episode.cancer_type)}</div>
+                  
+                  <div className="text-gray-500">Date:</div>
+                  <div className="text-gray-900">{formatDate(deleteConfirmation.episode.referral_date)}</div>
+                </div>
+              </div>
+
+              <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
+                <p className="text-sm text-red-800 font-medium">
+                  ⚠️ This action cannot be undone
+                </p>
+                <p className="text-sm text-red-600 mt-1">
+                  All associated treatments and tumour data will also be permanently deleted.
+                </p>
+              </div>
+
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Type the episode ID <span className="font-mono font-bold">{deleteConfirmation.episode.episode_id}</span> to confirm:
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                placeholder="Enter episode ID"
+                autoFocus
+              />
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setDeleteConfirmation({ show: false, episode: null })
+                  setDeleteConfirmText('')
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={deleteConfirmText !== deleteConfirmation.episode.episode_id}
+                className={`px-4 py-2 text-sm font-medium text-white rounded-md ${
+                  deleteConfirmText === deleteConfirmation.episode.episode_id
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-red-300 cursor-not-allowed'
+                }`}
+              >
+                Delete Episode
+              </button>
+            </div>
+          </div>
+        </div>
       )}
       </div>
     </>

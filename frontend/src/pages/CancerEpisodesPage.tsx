@@ -34,6 +34,10 @@ export function CancerEpisodesPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
+  // Delete confirmation state
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ show: boolean; episode: Episode | null }>({ show: false, episode: null })
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+
   const loadEpisodes = useCallback(async () => {
     try {
       setLoading(true)
@@ -100,11 +104,18 @@ export function CancerEpisodesPage() {
     }
   }
 
-  const handleDelete = async (episodeId: string) => {
-    if (!confirm('Are you sure you want to delete this episode?')) return
+  const handleDeleteClick = (episode: Episode) => {
+    setDeleteConfirmation({ show: true, episode })
+    setDeleteConfirmText('')
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteConfirmation.episode) return
     
     try {
-      await api.delete(`/episodes/${episodeId}`)
+      await api.delete(`/episodes/${deleteConfirmation.episode.episode_id}`)
+      setDeleteConfirmation({ show: false, episode: null })
+      setDeleteConfirmText('')
       loadEpisodes()
       setSuccess('Episode deleted successfully')
       setTimeout(() => setSuccess(''), 3000)
@@ -321,7 +332,7 @@ export function CancerEpisodesPage() {
                           <Button
                             size="small"
                             variant="danger"
-                            onClick={() => handleDelete(episode.episode_id)}
+                            onClick={() => handleDeleteClick(episode)}
                           >
                             Delete
                           </Button>
@@ -349,6 +360,88 @@ export function CancerEpisodesPage() {
             handleEditClick(selectedEpisode)
           }}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmation.show && deleteConfirmation.episode && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center mb-4">
+              <div className="flex-shrink-0">
+                <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h3 className="ml-3 text-lg font-medium text-gray-900">Delete Episode</h3>
+            </div>
+            
+            <div className="mb-4">
+              <p className="text-sm text-gray-500 mb-4">
+                You are about to delete the following episode and all associated treatments and tumours:
+              </p>
+              
+              <div className="bg-gray-50 rounded-md p-4 mb-4">
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="text-gray-500">Episode ID:</div>
+                  <div className="font-medium text-gray-900">{deleteConfirmation.episode.episode_id}</div>
+                  
+                  <div className="text-gray-500">Patient ID:</div>
+                  <div className="text-gray-900">{deleteConfirmation.episode.patient_id}</div>
+                  
+                  <div className="text-gray-500">Type:</div>
+                  <div className="text-gray-900">{formatCancerType(deleteConfirmation.episode.cancer_type)}</div>
+                  
+                  <div className="text-gray-500">Date:</div>
+                  <div className="text-gray-900">{formatDate(deleteConfirmation.episode.referral_date)}</div>
+                </div>
+              </div>
+
+              <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
+                <p className="text-sm text-red-800 font-medium">
+                  ⚠️ This action cannot be undone
+                </p>
+                <p className="text-sm text-red-600 mt-1">
+                  All associated treatments and tumour data will also be permanently deleted.
+                </p>
+              </div>
+
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Type the episode ID <span className="font-mono font-bold">{deleteConfirmation.episode.episode_id}</span> to confirm:
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                placeholder="Enter episode ID"
+                autoFocus
+              />
+            </div>
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setDeleteConfirmation({ show: false, episode: null })
+                  setDeleteConfirmText('')
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={deleteConfirmText !== deleteConfirmation.episode.episode_id}
+                className={`px-4 py-2 text-sm font-medium text-white rounded-md ${
+                  deleteConfirmText === deleteConfirmation.episode.episode_id
+                    ? 'bg-red-600 hover:bg-red-700'
+                    : 'bg-red-300 cursor-not-allowed'
+                }`}
+              >
+                Delete Episode
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
