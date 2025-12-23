@@ -4,9 +4,7 @@ import { PageHeader } from '../components/PageHeader'
 import { Card } from '../components/Card'
 import { Button } from '../components/Button'
 import { DateInput } from '../components/DateInput'
-import { EpisodeForm } from '../components/EpisodeForm'
 import { CancerEpisodeForm } from '../components/CancerEpisodeForm'
-import { EpisodeDetailModal } from '../components/EpisodeDetailModal'
 import { CancerEpisodeDetailModal } from '../components/CancerEpisodeDetailModal'
 import { ToastContainer } from '../components/Toast'
 import { apiService } from '../services/api'
@@ -18,39 +16,16 @@ const capitalize = (str: string) => {
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
 }
 
-interface Episode {
-  surgery_id: string
-  patient_id: string
-  classification: {
-    urgency: string
-    primary_diagnosis: string
-  }
-  procedure: {
-    primary_procedure: string
-    approach: string
-  }
-  perioperative_timeline: {
-    surgery_date: string
-  }
-  team: {
-    primary_surgeon: string
-  }
-}
-
 export function EpisodesPage() {
   const { patientId } = useParams<{ patientId: string }>()
   const navigate = useNavigate()
   const location = useLocation()
-  const [episodes, setEpisodes] = useState<Episode[]>([])
-  const [cancerEpisodes, setCancerEpisodes] = useState<any[]>([])
+  const [episodes, setEpisodes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
-  const [showCancerModal, setShowCancerModal] = useState(false)
   const [showDetailModal, setShowDetailModal] = useState(false)
-  const [selectedEpisode, setSelectedEpisode] = useState<Episode | null>(null)
-  const [showCancerDetailModal, setShowCancerDetailModal] = useState(false)
-  const [selectedCancerEpisode, setSelectedCancerEpisode] = useState<any>(null)
-  const [editingCancerEpisode, setEditingCancerEpisode] = useState<any>(null)
+  const [selectedEpisode, setSelectedEpisode] = useState<any>(null)
+  const [editingEpisode, setEditingEpisode] = useState<any>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: 'success' | 'error' | 'info' | 'warning' }>>([])
   const [patientInfo, setPatientInfo] = useState<any>(null)
@@ -78,16 +53,14 @@ export function EpisodesPage() {
       if (startDateFilter) params.start_date = startDateFilter
       if (endDateFilter) params.end_date = endDateFilter
 
-      // Load episodes from main API (now includes all episode types)
+      // Load cancer episodes from API
       const response = await apiService.episodes.list(params)
       const allEpisodes = response.data
       
-      // Separate legacy surgery episodes from cancer episodes
-      const legacyEpisodes = allEpisodes.filter((ep: any) => ep.surgery_id)
+      // Filter for cancer episodes only
       const cancer = allEpisodes.filter((ep: any) => ep.episode_id && ep.condition_type === 'cancer')
       
-      setEpisodes(legacyEpisodes)
-      setCancerEpisodes(cancer)
+      setEpisodes(cancer)
     } catch (error) {
       console.error('Failed to load episodes:', error)
     } finally {
@@ -116,35 +89,23 @@ export function EpisodesPage() {
   // Handle opening edit modal from navigation state
   useEffect(() => {
     const state = location.state as { editEpisodeId?: string }
-    if (state?.editEpisodeId && cancerEpisodes.length > 0) {
-      const episode = cancerEpisodes.find(ep => ep.episode_id === state.editEpisodeId)
+    if (state?.editEpisodeId && episodes.length > 0) {
+      const episode = episodes.find(ep => ep.episode_id === state.editEpisodeId)
       if (episode) {
-        setEditingCancerEpisode(episode)
-        setShowCancerModal(true)
+        setEditingEpisode(episode)
+        setShowModal(true)
         // Clear the state to avoid reopening on refresh
         navigate(location.pathname, { replace: true, state: {} })
       }
+      }
     }
-  }, [location.state, cancerEpisodes, navigate, location.pathname])
+  }, [location.state, episodes, navigate, location.pathname])
 
   const handleCreate = async (data: any) => {
     try {
-      await apiService.episodes.create(data)
-      setShowModal(false)
-      setSelectedEpisode(null)
-      loadEpisodes()
-      showToast('Episode created successfully', 'success')
-    } catch (error: any) {
-      console.error('Failed to create episode:', error)
-      showToast(error.response?.data?.detail || 'Failed to create episode', 'error')
-    }
-  }
-
-  const handleCreateCancerEpisode = async (data: any) => {
-    try {
       console.log('Creating cancer episode with data:', data)
       
-      const response = await fetch('http://localhost:8000/api/v2/episodes/', {
+      const response = await fetch('http://localhost:8000/api/episodes/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -174,7 +135,8 @@ export function EpisodesPage() {
         throw new Error(errorMessage)
       }
 
-      setShowCancerModal(false)
+      setShowModal(false)
+      setSelectedEpisode(null)
       loadEpisodes()
       showToast('Cancer episode created successfully', 'success')
     } catch (error: any) {
@@ -191,25 +153,10 @@ export function EpisodesPage() {
   }
 
   const handleEdit = async (data: any) => {
-    if (!selectedEpisode) return
+    if (!editingEpisode) return
     
     try {
-      await apiService.episodes.update(selectedEpisode.surgery_id, data)
-      setShowModal(false)
-      setSelectedEpisode(null)
-      loadEpisodes()
-      showToast('Episode updated successfully', 'success')
-    } catch (error: any) {
-      console.error('Failed to update episode:', error)
-      showToast(error.response?.data?.detail || 'Failed to update episode', 'error')
-    }
-  }
-
-  const handleEditCancerEpisode = async (data: any) => {
-    if (!editingCancerEpisode) return
-    
-    try {
-      const response = await fetch(`http://localhost:8000/api/episodes/${editingCancerEpisode.episode_id}`, {
+      const response = await fetch(`http://localhost:8000/api/episodes/${editingEpisode.episode_id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -223,8 +170,9 @@ export function EpisodesPage() {
         throw new Error(error.detail || 'Failed to update cancer episode')
       }
 
-      setEditingCancerEpisode(null)
-      setShowCancerModal(false)
+      setEditingEpisode(null)
+      setShowModal(false)
+      setSelectedEpisode(null)
       loadEpisodes()
       showToast('Cancer episode updated successfully', 'success')
     } catch (error: any) {
@@ -233,11 +181,11 @@ export function EpisodesPage() {
     }
   }
 
-  const handleDelete = async (surgeryId: string) => {
+  const handleDelete = async (episodeId: string) => {
     if (!confirm('Are you sure you want to delete this episode?')) return
     
     try {
-      await apiService.episodes.delete(surgeryId)
+      await api.delete(`/episodes/${episodeId}`)
       loadEpisodes()
       showToast('Episode deleted successfully', 'success')
     } catch (error) {
@@ -252,10 +200,10 @@ export function EpisodesPage() {
       if (searchTerm) {
         const search = searchTerm.toLowerCase()
         const matchesSearch = (
-          episode.surgery_id.toLowerCase().includes(search) ||
-          episode.patient_id.toLowerCase().includes(search) ||
-          episode.procedure.primary_procedure.toLowerCase().includes(search) ||
-          episode.team.primary_surgeon.toLowerCase().includes(search)
+          episode.episode_id?.toLowerCase().includes(search) ||
+          episode.patient_id?.toLowerCase().includes(search) ||
+          episode.lead_clinician?.toLowerCase().includes(search) ||
+          episode.cancer_type?.toLowerCase().includes(search)
         )
         if (!matchesSearch) return false
       }
@@ -263,24 +211,6 @@ export function EpisodesPage() {
       return true
     })
   }, [episodes, searchTerm])
-
-  const filteredCancerEpisodes = useMemo(() => {
-    return cancerEpisodes.filter(episode => {
-      // Search term filter
-      if (searchTerm) {
-        const search = searchTerm.toLowerCase()
-        const matchesSearch = (
-          episode.episode_id.toLowerCase().includes(search) ||
-          episode.patient_id.toLowerCase().includes(search) ||
-          (episode.cancer_type && episode.cancer_type.toLowerCase().includes(search)) ||
-          (episode.lead_clinician && episode.lead_clinician.toLowerCase().includes(search))
-        )
-        if (!matchesSearch) return false
-      }
-
-      return true
-    })
-  }, [cancerEpisodes, searchTerm])
 
   const getUrgencyColor = (urgency: string) => {
     switch (urgency) {
@@ -299,7 +229,7 @@ export function EpisodesPage() {
           title={patientId ? `Episodes for Patient ${patientId}` : 'Episode Records'}
           subtitle={patientInfo 
             ? `${patientInfo.demographics?.gender || ''} | DOB: ${patientInfo.demographics?.date_of_birth || ''} | NHS: ${patientInfo.nhs_number || ''}`
-            : 'Track surgical episodes and outcomes'}
+            : 'Track cancer episodes and patient outcomes'}
           icon={
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
@@ -317,7 +247,7 @@ export function EpisodesPage() {
               )}
               <Button 
                 variant="primary"
-                onClick={() => setShowCancerModal(true)}
+                onClick={() => setShowModal(true)}
               >
                 + Cancer Episode
               </Button>
@@ -419,7 +349,7 @@ export function EpisodesPage() {
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
-        ) : filteredEpisodes.length === 0 && filteredCancerEpisodes.length === 0 ? (
+        ) : filteredEpisodes.length === 0 ? (
           <div className="text-center py-12">
             <svg className="mx-auto w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -460,13 +390,12 @@ export function EpisodesPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {/* Cancer Episodes */}
-                {filteredCancerEpisodes.map((episode) => (
+                {filteredEpisodes.map((episode) => (
                   <tr 
                     key={episode.episode_id} 
                     onClick={() => {
-                      setSelectedCancerEpisode(episode)
-                      setShowCancerDetailModal(true)
+                      setSelectedEpisode(episode)
+                      setShowDetailModal(true)
                     }}
                     className="hover:bg-blue-50 cursor-pointer transition-colors"
                   >
@@ -501,8 +430,8 @@ export function EpisodesPage() {
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
-                            setEditingCancerEpisode(episode)
-                            setShowCancerModal(true)
+                            setEditingEpisode(episode)
+                            setShowModal(true)
                           }}
                           className="text-blue-600 hover:text-blue-900"
                           title="Edit episode"
@@ -510,66 +439,6 @@ export function EpisodesPage() {
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                           </svg>
-                        </button>                      </div>
-                    </td>
-                  </tr>
-                ))}
-                
-                {/* Legacy Surgery Episodes */}
-                {filteredEpisodes.map((episode) => (
-                  <tr key={episode.surgery_id} className="hover:bg-blue-50 transition-colors cursor-pointer"
-                    onClick={() => {
-                      setSelectedEpisode(episode)
-                      setShowModal(true)
-                    }}
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {episode.surgery_id}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                        Surgery
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {episode.patient_id}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatDate(episode.perioperative_timeline.surgery_date)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {episode.team.primary_surgeon}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getUrgencyColor(episode.classification.urgency)}`}>
-                        {capitalize(episode.classification.urgency)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => {
-                            setSelectedEpisode(episode)
-                            setShowDetailModal(true)
-                          }}
-                          className="text-indigo-600 hover:text-indigo-900"
-                        >
-                          View
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedEpisode(episode)
-                            setShowModal(true)
-                          }}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(episode.surgery_id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          Delete
                         </button>
                       </div>
                     </td>
@@ -632,30 +501,30 @@ export function EpisodesPage() {
       )}
 
       {/* Cancer Episode Detail Modal */}
-      {showCancerDetailModal && selectedCancerEpisode && (
+      {showDetailModal && selectedEpisode && (
         <CancerEpisodeDetailModal
-          episode={selectedCancerEpisode}
+          episode={selectedEpisode}
           onClose={() => {
-            setShowCancerDetailModal(false)
-            setSelectedCancerEpisode(null)
+            setShowDetailModal(false)
+            setSelectedEpisode(null)
           }}
           onEdit={(episode) => {
-            setEditingCancerEpisode(episode)
-            setShowCancerModal(true)
+            setEditingEpisode(episode)
+            setShowModal(true)
           }}
         />
       )}
 
       {/* Cancer Episode Modal */}
-      {showCancerModal && (
+      {showModal && (
         <CancerEpisodeForm
-          onSubmit={editingCancerEpisode ? handleEditCancerEpisode : handleCreateCancerEpisode}
+          onSubmit={editingEpisode ? handleEdit : handleCreate}
           onCancel={() => {
-            setShowCancerModal(false)
-            setEditingCancerEpisode(null)
+            setShowModal(false)
+            setEditingEpisode(null)
           }}
-          mode={editingCancerEpisode ? 'edit' : 'create'}
-          initialData={editingCancerEpisode || (patientId ? { patient_id: patientId } : undefined)}
+          mode={editingEpisode ? 'edit' : 'create'}
+          initialData={editingEpisode || (patientId ? { patient_id: patientId } : undefined)}
         />
       )}
       </div>
