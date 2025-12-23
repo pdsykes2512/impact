@@ -23,6 +23,10 @@ export function DateInput({
   
   // If no placeholder provided, use label as placeholder
   const displayPlaceholder = placeholder || label
+  
+  // Ensure value is a string (handle undefined/null)
+  const normalizedValue = value || ''
+  const isEmpty = !normalizedValue
 
   return (
     <div className="relative">
@@ -33,21 +37,21 @@ export function DateInput({
         </label>
       )}
       <div className="relative">
-        {!value && !isFocused && displayPlaceholder && (
+        {isEmpty && !isFocused && displayPlaceholder && (
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none text-sm">
             {displayPlaceholder}
           </span>
         )}
         <input
           type="date"
-          value={value}
+          value={normalizedValue}
           onChange={onChange}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent [&::-webkit-calendar-picker-indicator]:opacity-100 ${
             error ? 'border-red-500' : ''
           } ${className}`}
-          style={!value && !isFocused ? { color: 'transparent' } : {}}
+          style={isEmpty && !isFocused ? { color: 'transparent' } : {}}
           {...props}
         />
       </div>
