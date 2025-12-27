@@ -47,9 +47,21 @@ interface CancerEpisodeDetailModalProps {
   episode: CancerEpisode | null
   onClose: () => void
   onEdit?: (episode: CancerEpisode) => void
+  initialTab?: 'overview' | 'tumours' | 'treatments' | 'investigations' | 'followups'
+  initialTreatmentId?: string
+  initialTumourId?: string
+  initialInvestigationId?: string
 }
 
-export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpisodeDetailModalProps) {
+export function CancerEpisodeDetailModal({
+  episode,
+  onClose,
+  onEdit,
+  initialTab = 'overview',
+  initialTreatmentId,
+  initialTumourId,
+  initialInvestigationId
+}: CancerEpisodeDetailModalProps) {
   const [treatments, setTreatments] = useState<Treatment[]>([])
   const [tumours, setTumours] = useState<any[]>([])
   const [investigations, setInvestigations] = useState<any[]>([])
@@ -63,7 +75,7 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
   const [editingInvestigation, setEditingInvestigation] = useState<any>(null)
   const [showFollowUpModal, setShowFollowUpModal] = useState(false)
   const [editingFollowUp, setEditingFollowUp] = useState<any>(null)
-  const [activeTab, setActiveTab] = useState<'overview' | 'tumours' | 'treatments' | 'investigations' | 'followups'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'tumours' | 'treatments' | 'investigations' | 'followups'>(initialTab)
   const [viewingTumour, setViewingTumour] = useState<any>(null)
   const [viewingTreatment, setViewingTreatment] = useState<Treatment | null>(null)
   const [providerName, setProviderName] = useState<string>('')
@@ -120,6 +132,33 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
       loadTreatments()
     }
   }, [episode])
+
+  // Handle opening specific treatment/tumour/investigation when provided
+  useEffect(() => {
+    if (!treatments.length && !tumours.length && !investigations.length) return
+
+    if (initialTreatmentId && treatments.length > 0) {
+      const treatment = treatments.find(t => t.treatment_id === initialTreatmentId)
+      if (treatment) {
+        setViewingTreatment(treatment)
+      }
+    }
+
+    if (initialTumourId && tumours.length > 0) {
+      const tumour = tumours.find(t => t.tumour_id === initialTumourId)
+      if (tumour) {
+        setViewingTumour(tumour)
+      }
+    }
+
+    if (initialInvestigationId && investigations.length > 0) {
+      const investigation = investigations.find(i => i.investigation_id === initialInvestigationId)
+      if (investigation) {
+        setEditingInvestigation(investigation)
+        setShowInvestigationModal(true)
+      }
+    }
+  }, [treatments, tumours, investigations, initialTreatmentId, initialTumourId, initialInvestigationId])
 
   const loadTreatments = async () => {
     if (!episode) return

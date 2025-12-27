@@ -42,6 +42,10 @@ export function EpisodesPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [toasts, setToasts] = useState<Array<{ id: string; message: string; type: 'success' | 'error' | 'info' | 'warning' }>>([])
   const [patientInfo, setPatientInfo] = useState<any>(null)
+  const [modalInitialTab, setModalInitialTab] = useState<'overview' | 'tumours' | 'treatments' | 'investigations' | 'followups'>('overview')
+  const [modalInitialTreatmentId, setModalInitialTreatmentId] = useState<string | undefined>(undefined)
+  const [modalInitialTumourId, setModalInitialTumourId] = useState<string | undefined>(undefined)
+  const [modalInitialInvestigationId, setModalInitialInvestigationId] = useState<string | undefined>(undefined)
   
   // Filters
   const [startDateFilter, setStartDateFilter] = useState('')
@@ -177,6 +181,8 @@ export function EpisodesPage() {
           const episode = episodes.find(ep => ep.episode_id === treatment.episode_id)
           if (episode) {
             setSelectedEpisode(episode)
+            setModalInitialTab('treatments')
+            setModalInitialTreatmentId(state.openTreatment)
             setShowDetailModal(true)
             navigate(location.pathname, { replace: true, state: {} })
           }
@@ -188,11 +194,56 @@ export function EpisodesPage() {
       loadTreatmentAndOpenModal()
     }
 
-    // Handle opening tumour/investigation modals similarly if needed
-    // For now, they will open the episode detail modal
-    if (state?.openTumour || state?.openInvestigation) {
-      // These are shown within episode detail modal, so just show that
-      navigate(location.pathname, { replace: true, state: {} })
+    // Handle opening tumour modal - need to find episode containing this tumour
+    if (state?.openTumour) {
+      const loadTumourAndOpenModal = async () => {
+        try {
+          // Try to find which episode contains this tumour
+          for (const episode of episodes) {
+            const response = await api.get(`/episodes/${episode.episode_id}`)
+            const data = response.data
+            if (data.tumours?.some((t: any) => t.tumour_id === state.openTumour)) {
+              setSelectedEpisode(episode)
+              setModalInitialTab('tumours')
+              setModalInitialTumourId(state.openTumour)
+              setShowDetailModal(true)
+              navigate(location.pathname, { replace: true, state: {} })
+              return
+            }
+          }
+          showToast('Tumour not found', 'error')
+        } catch (error) {
+          console.error('Failed to load tumour:', error)
+          showToast('Failed to load tumour details', 'error')
+        }
+      }
+      loadTumourAndOpenModal()
+    }
+
+    // Handle opening investigation modal - need to find episode containing this investigation
+    if (state?.openInvestigation) {
+      const loadInvestigationAndOpenModal = async () => {
+        try {
+          // Try to find which episode contains this investigation
+          for (const episode of episodes) {
+            const response = await api.get(`/episodes/${episode.episode_id}`)
+            const data = response.data
+            if (data.investigations?.some((i: any) => i.investigation_id === state.openInvestigation)) {
+              setSelectedEpisode(episode)
+              setModalInitialTab('investigations')
+              setModalInitialInvestigationId(state.openInvestigation)
+              setShowDetailModal(true)
+              navigate(location.pathname, { replace: true, state: {} })
+              return
+            }
+          }
+          showToast('Investigation not found', 'error')
+        } catch (error) {
+          console.error('Failed to load investigation:', error)
+          showToast('Failed to load investigation details', 'error')
+        }
+      }
+      loadInvestigationAndOpenModal()
     }
   }, [location.state, episodes, navigate, location.pathname, showToast])
 
@@ -541,9 +592,17 @@ export function EpisodesPage() {
       {showDetailModal && selectedEpisode && (
         <CancerEpisodeDetailModal
           episode={selectedEpisode}
+          initialTab={modalInitialTab}
+          initialTreatmentId={modalInitialTreatmentId}
+          initialTumourId={modalInitialTumourId}
+          initialInvestigationId={modalInitialInvestigationId}
           onClose={() => {
             setShowDetailModal(false)
             setSelectedEpisode(null)
+            setModalInitialTab('overview')
+            setModalInitialTreatmentId(undefined)
+            setModalInitialTumourId(undefined)
+            setModalInitialInvestigationId(undefined)
           }}
           onEdit={(episode) => {
             setEditingEpisode(episode)
