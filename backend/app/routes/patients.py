@@ -118,11 +118,21 @@ async def list_patients(skip: int = 0, limit: int = 100, search: Optional[str] =
 
     patients = await collection.aggregate(pipeline).to_list(length=None)
 
-    # Convert ObjectId to string
+    # Convert ObjectId to string and handle datetime conversion
     for patient in patients:
         patient["_id"] = str(patient["_id"])
         # Remove most_recent_referral from output (only used for sorting)
         patient.pop("most_recent_referral", None)
+
+        # Convert datetime objects to ISO format strings for Pydantic validation
+        if patient.get("demographics"):
+            demo = patient["demographics"]
+            # Convert date_of_birth if it's a datetime object
+            if demo.get("date_of_birth") and hasattr(demo["date_of_birth"], "isoformat"):
+                demo["date_of_birth"] = demo["date_of_birth"].isoformat()
+            # Convert deceased_date if it's a datetime object
+            if demo.get("deceased_date") and hasattr(demo["deceased_date"], "isoformat"):
+                demo["deceased_date"] = demo["deceased_date"].isoformat()
 
     return [Patient(**patient) for patient in patients]
 

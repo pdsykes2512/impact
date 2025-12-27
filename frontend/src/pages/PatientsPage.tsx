@@ -120,22 +120,6 @@ export function PatientsPage() {
     return () => clearTimeout(timeoutId);
   }, [searchTerm, loadPatients]);
 
-  // Auto-dismiss success and error messages after 5 seconds
-  useEffect(() => {
-    if (success) {
-      const timer = setTimeout(() => setSuccess(''), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [success]);
-
-  useEffect(() => {
-    if (error && patients.length > 0) {
-      // If we have an error but also have patients loaded, clear the error after 3 seconds
-      const timer = setTimeout(() => setError(''), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [error, patients.length]);
-
   // Removed unused handleInputChange, formatNHSNumber, and handleNHSNumberChange functions
 
   const handleEdit = (patient: Patient) => {
