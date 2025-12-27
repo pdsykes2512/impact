@@ -15,6 +15,89 @@ This file tracks significant changes made to the surg-db application. **Update t
 
 ---
 
+## 2025-12-27 - Frontend Component Directory Reorganization
+
+**Changed by:** AI Session
+**Issue:** The frontend/src/components directory had grown to 25+ files in a flat structure, making navigation difficult and reducing code maintainability.
+
+**Changes:**
+
+### Directory Restructure
+Reorganized components into logical subdirectories:
+
+**1. components/modals/** (9 files)
+- AddTreatmentModal.tsx
+- CancerEpisodeDetailModal.tsx
+- EpisodeDetailModal.tsx
+- FollowUpModal.tsx
+- InvestigationModal.tsx
+- PatientModal.tsx
+- TreatmentSummaryModal.tsx
+- TumourModal.tsx
+- TumourSummaryModal.tsx
+
+**2. components/forms/** (2 files)
+- CancerEpisodeForm.tsx
+- EpisodeForm.tsx
+
+**3. components/search/** (3 files)
+- PatientSearch.tsx
+- SurgeonSearch.tsx
+- NHSProviderSelect.tsx
+
+**4. components/common/** (9 files)
+- Button.tsx
+- Card.tsx
+- DateInput.tsx
+- LoadingSpinner.tsx
+- PageHeader.tsx
+- Pagination.tsx
+- SearchableSelect.tsx
+- Table.tsx
+- Toast.tsx
+
+**5. components/layout/** (2 files)
+- Layout.tsx
+- ProtectedRoute.tsx
+
+### Import Statement Updates
+Updated all import paths across 33 files:
+- **App.tsx**: Updated Layout and ProtectedRoute imports
+- **Pages (7 files)**: AdminPage, EpisodesPage, PatientsPage, CancerEpisodesPage, ReportsPage, HomePage
+- **Components (24 files)**: All moved components updated to reference new paths
+
+**Files affected:**
+- All 25 component files moved to subdirectories
+- 33 files total with import statement updates
+- Used `git mv` to preserve file history
+
+**Testing:**
+```bash
+# Verify build
+cd /root/surg-db/frontend
+npm run build
+
+# Should complete with no TypeScript errors
+# Build output: ✓ built in ~2s
+```
+
+**Notes:**
+- All file moves used `git mv` to maintain git history
+- Import paths updated using relative paths (../modals/, ../common/, etc.)
+- Build completed successfully with no errors
+- New structure follows React best practices
+- Easier to add new components in appropriate subdirectories
+- Clear separation: modals, forms, search, common UI, layout/routing
+
+**Benefits:**
+- Improved code navigation and discoverability
+- Logical grouping by component type/purpose
+- Better scalability for future development
+- Follows industry-standard React project structure
+- Reduces cognitive load when working with codebase
+
+---
+
 ## 2025-12-27 - Patient Search Enhancement, Pagination & Modal Backdrop Fix
 
 **Changed by:** AI Session
