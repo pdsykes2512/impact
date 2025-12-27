@@ -5,7 +5,7 @@
 ### Check Backup Status
 ```bash
 # List all backups
-python3 /root/surg-db/execution/restore_database.py
+python3 /root/surg-db/execution/active/restore_database.py
 
 # Check backup log
 tail -20 ~/.tmp/backup.log
@@ -18,12 +18,12 @@ du -sh ~/.tmp/backups/
 ```bash
 # Before migrations, schema changes, bulk operations
 cd /root/surg-db
-python3 execution/backup_database.py --manual --note "Before migration X"
+python3 execution/active/backup_database.py --manual --note "Before migration X"
 ```
 
 ### View Backup Details
 ```bash
-python3 /root/surg-db/execution/restore_database.py ~/.tmp/backups/<backup_name>
+python3 /root/surg-db/execution/active/restore_database.py ~/.tmp/backups/<backup_name>
 ```
 
 ## Disaster Recovery
@@ -33,13 +33,13 @@ python3 /root/surg-db/execution/restore_database.py ~/.tmp/backups/<backup_name>
 
 ```bash
 # 1. List available backups
-python3 /root/surg-db/execution/restore_database.py
+python3 /root/surg-db/execution/active/restore_database.py
 
 # 2. View backup details
-python3 /root/surg-db/execution/restore_database.py ~/.tmp/backups/<backup_name>
+python3 /root/surg-db/execution/active/restore_database.py ~/.tmp/backups/<backup_name>
 
 # 3. Restore (requires confirmation)
-python3 /root/surg-db/execution/restore_database.py ~/.tmp/backups/<backup_name> --confirm
+python3 /root/surg-db/execution/active/restore_database.py ~/.tmp/backups/<backup_name> --confirm
 # You'll need to type "RESTORE" to confirm
 ```
 
@@ -54,13 +54,13 @@ python3 /root/surg-db/execution/restore_database.py ~/.tmp/backups/<backup_name>
 
 ### Test Cleanup (Dry Run)
 ```bash
-python3 /root/surg-db/execution/cleanup_old_backups.py --dry-run
+python3 /root/surg-db/execution/active/cleanup_old_backups.py --dry-run
 ```
 
 ### Manual Cleanup
 ```bash
 # Remove old backups (follows retention policy)
-python3 /root/surg-db/execution/cleanup_old_backups.py
+python3 /root/surg-db/execution/active/cleanup_old_backups.py
 
 # Manually delete specific backup
 rm -rf ~/.tmp/backups/<backup_name>
@@ -116,7 +116,7 @@ Backup size: ~2.2 MB compressed
 df -h ~/.tmp
 
 # Free space by removing old backups
-python3 /root/surg-db/execution/cleanup_old_backups.py
+python3 /root/surg-db/execution/active/cleanup_old_backups.py
 
 # Or manually remove oldest automatic backups
 ls -lt ~/.tmp/backups/ | tail -10
@@ -140,9 +140,9 @@ If backup system fails and data is lost:
 ## Files
 
 - **Directive:** `directives/database_backup_system.md`
-- **Backup script:** `execution/backup_database.py`
-- **Restore script:** `execution/restore_database.py`
-- **Cleanup script:** `execution/cleanup_old_backups.py`
+- **Backup script:** `execution/active/backup_database.py`
+- **Restore script:** `execution/active/restore_database.py`
+- **Cleanup script:** `execution/active/cleanup_old_backups.py`
 - **Backup location:** `~/.tmp/backups/`
 - **Backup log:** `~/.tmp/backup.log`
 - **Cron job:** `crontab -l`

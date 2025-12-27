@@ -8,6 +8,7 @@ from bson import ObjectId
 
 from ..models.patient import Patient, PatientCreate, PatientUpdate
 from ..database import get_patients_collection, get_episodes_collection
+from ..utils.encryption import encrypt_document, decrypt_document
 
 
 router = APIRouter(prefix="/api/patients", tags=["patients"])
@@ -17,7 +18,7 @@ router = APIRouter(prefix="/api/patients", tags=["patients"])
 async def create_patient(patient: PatientCreate):
     """Create a new patient"""
     collection = await get_patients_collection()
-    
+
     # Check if record_number already exists
     existing = await collection.find_one({"record_number": patient.record_number})
     if existing:
@@ -25,18 +26,23 @@ async def create_patient(patient: PatientCreate):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Patient with record number {patient.record_number} already exists"
         )
-    
-    # Insert patient
+
+    # Insert patient with encrypted sensitive fields
     patient_dict = patient.model_dump()
     patient_dict["created_at"] = datetime.utcnow()
     patient_dict["updated_at"] = datetime.utcnow()
-    
-    result = await collection.insert_one(patient_dict)
-    
-    # Retrieve and return created patient
+
+    # Encrypt sensitive fields before storing
+    encrypted_patient = encrypt_document(patient_dict)
+
+    result = await collection.insert_one(encrypted_patient)
+
+    # Retrieve and return created patient (decrypted for response)
     created_patient = await collection.find_one({"_id": result.inserted_id})
     created_patient["_id"] = str(created_patient["_id"])
-    return Patient(**created_patient)
+    # Decrypt before returning
+    decrypted_patient = decrypt_document(created_patient)
+    return Patient(**decrypted_patient)
 
 
 @router.get("/count")
@@ -118,11 +124,15 @@ async def list_patients(skip: int = 0, limit: int = 100, search: Optional[str] =
 
     patients = await collection.aggregate(pipeline).to_list(length=None)
 
-    # Convert ObjectId to string and handle datetime conversion
+    # Convert ObjectId to string, decrypt sensitive fields, and handle datetime conversion
+    decrypted_patients = []
     for patient in patients:
         patient["_id"] = str(patient["_id"])
         # Remove most_recent_referral from output (only used for sorting)
         patient.pop("most_recent_referral", None)
+
+        # Decrypt sensitive fields
+        patient = decrypt_document(patient)
 
         # Convert datetime objects to ISO format strings for Pydantic validation
         if patient.get("demographics"):
@@ -134,22 +144,26 @@ async def list_patients(skip: int = 0, limit: int = 100, search: Optional[str] =
             if demo.get("deceased_date") and hasattr(demo["deceased_date"], "isoformat"):
                 demo["deceased_date"] = demo["deceased_date"].isoformat()
 
-    return [Patient(**patient) for patient in patients]
+        decrypted_patients.append(patient)
+
+    return [Patient(**patient) for patient in decrypted_patients]
 
 
 @router.get("/{patient_id}", response_model=Patient)
 async def get_patient(patient_id: str):
     """Get a specific patient by patient_id"""
     collection = await get_patients_collection()
-    
+
     patient = await collection.find_one({"patient_id": patient_id})
     if not patient:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Patient {patient_id} not found"
         )
-    
+
     patient["_id"] = str(patient["_id"])
+    # Decrypt sensitive fields before returning
+    patient = decrypt_document(patient)
     return Patient(**patient)
 
 
@@ -171,15 +185,21 @@ async def update_patient(patient_id: str, patient_update: PatientUpdate):
     if update_data:
         update_data["updated_at"] = datetime.utcnow()
         update_data["updated_by"] = "system"  # TODO: Replace with actual user from auth
+
+        # Encrypt sensitive fields before updating
+        encrypted_update = encrypt_document(update_data)
+
         await collection.update_one(
             {"patient_id": patient_id},
-            {"$set": update_data}
+            {"$set": encrypted_update}
         )
-    
-    # Return updated patient
+
+    # Return updated patient (decrypted)
     updated_patient = await collection.find_one({"patient_id": patient_id})
     updated_patient["_id"] = str(updated_patient["_id"])
-    return Patient(**updated_patient)
+    # Decrypt before returning
+    decrypted_patient = decrypt_document(updated_patient)
+    return Patient(**decrypted_patient)
 
 
 @router.delete("/{patient_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -19,9 +19,9 @@ from ..database import Database
 router = APIRouter(prefix="/api/admin/backups", tags=["admin", "backups"])
 
 BACKUP_BASE_DIR = Path.home() / '.tmp' / 'backups'
-BACKUP_SCRIPT = Path(__file__).parent.parent.parent.parent / 'execution' / 'backup_database.py'
-RESTORE_SCRIPT = Path(__file__).parent.parent.parent.parent / 'execution' / 'restore_database.py'
-CLEANUP_SCRIPT = Path(__file__).parent.parent.parent.parent / 'execution' / 'cleanup_old_backups.py'
+BACKUP_SCRIPT = Path(__file__).parent.parent.parent.parent / 'execution' / 'active' / 'backup_database.py'
+RESTORE_SCRIPT = Path(__file__).parent.parent.parent.parent / 'execution' / 'active' / 'restore_database.py'
+CLEANUP_SCRIPT = Path(__file__).parent.parent.parent.parent / 'execution' / 'active' / 'cleanup_old_backups.py'
 
 
 class BackupCreate(BaseModel):
@@ -45,37 +45,93 @@ class BackupRestore(BaseModel):
 
 
 def get_all_backups() -> List[BackupInfo]:
-    """Get list of all available backups"""
+    """Get list of all available backups (both encrypted and unencrypted)"""
     if not BACKUP_BASE_DIR.exists():
         return []
-    
+
     backups = []
-    for backup_dir in sorted(BACKUP_BASE_DIR.iterdir(), reverse=True):
-        if not backup_dir.is_dir():
-            continue
-        
-        manifest_file = backup_dir / 'manifest.json'
-        if not manifest_file.exists():
-            continue
-        
-        try:
-            with open(manifest_file, 'r') as f:
-                manifest = json.load(f)
-            
-            backups.append(BackupInfo(
-                name=backup_dir.name,
-                timestamp=manifest.get('timestamp', ''),
-                backup_type=manifest.get('backup_type', 'unknown'),
-                database=manifest.get('database', ''),
-                total_documents=manifest.get('total_documents', 0),
-                backup_size_mb=manifest.get('backup_size_mb', 0),
-                note=manifest.get('note'),
-                collections=manifest.get('collections', {})
-            ))
-        except Exception as e:
-            print(f"Error reading backup {backup_dir}: {e}")
-            continue
-    
+    for item in sorted(BACKUP_BASE_DIR.iterdir(), reverse=True):
+        # Handle unencrypted backups (directories with manifest.json)
+        if item.is_dir():
+            manifest_file = item / 'manifest.json'
+            if not manifest_file.exists():
+                continue
+
+            try:
+                with open(manifest_file, 'r') as f:
+                    manifest = json.load(f)
+
+                backups.append(BackupInfo(
+                    name=item.name,
+                    timestamp=manifest.get('timestamp', ''),
+                    backup_type=manifest.get('backup_type', 'unknown'),
+                    database=manifest.get('database', ''),
+                    total_documents=manifest.get('total_documents', 0),
+                    backup_size_mb=manifest.get('backup_size_mb', 0),
+                    note=manifest.get('note'),
+                    collections=manifest.get('collections', {})
+                ))
+            except Exception as e:
+                print(f"Error reading backup {item}: {e}")
+                continue
+
+        # Handle encrypted backups (.tar.gz.enc files)
+        elif item.is_file() and item.name.endswith('.tar.gz.enc'):
+            try:
+                # Get backup name from filename (remove .tar.gz.enc extension)
+                backup_name = item.name.replace('.tar.gz.enc', '')
+
+                # Get file size
+                file_size_mb = item.stat().st_size / (1024**2)
+
+                # Try to read manifest metadata file if it exists
+                metadata_file = BACKUP_BASE_DIR / f"{backup_name}.manifest.json"
+                if metadata_file.exists():
+                    with open(metadata_file, 'r') as f:
+                        manifest = json.load(f)
+
+                    # Update size to reflect encrypted size
+                    manifest['backup_size_mb'] = round(file_size_mb, 2)
+                    manifest['encrypted'] = True
+                    if manifest.get('note'):
+                        manifest['note'] = f"🔒 {manifest['note']}"
+                    else:
+                        manifest['note'] = '🔒 Encrypted backup'
+
+                    backups.append(BackupInfo(
+                        name=backup_name,
+                        timestamp=manifest.get('timestamp', ''),
+                        backup_type=manifest.get('backup_type', 'manual'),
+                        database=manifest.get('database', 'surgical_outcomes'),
+                        total_documents=manifest.get('total_documents', 0),
+                        backup_size_mb=manifest['backup_size_mb'],
+                        note=manifest['note'],
+                        collections=manifest.get('collections', {})
+                    ))
+                else:
+                    # Fallback: parse info from filename
+                    from datetime import datetime
+                    try:
+                        timestamp_str = backup_name
+                        dt = datetime.strptime(timestamp_str, '%Y-%m-%d_%H-%M-%S')
+                        timestamp = dt.isoformat()
+                    except:
+                        timestamp = backup_name
+
+                    backups.append(BackupInfo(
+                        name=backup_name,
+                        timestamp=timestamp,
+                        backup_type='manual',
+                        database='surgical_outcomes',
+                        total_documents=0,  # Unknown without metadata
+                        backup_size_mb=round(file_size_mb, 2),
+                        note='🔒 Encrypted backup (no metadata)',
+                        collections={}
+                    ))
+            except Exception as e:
+                print(f"Error reading encrypted backup {item}: {e}")
+                continue
+
     return backups
 
 
