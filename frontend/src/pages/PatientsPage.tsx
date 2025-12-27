@@ -14,7 +14,7 @@ interface Patient {
   _id: string;
   patient_id: string;
   mrn?: string;
-  nhs_number: string;
+  nhs_number?: string;
   episode_count?: number;
   demographics: {
     date_of_birth: string;
@@ -39,7 +39,8 @@ interface Patient {
 
 interface PatientFormData {
   patient_id: string;
-  nhs_number: string;
+  mrn?: string;
+  nhs_number?: string;
   demographics: {
     date_of_birth: string;
     age?: number;

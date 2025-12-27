@@ -6,7 +6,7 @@ interface Patient {
   _id: string;
   patient_id: string;
   mrn?: string;
-  nhs_number: string;
+  nhs_number?: string;
   demographics: {
     date_of_birth: string;
     age?: number;
@@ -30,7 +30,8 @@ interface Patient {
 
 interface PatientFormData {
   patient_id: string;
-  nhs_number: string;
+  mrn?: string;
+  nhs_number?: string;
   demographics: {
     date_of_birth: string;
     age?: number;
@@ -63,6 +64,7 @@ interface PatientModalProps {
 export function PatientModal({ patient, onClose, onSubmit, onDelete, loading = false }: PatientModalProps) {
   const [formData, setFormData] = useState<PatientFormData>({
     patient_id: '',
+    mrn: '',
     nhs_number: '',
     demographics: {
       date_of_birth: '',
@@ -80,12 +82,14 @@ export function PatientModal({ patient, onClose, onSubmit, onDelete, loading = f
       alcohol_use: 'none',
     },
   });
+  const [validationError, setValidationError] = useState<string>('');
 
   useEffect(() => {
     if (patient) {
       setFormData({
         patient_id: patient.patient_id,
-        nhs_number: patient.nhs_number,
+        mrn: patient.mrn || '',
+        nhs_number: patient.nhs_number || '',
         demographics: {
           date_of_birth: patient.demographics.date_of_birth,
           gender: patient.demographics.gender,
@@ -137,6 +141,17 @@ export function PatientModal({ patient, onClose, onSubmit, onDelete, loading = f
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate that at least one of MRN or NHS number is provided
+    const hasMRN = formData.mrn && formData.mrn.trim().length > 0;
+    const hasNHS = formData.nhs_number && formData.nhs_number.replace(/\s/g, '').length === 10;
+
+    if (!hasMRN && !hasNHS) {
+      setValidationError('At least one of MRN or NHS Number must be provided');
+      return;
+    }
+
+    setValidationError('');
     onSubmit(formData);
   };
 
@@ -173,6 +188,14 @@ export function PatientModal({ patient, onClose, onSubmit, onDelete, loading = f
             {/* Basic Information */}
             <div className="mb-6">
               <h3 className="text-lg font-medium mb-3 text-gray-700">Basic Information</h3>
+
+              {/* Validation error message */}
+              {validationError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
+                  {validationError}
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -191,14 +214,31 @@ export function PatientModal({ patient, onClose, onSubmit, onDelete, loading = f
                   />
                   <p className="mt-1 text-xs text-gray-500">Format: 8 digits or IW + 6 digits (e.g., 12345678 or IW123456)</p>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    NHS Number <span className="text-red-500">*</span>
+                    MRN <span className="text-orange-500">*</span>
                   </label>
                   <input
                     type="text"
-                    required
+                    pattern="^\d{8}$|^IW\d{6}$"
+                    title="Must be 8 digits or IW followed by 6 digits"
+                    placeholder="12345678 or IW123456"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={formData.mrn}
+                    onChange={(e) => handleInputChange('mrn', e.target.value)}
+                    readOnly={!!patient}
+                    disabled={!!patient}
+                  />
+                  <p className="mt-1 text-xs text-gray-500">Format: 8 digits or IW + 6 digits</p>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    NHS Number <span className="text-orange-500">*</span>
+                  </label>
+                  <input
+                    type="text"
                     title="NHS Number will be formatted as XXX XXX XXXX"
                     placeholder="123 456 7890"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -208,6 +248,12 @@ export function PatientModal({ patient, onClose, onSubmit, onDelete, loading = f
                     disabled={!!patient}
                   />
                   <p className="mt-1 text-xs text-gray-500">Format: XXX XXX XXXX (e.g., 123 456 7890)</p>
+                </div>
+
+                <div className="md:col-span-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                  <p className="text-sm text-yellow-800">
+                    <span className="font-medium text-orange-500">* At least one required:</span> You must provide either an MRN or NHS Number (or both).
+                  </p>
                 </div>
               </div>
             </div>
