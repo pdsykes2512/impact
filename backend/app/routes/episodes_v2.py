@@ -14,6 +14,7 @@ from ..models.episode import (
 from ..database import get_episodes_collection, get_patients_collection, get_treatments_collection, get_tumours_collection, get_clinicians_collection, get_investigations_collection, get_audit_logs_collection
 from ..utils.audit import log_action
 from ..utils.mortality import enrich_treatment_with_mortality
+from ..utils.encryption import decrypt_field
 from ..auth import get_current_user
 
 
@@ -319,12 +320,17 @@ async def list_episodes(
     # Convert ObjectIds to strings and add patient MRN
     for episode in episodes:
         episode["_id"] = str(episode["_id"])
-        
-        # Fetch patient MRN
+
+        # Fetch patient MRN and decrypt
         if "patient_id" in episode:
             patient = await patients_collection.find_one({"patient_id": episode["patient_id"]})
             if patient:
-                episode["patient_mrn"] = patient.get("mrn", None)
+                mrn = patient.get("mrn", None)
+                # Decrypt MRN if it's encrypted
+                if mrn:
+                    episode["patient_mrn"] = decrypt_field("mrn", mrn)
+                else:
+                    episode["patient_mrn"] = None
     
     # Return raw dicts without Pydantic validation to support flexible episode structure
     return episodes
