@@ -82,6 +82,7 @@ export function PatientsPage() {
   const loadPatients = useCallback(async (search?: string) => {
     try {
       setLoading(true);
+      setError(''); // Clear any previous errors
       const params = {
         search: search || undefined,
         skip: pagination.skip,
@@ -94,7 +95,7 @@ export function PatientsPage() {
       // Parallel fetch for count and data
       const [countResponse, dataResponse] = await Promise.all([
         api.get('/patients/count', { params: countParams }),
-        api.get('/patients', { params })
+        api.get('/patients/', { params }) // Add trailing slash for consistency
       ]);
 
       pagination.setTotalCount(countResponse.data.count);
