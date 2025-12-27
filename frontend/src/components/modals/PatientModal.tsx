@@ -386,16 +386,20 @@ export function PatientModal({ patient, onClose, onSubmit, onDelete, loading = f
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Height (cm)
+                    Height (m)
                   </label>
                   <input
                     type="number"
-                    step="0.1"
-                    min="100"
-                    max="250"
+                    step="0.01"
+                    min="1.0"
+                    max="2.5"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={formData.demographics.height_cm || ''}
-                    onChange={(e) => handleInputChange('demographics.height_cm', e.target.value ? parseFloat(e.target.value) : undefined)}
+                    value={formData.demographics.height_cm ? (formData.demographics.height_cm / 100).toFixed(2) : ''}
+                    onChange={(e) => {
+                      const meters = e.target.value ? parseFloat(e.target.value) : undefined
+                      const cm = meters ? meters * 100 : undefined
+                      handleInputChange('demographics.height_cm', cm)
+                    }}
                   />
                 </div>
 
