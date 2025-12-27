@@ -201,57 +201,61 @@ export function PatientModal({ patient, onClose, onSubmit, onDelete, loading = f
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Patient ID
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 cursor-not-allowed"
-                    value={formData.patient_id}
-                    readOnly
-                    disabled
-                  />
-                  <p className="mt-1 text-xs text-gray-500">Auto-generated internal database identifier</p>
+              <div className="space-y-4">
+                {/* All three identifiers in one row */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Patient ID
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-600 cursor-not-allowed"
+                      value={formData.patient_id}
+                      readOnly
+                      disabled
+                    />
+                    <p className="mt-1 text-xs text-gray-500">Auto-generated</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      MRN <span className="text-orange-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      pattern="^\d{8}$|^IW\d{6}$"
+                      title="Must be 8 digits or IW followed by 6 digits"
+                      placeholder="12345678"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={formData.mrn}
+                      onChange={(e) => handleInputChange('mrn', e.target.value)}
+                      readOnly={!!patient}
+                      disabled={!!patient}
+                    />
+                    <p className="mt-1 text-xs text-gray-500">8 digits or IW+6</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      NHS Number <span className="text-orange-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      title="NHS Number will be formatted as XXX XXX XXXX"
+                      placeholder="123 456 7890"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={formData.nhs_number}
+                      onChange={(e) => handleNHSNumberChange(e.target.value)}
+                      readOnly={!!patient}
+                      disabled={!!patient}
+                    />
+                    <p className="mt-1 text-xs text-gray-500">10 digits</p>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    MRN <span className="text-orange-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    pattern="^\d{8}$|^IW\d{6}$"
-                    title="Must be 8 digits or IW followed by 6 digits"
-                    placeholder="12345678 or IW123456"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={formData.mrn}
-                    onChange={(e) => handleInputChange('mrn', e.target.value)}
-                    readOnly={!!patient}
-                    disabled={!!patient}
-                  />
-                  <p className="mt-1 text-xs text-gray-500">Format: 8 digits or IW + 6 digits</p>
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    NHS Number <span className="text-orange-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    title="NHS Number will be formatted as XXX XXX XXXX"
-                    placeholder="123 456 7890"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={formData.nhs_number}
-                    onChange={(e) => handleNHSNumberChange(e.target.value)}
-                    readOnly={!!patient}
-                    disabled={!!patient}
-                  />
-                  <p className="mt-1 text-xs text-gray-500">Format: XXX XXX XXXX (e.g., 123 456 7890)</p>
-                </div>
-
-                <div className="md:col-span-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                {/* Info banner */}
+                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
                   <p className="text-sm text-yellow-800">
                     <span className="font-medium text-orange-500">* At least one required:</span> You must provide either an MRN or NHS Number (or both).
                   </p>
