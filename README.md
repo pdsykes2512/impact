@@ -42,7 +42,6 @@ This system provides comprehensive surgical outcomes tracking with full National
 - **Complications**: Clavien-Dindo grading (I-V) with detailed tracking
 - **Anastomotic Leaks**: ISGPS severity grading (A-C) with NBOCA compliance
 - **Investigation Tracking**: Imaging, endoscopy, laboratory results (17,564+ records)
-- **Follow-up Visits**: Clinic visit scheduling and outcome recording
 - **Outcomes Tracking**: Mortality (30/90-day), RTT, readmissions
 
 ### Analytics & Reports
@@ -256,19 +255,17 @@ For issues, questions, or contributions:
 - ✅ Outcome tracking (30/90-day mortality, RTT, readmissions)
 - ✅ Complication tracking with Clavien-Dindo grading (I-V)
 - ✅ Anastomotic leak tracking with ISGPS severity grading (A-C)
-- ✅ Excel report export with professional formatting
 - ✅ Investigation tracking (imaging, endoscopy, laboratory)
-- ✅ Follow-up visit management
 - ✅ Comprehensive audit logging for all CRUD operations
 - ✅ Data quality dashboard with completeness metrics
 - ✅ Yearly outcome trends (2023-2025)
 - ✅ Return to theatre (RTT) tracking
 - ✅ Database backup system with encryption and web UI
 - ✅ Field-level encryption for sensitive patient data
+- ✅ Excel report export with professional formatting
 
 ### v1.2 (Q1 2026)
 - [ ] PDF report export
-- [ ] Email notifications for follow-ups
 - [ ] Mobile-responsive design improvements
 - [ ] Advanced search and filtering with saved queries
 - [ ] Data visualization charts (Chart.js/D3)

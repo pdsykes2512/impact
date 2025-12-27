@@ -128,7 +128,7 @@
 - ✅ Add user context (user_id, username, IP address, user-agent) to audit entries
 - ✅ Add audit API endpoints (recent activity, user history, entity history, statistics)
 
-### Investigation & Follow-up Management
+### Investigation Management
 - ✅ Create investigation data model (imaging, endoscopy, laboratory)
 - ✅ Import historical investigation data from Access database (17,564 records)
 - ✅ Build investigation modal for create/edit operations
@@ -138,9 +138,6 @@
 - ✅ Fix investigation form data population issues
 - ✅ Add CT Colonography to imaging investigation types
 - ✅ Make investigation result field optional
-- ✅ Create follow-up visit tracking system
-- ✅ Build follow-up modal for recording clinic visits
-- ✅ Add follow-ups tab to episode detail modal
 
 ## Medium Priority
 
@@ -154,7 +151,6 @@
 
 ### Episode Features
 - ✅ Investigation tracking integrated into episodes
-- ✅ Follow-up visit tracking integrated into episodes
 - [ ] Add file upload for surgical notes/images
 - ✅ Add complication tracking with severity levels (Complete - Clavien-Dindo grading I-V, anastomotic leak severity A-C)
 - ✅ Build episode audit log (via comprehensive audit system)
