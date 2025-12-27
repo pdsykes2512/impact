@@ -322,7 +322,7 @@ export function PatientsPage() {
                   <TableCell className="font-medium text-gray-900">
                     {patient.patient_id}
                   </TableCell>
-                  <TableCell className="text-gray-500">
+                  <TableCell className="text-gray-900">
                     {patient.mrn || '-'}
                   </TableCell>
                   <TableCell className="text-gray-900">
