@@ -5,6 +5,8 @@ import { Card } from '../components/Card'
 import { Button } from '../components/Button'
 import { PatientModal } from '../components/PatientModal'
 import { Table, TableHeader, TableBody, TableRow, TableHeadCell, TableCell } from '../components/Table'
+import { Pagination } from '../components/Pagination'
+import { usePagination } from '../hooks/usePagination'
 import api from '../services/api';
 import { formatDate } from '../utils/formatters';
 
@@ -71,18 +73,38 @@ export function PatientsPage() {
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ show: boolean; patient: Patient | null }>({ show: false, patient: null });
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
+  // Initialize pagination with auto-reset on search changes
+  const pagination = usePagination({
+    initialPageSize: 25,
+    onFilterChange: [searchTerm]
+  });
+
   const loadPatients = useCallback(async (search?: string) => {
     try {
       setLoading(true);
-      const params = search ? { search } : {};
-      const response = await api.get('/patients', { params });
-      setPatients(response.data);
+      const params = {
+        search: search || undefined,
+        skip: pagination.skip,
+        limit: pagination.limit
+      };
+
+      // Count params should include search filter but not pagination
+      const countParams = search ? { search } : {};
+
+      // Parallel fetch for count and data
+      const [countResponse, dataResponse] = await Promise.all([
+        api.get('/patients/count', { params: countParams }),
+        api.get('/patients', { params })
+      ]);
+
+      pagination.setTotalCount(countResponse.data.count);
+      setPatients(dataResponse.data);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to load patients');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pagination.skip, pagination.limit, pagination.setTotalCount]);
 
   useEffect(() => {
     loadPatients();
@@ -237,15 +259,9 @@ export function PatientsPage() {
       <Card>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">Patient List</h2>
-          {patients.length > 0 && (
-            <div className="text-sm text-gray-500">
-              Showing {filteredPatients.length} {filteredPatients.length === 1 ? 'patient' : 'patients'}
-            </div>
-          )}
         </div>
-        
-        {loading && !showModal && <p className="text-gray-500">Loading...</p>}
-        {!loading && patients.length === 0 && (
+
+        {patients.length === 0 && !loading && (
           <div className="text-center py-12">
             <svg className="mx-auto w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -254,7 +270,7 @@ export function PatientsPage() {
             <p className="text-gray-500 mb-4">Get started by adding your first patient record</p>
           </div>
         )}
-        {!loading && patients.length > 0 && filteredPatients.length === 0 && (
+        {patients.length > 0 && filteredPatients.length === 0 && !loading && (
           <div className="text-center py-12">
             <svg className="mx-auto w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -333,7 +349,20 @@ export function PatientsPage() {
               ))}
             </TableBody>
           </Table>
-        )}      </Card>
+        )}
+
+        {/* Pagination */}
+        {filteredPatients.length > 0 && (
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalItems={pagination.totalCount}
+            pageSize={pagination.pageSize}
+            onPageChange={pagination.handlePageChange}
+            onPageSizeChange={pagination.handlePageSizeChange}
+            loading={loading}
+          />
+        )}
+      </Card>
 
       {/* Delete Confirmation Modal */}
       {deleteConfirmation.show && deleteConfirmation.patient && (

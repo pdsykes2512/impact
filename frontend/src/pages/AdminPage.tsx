@@ -672,6 +672,7 @@ export function AdminPage() {
                       <option value="anaesthetist">Anaesthetist</option>
                       <option value="oncologist">Oncologist</option>
                       <option value="radiologist">Radiologist</option>
+                      <option value="gastroenterologist">Gastroenterologist</option>
                       <option value="other">Other</option>
                     </select>
                   </div>

@@ -133,10 +133,65 @@ async def create_episode(
 
 
 @router.get("/count")
-async def count_episodes():
-    """Get total count of episodes"""
+async def count_episodes(
+    search: Optional[str] = Query(None, description="Search by episode ID, MRN, cancer type, or clinician"),
+    patient_id: Optional[str] = Query(None, description="Filter by patient MRN"),
+    condition_type: Optional[ConditionType] = Query(None, description="Filter by condition type"),
+    cancer_type: Optional[CancerType] = Query(None, description="Filter by cancer type"),
+    lead_clinician: Optional[str] = Query(None, description="Filter by lead clinician"),
+    episode_status: Optional[str] = Query(None, description="Filter by episode status"),
+    start_date: Optional[str] = Query(None, description="Filter episodes after this date (YYYY-MM-DD)"),
+    end_date: Optional[str] = Query(None, description="Filter episodes before this date (YYYY-MM-DD)")
+):
+    """Get total count of episodes with optional filters"""
     collection = await get_episodes_collection()
-    total = await collection.count_documents({})
+    patients_collection = await get_patients_collection()
+
+    # Build query filters (same logic as list_episodes)
+    query = {}
+
+    # Search filter
+    if search:
+        search_pattern = {"$regex": search.replace(" ", ""), "$options": "i"}
+
+        # Find patients matching the MRN search
+        matching_patients = await patients_collection.find(
+            {"mrn": search_pattern},
+            {"patient_id": 1}
+        ).to_list(length=None)
+        matching_patient_ids = [p["patient_id"] for p in matching_patients]
+
+        # Build OR query
+        or_conditions = [
+            {"episode_id": search_pattern},
+            {"cancer_type": search_pattern},
+            {"lead_clinician": search_pattern}
+        ]
+
+        if matching_patient_ids:
+            or_conditions.append({"patient_id": {"$in": matching_patient_ids}})
+
+        query["$or"] = or_conditions
+
+    # Other filters
+    if patient_id:
+        query["patient_id"] = patient_id
+    if condition_type:
+        query["condition_type"] = condition_type.value
+    if cancer_type:
+        query["cancer_type"] = cancer_type.value
+    if lead_clinician:
+        query["lead_clinician"] = lead_clinician
+    if episode_status:
+        query["episode_status"] = episode_status
+    if start_date:
+        query["referral_date"] = query.get("referral_date", {})
+        query["referral_date"]["$gte"] = start_date
+    if end_date:
+        query["referral_date"] = query.get("referral_date", {})
+        query["referral_date"]["$lte"] = end_date
+
+    total = await collection.count_documents(query)
     return {"count": total}
 
 

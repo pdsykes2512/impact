@@ -106,72 +106,224 @@ Used for: Viewing details of existing records
 **Examples:** TreatmentSummaryModal, TumourSummaryModal, CancerEpisodeDetailModal
 
 ### Multi-Step Form Modals
-Used for: Complex forms requiring multiple steps (e.g., surgery treatment recording)
+Used for: Complex forms requiring multiple steps (e.g., surgery treatment recording, cancer episode creation)
 
 **Additional Requirements:**
 - **Progress indicator** in header showing steps
 - **Step navigation** buttons (Previous/Next)
 - **Conditional rendering** based on `currentStep` state
 - **Clickable steps** in edit mode only (for jumping to specific sections)
+- **Change tracking** to detect unsaved changes in edit mode
+- **Update Record button** that appears when changes are detected
 - **Form submission guard** to prevent early submission
 
-**Step Progress Indicator:**
+**Step Progress Indicator (with Clickable Navigation):**
 ```tsx
 <div className="px-6 pb-4">
   <div className="flex items-center justify-between mb-2">
     {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => (
       <div key={step} className="flex items-center flex-1">
-        <button
-          onClick={() => mode === 'edit' ? setCurrentStep(step) : undefined}
-          disabled={mode === 'create'}
-          className={`w-8 h-8 rounded-full ${
-            currentStep === step ? 'bg-blue-600 text-white' :
-            currentStep > step ? 'bg-green-600 text-white' :
-            'bg-gray-200 text-gray-600'
-          } ${mode === 'edit' ? 'cursor-pointer hover:ring-2' : 'cursor-default'}`}
-        >
-          {currentStep > step ? '✓' : step}
-        </button>
-        <div className="text-xs mt-1">{getStepTitle(step)}</div>
+        <div className="flex flex-col items-center flex-1">
+          <button
+            type="button"
+            onClick={() => mode === 'edit' ? setCurrentStep(step) : undefined}
+            disabled={mode === 'create'}
+            className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm transition-all ${
+              currentStep === step ? 'bg-blue-600 text-white' :
+              currentStep > step ? 'bg-green-600 text-white' :
+              'bg-gray-200 text-gray-600'
+            } ${mode === 'edit' ? 'cursor-pointer hover:ring-2 hover:ring-blue-400' : 'cursor-default'}`}
+            title={mode === 'edit' ? `Jump to ${getStepTitle(step)}` : ''}
+          >
+            {currentStep > step ? '✓' : step}
+          </button>
+          <div className={`text-xs mt-1 text-center font-medium ${mode === 'edit' ? 'cursor-pointer' : ''}`}>
+            {getStepTitle(step)}
+          </div>
+        </div>
+        {step < totalSteps && (
+          <div className={`h-1 flex-1 mx-2 rounded ${
+            currentStep > step ? 'bg-green-600' : 'bg-gray-200'
+          }`} />
+        )}
       </div>
     ))}
   </div>
 </div>
 ```
 
-**Navigation Buttons:**
+**Change Tracking Pattern:**
+```tsx
+// State for tracking changes
+const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+
+// Helper function to update form data and track changes
+const updateFormData = (updates: any) => {
+  setFormData((prev: any) => ({ ...prev, ...updates }))
+  if (mode === 'edit' && !hasUnsavedChanges) {
+    setHasUnsavedChanges(true)
+  }
+}
+
+// Update handleSubmit to accept forceSubmit parameter
+const handleSubmit = (e: React.FormEvent, forceSubmit: boolean = false) => {
+  e.preventDefault()
+
+  // Only submit if on final step (unless forceSubmit is true for Update Record button)
+  if (!forceSubmit && currentStep < totalSteps) {
+    return
+  }
+
+  // ... rest of submit logic
+  onSubmit(data) // This closes the modal
+}
+
+// Use updateFormData instead of setFormData directly
+<input
+  value={formData.fieldName}
+  onChange={(e) => updateFormData({ fieldName: e.target.value })}
+/>
+```
+
+**Navigation Buttons with Change Tracking:**
 ```tsx
 <div className="flex justify-between items-center pt-4 border-t">
-  <Button type="button" variant="secondary" onClick={onCancel}>
-    Cancel
-  </Button>
+  <div className="flex items-center gap-2">
+    <Button type="button" variant="secondary" onClick={onCancel}>
+      Cancel
+    </Button>
+    {mode === 'edit' && hasUnsavedChanges && (
+      <span className="text-xs text-amber-600 font-medium whitespace-nowrap">
+        (unsaved changes)
+      </span>
+    )}
+  </div>
   <div className="flex space-x-3">
+    {mode === 'edit' && hasUnsavedChanges && (
+      <Button
+        onClick={(e) => {
+          handleSubmit(e, true) // forceSubmit = true to bypass step check and close modal
+          setHasUnsavedChanges(false)
+        }}
+        variant="primary"
+        className="bg-green-600 hover:bg-green-700"
+      >
+        ✓ Update Record
+      </Button>
+    )}
     {currentStep > 1 && (
-      <Button type="button" variant="secondary" onClick={prevStep}>
+      <Button type="button" variant="secondary" onClick={(e) => prevStep(e)}>
         ← Previous
       </Button>
     )}
     {currentStep < totalSteps ? (
-      <Button type="button" variant="primary" onClick={nextStep}>
+      <Button type="button" variant="primary" onClick={(e) => nextStep(e)}>
         Next →
       </Button>
     ) : (
-      <Button type="submit" variant="primary">
-        {mode === 'edit' ? 'Update' : 'Add'} {Entity}
-      </Button>
+      !hasUnsavedChanges && (
+        <Button type="submit" variant="primary">
+          {mode === 'edit' ? 'Update' : 'Add'} {Entity}
+        </Button>
+      )
     )}
   </div>
 </div>
 ```
 
 **Key Rules:**
-- Cancel on LEFT, navigation buttons on RIGHT together
-- Previous button only shows from step 2 onwards
-- Submit button only appears on final step
-- Prevent form submission unless on final step
+- **Clickable Steps:** In edit mode, all steps are clickable for direct navigation (green checkmark for completed steps)
+- **Create Mode:** Steps are disabled in create mode - user must proceed sequentially
+- **Change Detection:** Track changes using `updateFormData` helper function instead of `setFormData`
+- **Update Button:** Green "✓ Update Record" button appears when changes detected in edit mode
+  - Clicking Update Record saves and **closes the modal immediately**
+  - Uses `forceSubmit` parameter to bypass step validation
+  - Resets `hasUnsavedChanges` to false after submission
+- **Unsaved Indicator:** Show "(unsaved changes)" inline next to Cancel button
+  - Smaller text size (`text-xs`) and amber color (`text-amber-600`)
+  - Use `whitespace-nowrap` to prevent wrapping
+  - Keep inline to prevent modal from growing when indicator appears
+- **Cancel on LEFT** with inline unsaved changes indicator
+- **Update/Save buttons on RIGHT** grouped with navigation buttons
+- **Previous button** only shows from step 2 onwards
+- **Submit button** only appears on final step (hidden when unsaved changes present)
+- **Prevent form submission** unless on final step (or forceSubmit is true)
 - Use `e.preventDefault()` and `e.stopPropagation()` in step navigation
 
-**Example:** AddTreatmentModal (4 steps for surgery, 2 steps for other treatments)
+**Visual Indicators:**
+- **Current step:** Blue background (`bg-blue-600`)
+- **Completed steps:** Green background with checkmark (`bg-green-600`)
+- **Future steps:** Gray background (`bg-gray-200`)
+- **Progress line:** Green for completed sections, gray for incomplete
+- **Update button:** Green background (`bg-green-600 hover:bg-green-700`)
+- **Hover effect:** Blue ring on clickable steps (`hover:ring-2 hover:ring-blue-400`)
+
+**Implementation Checklist:**
+
+When creating or updating a multi-step modal, ensure ALL of the following are implemented:
+
+- [ ] **Step State Management**
+  - `const [currentStep, setCurrentStep] = useState(1)`
+  - `const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)`
+
+- [ ] **Change Tracking Function**
+  ```tsx
+  const updateFormData = (updates: any) => {
+    setFormData((prev: any) => ({ ...prev, ...updates }))
+    if (mode === 'edit' && !hasUnsavedChanges) {
+      setHasUnsavedChanges(true)
+    }
+  }
+
+  // Update handleSubmit signature to accept forceSubmit parameter
+  const handleSubmit = (e: React.FormEvent, forceSubmit: boolean = false) => {
+    e.preventDefault()
+    if (!forceSubmit && currentStep < totalSteps) {
+      return
+    }
+    // ... rest of submit logic
+    onSubmit(data) // Closes modal
+  }
+  ```
+
+- [ ] **Clickable Step Navigation** (copy exact pattern from AddTreatmentModal or CancerEpisodeForm)
+  - Steps clickable in edit mode only
+  - Green checkmarks for completed steps
+  - Blue ring hover effect
+  - Tooltips with step titles
+
+- [ ] **Update Record Button**
+  - Green "✓ Update Record" button appears when `hasUnsavedChanges` is true
+  - Only visible in edit mode
+  - Calls `handleSubmit(e, true)` with forceSubmit=true to bypass step validation
+  - Resets `hasUnsavedChanges` to false
+  - Closes modal immediately after saving
+
+- [ ] **Unsaved Changes Indicator**
+  - "(unsaved changes)" text appears inline next to Cancel button
+  - Small size (`text-xs`), amber color (`text-amber-600`), no wrapping (`whitespace-nowrap`)
+  - Keeps modal size consistent (doesn't cause layout shift)
+
+- [ ] **Replace All Form Updates**
+  - Replace all `onChange={(e) => setFormData({ ...formData, field: value })}`
+  - With `onChange={(e) => updateFormData({ field: value })}`
+  - Remove spread operator (`...formData`) - handled by updateFormData
+
+- [ ] **Step Navigation Functions**
+  - `nextStep(e)` and `prevStep(e)` with event handling
+  - `e?.preventDefault()` and `e?.stopPropagation()` to prevent form submission
+
+- [ ] **Conditional Button Rendering**
+  - Hide default submit button when `hasUnsavedChanges` is true
+  - Show Update Record button when changes detected
+
+**Current Multi-Step Modals** (all implement universal pattern):
+- **AddTreatmentModal.tsx** - 4 steps for surgery, 2 steps for other treatments
+- **CancerEpisodeForm.tsx** - Multi-step cancer episode creation/editing
+
+**Pattern Files** (reference these for exact implementation):
+- [AddTreatmentModal.tsx](frontend/src/components/AddTreatmentModal.tsx) - Lines 122-130 (change tracking), 497-522 (step navigation), 1757-1790 (footer buttons)
+- [CancerEpisodeForm.tsx](frontend/src/components/CancerEpisodeForm.tsx) - Lines 30-36 (state), 129-135 (updateFormData), 779-808 (step navigation), 825-888 (footer)
 
 ### Modal Sizing
 - **Small forms:** `max-w-md` (e.g., simple input modals)
@@ -619,7 +771,18 @@ When updating existing components or creating new ones:
 - [ ] Grid: Appropriate `grid-cols-*` for field layout
 - [ ] Colors: Consistent use of gray-50/blue-50/amber-50 for sections
 - [ ] Typography: Proper heading levels and text sizes
-- [ ] Multi-step: Progress indicator, step validation, conditional rendering
+
+**For Multi-Step Modals (additional requirements):**
+- [ ] Step state management (currentStep, hasUnsavedChanges)
+- [ ] Change tracking function (updateFormData)
+- [ ] Clickable step navigation (edit mode only)
+- [ ] Green checkmarks for completed steps
+- [ ] Update Record button (green, appears on changes)
+- [ ] Unsaved changes indicator
+- [ ] Replace all setFormData with updateFormData
+- [ ] Proper event handling in step navigation
+- [ ] Conditional button rendering based on hasUnsavedChanges
+- [ ] Reference AddTreatmentModal.tsx or CancerEpisodeForm.tsx for exact patterns
 
 ---
 

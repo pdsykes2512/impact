@@ -5,6 +5,8 @@ import { Card } from '../components/Card'
 import { Button } from '../components/Button'
 import { DateInput } from '../components/DateInput'
 import { Table, TableHeader, TableBody, TableRow, TableHeadCell, TableCell } from '../components/Table'
+import { Pagination } from '../components/Pagination'
+import { usePagination } from '../hooks/usePagination'
 import { CancerEpisodeForm } from '../components/CancerEpisodeForm'
 import { CancerEpisodeDetailModal } from '../components/CancerEpisodeDetailModal'
 import { ToastContainer } from '../components/Toast'
@@ -46,11 +48,17 @@ export function EpisodesPage() {
   const [endDateFilter, setEndDateFilter] = useState('')
 
   // Delete confirmation state
-  const [deleteConfirmation, setDeleteConfirmation] = useState<{ show: boolean; episode: any | null }>({ 
-    show: false, 
-    episode: null 
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ show: boolean; episode: any | null }>({
+    show: false,
+    episode: null
   })
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
+
+  // Initialize pagination with auto-reset on search and date filter changes
+  const pagination = usePagination({
+    initialPageSize: 25,
+    onFilterChange: [searchTerm, startDateFilter, endDateFilter]
+  })
 
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
     const id = Date.now().toString()
@@ -64,7 +72,10 @@ export function EpisodesPage() {
   const loadEpisodes = useCallback(async () => {
     try {
       setLoading(true)
-      const params: any = {}
+      const params: any = {
+        skip: pagination.skip,
+        limit: pagination.limit
+      }
       if (patientId) {
         params.patient_id = patientId
       }
@@ -73,21 +84,27 @@ export function EpisodesPage() {
       }
       if (startDateFilter) params.start_date = startDateFilter
       if (endDateFilter) params.end_date = endDateFilter
+      params.condition_type = 'cancer' // Filter for cancer episodes only
 
-      // Load cancer episodes from API
-      const response = await apiService.episodes.list(params)
-      const allEpisodes = response.data
-      
-      // Filter for cancer episodes only
-      const cancer = allEpisodes.filter((ep: any) => ep.episode_id && ep.condition_type === 'cancer')
-      
-      setEpisodes(cancer)
+      // Count params should include filters but not pagination
+      const countParams = { ...params }
+      delete countParams.skip
+      delete countParams.limit
+
+      // Parallel fetch for count and data
+      const [countResponse, dataResponse] = await Promise.all([
+        apiService.episodes.count(countParams),
+        apiService.episodes.list(params)
+      ])
+
+      pagination.setTotalCount(countResponse.data.count)
+      setEpisodes(dataResponse.data)
     } catch (error) {
       console.error('Failed to load episodes:', error)
     } finally {
       setLoading(false)
     }
-  }, [patientId, searchTerm, startDateFilter, endDateFilter])
+  }, [patientId, searchTerm, startDateFilter, endDateFilter, pagination.skip, pagination.limit, pagination.setTotalCount])
 
   const loadPatientInfo = useCallback(async () => {
     if (!patientId) return
@@ -371,11 +388,7 @@ export function EpisodesPage() {
 
       {/* Episodes List */}
       <Card>
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
-        ) : filteredEpisodes.length === 0 ? (
+        {filteredEpisodes.length === 0 && !loading ? (
           <div className="text-center py-12">
             <svg className="mx-auto w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -458,6 +471,18 @@ export function EpisodesPage() {
               ))}
             </TableBody>
           </Table>
+        )}
+
+        {/* Pagination */}
+        {filteredEpisodes.length > 0 && (
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalItems={pagination.totalCount}
+            pageSize={pagination.pageSize}
+            onPageChange={pagination.handlePageChange}
+            onPageSizeChange={pagination.handlePageSizeChange}
+            loading={loading}
+          />
         )}
       </Card>
 

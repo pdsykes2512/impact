@@ -119,7 +119,16 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
   const [showProcedureDropdown, setShowProcedureDropdown] = useState(false)
   const [patientNhsNumber, setPatientNhsNumber] = useState<string>('')
   const [treatmentCount, setTreatmentCount] = useState<number>(0)
-  
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+
+  // Update form data and track changes in edit mode
+  const updateFormData = (updates: any) => {
+    setFormData((prev: any) => ({ ...prev, ...updates }))
+    if (mode === 'edit' && !hasUnsavedChanges) {
+      setHasUnsavedChanges(true)
+    }
+  }
+
   // Fetch episode to get patient NHS number
   useEffect(() => {
     const fetchEpisodeData = async () => {
@@ -343,11 +352,11 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent, forceSubmit: boolean = false) => {
     e.preventDefault()
-    
-    // Only submit if on the final step
-    if (currentStep < totalSteps) {
+
+    // Only submit if on the final step (unless forceSubmit is true for Update Record button)
+    if (!forceSubmit && currentStep < totalSteps) {
       return
     }
     
@@ -468,7 +477,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" style={{ margin: 0 }}>
       <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b z-10">
           {/* Header */}
@@ -579,7 +588,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                   label="Treatment Date"
                   required
                   value={formData.treatment_date}
-                  onChange={(e) => setFormData({ ...formData, treatment_date: e.target.value })}
+                  onChange={(e) => updateFormData({ treatment_date: e.target.value })}
                 />
               </div>
 
@@ -588,7 +597,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                 <NHSProviderSelect
                   label="Provider Organisation"
                   value={formData.provider_organisation}
-                  onChange={(value) => setFormData({ ...formData, provider_organisation: value })}
+                  onChange={(value) => updateFormData({ provider_organisation: value })}
                   placeholder="Search NHS Trust..."
                 />
                 <p className="mt-1 text-xs text-gray-500">NBOCA (CR1450) - NHS Trust Code where treatment provided</p>
@@ -620,7 +629,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                       type="button"
                       onClick={() => {
                         setProcedureSearch('')
-                        setFormData({ ...formData, procedure_name: '', opcs4_code: '' })
+                        updateFormData({ procedure_name: '', opcs4_code: '' })
                         setShowProcedureDropdown(false)
                       }}
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
@@ -642,8 +651,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                         key={proc.code}
                         type="button"
                         onClick={() => {
-                          setFormData({ 
-                            ...formData, 
+                          updateFormData({
                             procedure_name: proc.name,
                             opcs4_code: proc.code
                           })
@@ -673,7 +681,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                   </label>
                   <SearchableSelect
                     value={formData.urgency}
-                    onChange={(value) => setFormData({ ...formData, urgency: value })}
+                    onChange={(value) => updateFormData({ urgency: value })}
                     options={[
                       { value: 'elective', label: 'Elective' },
                       { value: 'urgent', label: 'Urgent' },
@@ -691,7 +699,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                   </label>
                   <SearchableSelect
                     value={formData.complexity}
-                    onChange={(value) => setFormData({ ...formData, complexity: value })}
+                    onChange={(value) => updateFormData({ complexity: value })}
                     options={[
                       { value: 'routine', label: 'Routine' },
                       { value: 'intermediate', label: 'Intermediate' },
@@ -708,7 +716,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                   </label>
                   <SearchableSelect
                     value={formData.approach}
-                    onChange={(value) => setFormData({ ...formData, approach: value })}
+                    onChange={(value) => updateFormData({ approach: value })}
                     options={[
                       { value: 'open', label: 'Open' },
                       { value: 'laparoscopic', label: 'Laparoscopic' },
@@ -732,7 +740,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                   </label>
                   <SearchableSelect
                     value={formData.conversion_reason}
-                    onChange={(value) => setFormData({ ...formData, conversion_reason: value })}
+                    onChange={(value) => updateFormData({ conversion_reason: value })}
                     options={[
                       { value: 'oncological', label: 'Oncological' },
                       { value: 'adhesions', label: 'Adhesions' },
@@ -760,7 +768,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                     </label>
                     <SearchableSelect
                       value={formData.surgical_intent}
-                      onChange={(value) => setFormData({ ...formData, surgical_intent: value })}
+                      onChange={(value) => updateFormData({ surgical_intent: value })}
                       options={[
                         { value: '', label: 'Not specified' },
                         { value: 'curative', label: 'Curative' },
@@ -779,7 +787,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                       </label>
                       <SearchableSelect
                         value={formData.palliative_reason}
-                        onChange={(value) => setFormData({ ...formData, palliative_reason: value })}
+                        onChange={(value) => updateFormData({ palliative_reason: value })}
                         options={[
                           { value: 'local_disease', label: 'Local Disease' },
                           { value: 'distant_disease', label: 'Distant Disease' },
@@ -842,7 +850,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                   <input
                     type="text"
                     value={formData.assistant_grade}
-                    onChange={(e) => setFormData({ ...formData, assistant_grade: e.target.value })}
+                    onChange={(e) => updateFormData({ assistant_grade: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
                     placeholder="e.g., ST5, Consultant"
                   />
@@ -865,12 +873,12 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                   <DateInput
                     label="Admission Date"
                     value={formData.admission_date}
-                    onChange={(e) => setFormData({ ...formData, admission_date: e.target.value })}
+                    onChange={(e) => updateFormData({ admission_date: e.target.value })}
                   />
                   <DateInput
                     label="Discharge Date"
                     value={formData.discharge_date}
-                    onChange={(e) => setFormData({ ...formData, discharge_date: e.target.value })}
+                    onChange={(e) => updateFormData({ discharge_date: e.target.value })}
                   />
                 </div>
                 
@@ -902,7 +910,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                 </label>
                 <SearchableSelect
                   value={formData.asa_score}
-                  onChange={(value) => setFormData({ ...formData, asa_score: value })}
+                  onChange={(value) => updateFormData({ asa_score: value })}
                   options={[
                     { value: '1', label: 'ASA I - Normal healthy patient' },
                     { value: '2', label: 'ASA II - Mild systemic disease' },
@@ -928,7 +936,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                     </label>
                     <SearchableSelect
                       value={formData.anesthesia_type}
-                      onChange={(value) => setFormData({ ...formData, anesthesia_type: value })}
+                      onChange={(value) => updateFormData({ anesthesia_type: value })}
                       options={[
                         { value: 'general', label: 'General' },
                         { value: 'spinal', label: 'Spinal' },
@@ -948,7 +956,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                     <input
                       type="number"
                       value={formData.operation_duration_minutes}
-                      onChange={(e) => setFormData({ ...formData, operation_duration_minutes: e.target.value })}
+                      onChange={(e) => updateFormData({ operation_duration_minutes: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
                       placeholder="120"
                     />
@@ -963,7 +971,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                     <input
                       type="number"
                       value={formData.blood_loss_ml}
-                      onChange={(e) => setFormData({ ...formData, blood_loss_ml: e.target.value })}
+                      onChange={(e) => updateFormData({ blood_loss_ml: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
                       placeholder="150"
                     />
@@ -975,7 +983,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                     <input
                       type="number"
                       value={formData.units_transfused}
-                      onChange={(e) => setFormData({ ...formData, units_transfused: e.target.value })}
+                      onChange={(e) => updateFormData({ units_transfused: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
                       placeholder="0"
                     />
@@ -988,7 +996,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                   </label>
                   <textarea
                     value={formData.findings}
-                    onChange={(e) => setFormData({ ...formData, findings: e.target.value })}
+                    onChange={(e) => updateFormData({ findings: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
                     rows={2}
                     placeholder="Intraoperative findings..."
@@ -1000,7 +1008,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                     <input
                       type="checkbox"
                       checked={formData.drains_placed}
-                      onChange={(e) => setFormData({ ...formData, drains_placed: e.target.checked })}
+                      onChange={(e) => updateFormData({ drains_placed: e.target.checked })}
                       className="mr-2 h-4 w-4"
                     />
                     <span className="text-sm text-gray-700">Drains Placed</span>
@@ -1009,7 +1017,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                     <input
                       type="checkbox"
                       checked={formData.transfusion_required}
-                      onChange={(e) => setFormData({ ...formData, transfusion_required: e.target.checked })}
+                      onChange={(e) => updateFormData({ transfusion_required: e.target.checked })}
                       className="mr-2 h-4 w-4"
                     />
                     <span className="text-sm text-gray-700">Transfusion Required</span>
@@ -1027,7 +1035,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                     <input
                       type="checkbox"
                       checked={formData.anastomosis_performed}
-                      onChange={(e) => setFormData({ ...formData, anastomosis_performed: e.target.checked })}
+                      onChange={(e) => updateFormData({ anastomosis_performed: e.target.checked })}
                       className="mr-2 h-4 w-4"
                     />
                     <span className="text-sm font-medium text-gray-700">Anastomosis Performed</span>
@@ -1041,7 +1049,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                         </label>
                         <SearchableSelect
                           value={formData.anastomosis_type}
-                          onChange={(value) => setFormData({ ...formData, anastomosis_type: value })}
+                          onChange={(value) => updateFormData({ anastomosis_type: value })}
                           options={[
                             { value: 'hand_sewn', label: 'Hand-Sewn' },
                             { value: 'stapled', label: 'Stapled' },
@@ -1058,7 +1066,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                         </label>
                         <SearchableSelect
                           value={formData.anastomosis_configuration}
-                          onChange={(value) => setFormData({ ...formData, anastomosis_configuration: value })}
+                          onChange={(value) => updateFormData({ anastomosis_configuration: value })}
                           options={[
                             { value: 'end_to_end', label: 'End-to-End' },
                             { value: 'end_to_side', label: 'End-to-Side' },
@@ -1076,7 +1084,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                         </label>
                         <SearchableSelect
                           value={formData.anastomosis_location}
-                          onChange={(value) => setFormData({ ...formData, anastomosis_location: value })}
+                          onChange={(value) => updateFormData({ anastomosis_location: value })}
                           options={[
                             { value: 'colorectal', label: 'Colorectal' },
                             { value: 'coloanal', label: 'Coloanal' },
@@ -1099,7 +1107,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                           type="number"
                           step="0.1"
                           value={formData.anastomosis_height_cm}
-                          onChange={(e) => setFormData({ ...formData, anastomosis_height_cm: e.target.value })}
+                          onChange={(e) => updateFormData({ anastomosis_height_cm: e.target.value })}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
                           placeholder="e.g., 8.5"
                         />
@@ -1110,7 +1118,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                         </label>
                         <SearchableSelect
                           value={formData.anterior_resection_type}
-                          onChange={(value) => setFormData({ ...formData, anterior_resection_type: value })}
+                          onChange={(value) => updateFormData({ anterior_resection_type: value })}
                           options={[
                             { value: 'high', label: 'High (>12cm from anal verge)' },
                             { value: 'low', label: 'Low (<12cm from anal verge)' }
@@ -1130,7 +1138,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                     <input
                       type="checkbox"
                       checked={formData.stoma_created}
-                      onChange={(e) => setFormData({ ...formData, stoma_created: e.target.checked })}
+                      onChange={(e) => updateFormData({ stoma_created: e.target.checked })}
                       className="mr-2 h-4 w-4"
                     />
                     <span className="text-sm font-medium text-gray-700">Stoma Created</span>
@@ -1145,7 +1153,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                           </label>
                           <SearchableSelect
                             value={formData.stoma_type}
-                            onChange={(value) => setFormData({ ...formData, stoma_type: value })}
+                            onChange={(value) => updateFormData({ stoma_type: value })}
                             options={[
                               { value: 'ileostomy_temporary', label: 'Ileostomy (Temporary)' },
                               { value: 'ileostomy_permanent', label: 'Ileostomy (Permanent)' },
@@ -1162,7 +1170,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                             <input
                               type="checkbox"
                               checked={formData.defunctioning_stoma}
-                              onChange={(e) => setFormData({ ...formData, defunctioning_stoma: e.target.checked })}
+                              onChange={(e) => updateFormData({ defunctioning_stoma: e.target.checked })}
                               className="mr-2 h-4 w-4"
                             />
                             <span className="text-sm font-medium text-gray-700">Defunctioning/Protective Stoma</span>
@@ -1178,7 +1186,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                           <input
                             type="text"
                             value={formData.reverses_stoma_from_treatment_id}
-                            onChange={(e) => setFormData({ ...formData, reverses_stoma_from_treatment_id: e.target.value })}
+                            onChange={(e) => updateFormData({ reverses_stoma_from_treatment_id: e.target.value })}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white"
                             placeholder="Treatment ID of original stoma"
                           />
@@ -1193,7 +1201,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                           <DateInput
                             label="Planned Reversal Date"
                             value={formData.planned_reversal_date}
-                            onChange={(e) => setFormData({ ...formData, planned_reversal_date: e.target.value })}
+                            onChange={(e) => updateFormData({ planned_reversal_date: e.target.value })}
                           />
                           <div className="text-xs text-gray-500 flex items-center">
                             <svg className="w-4 h-4 mr-1 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1208,7 +1216,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                         <DateInput
                           label="Actual Stoma Closure Date (if already closed)"
                           value={formData.stoma_closure_date}
-                          onChange={(e) => setFormData({ ...formData, stoma_closure_date: e.target.value })}
+                          onChange={(e) => updateFormData({ stoma_closure_date: e.target.value })}
                         />
                       </div>
                     </div>
@@ -1232,7 +1240,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                   </label>
                   <SearchableSelect
                     value={formData.clavien_dindo_grade}
-                    onChange={(value) => setFormData({ ...formData, clavien_dindo_grade: value })}
+                    onChange={(value) => updateFormData({ clavien_dindo_grade: value })}
                     options={[
                       { value: '', label: 'None' },
                       { value: 'I', label: 'Grade I - Any deviation from normal without intervention' },
@@ -1256,7 +1264,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                     <input
                       type="checkbox"
                       checked={formData.return_to_theatre}
-                      onChange={(e) => setFormData({ ...formData, return_to_theatre: e.target.checked })}
+                      onChange={(e) => updateFormData({ return_to_theatre: e.target.checked })}
                       className="mr-2 h-4 w-4"
                     />
                     <span className="text-sm font-medium text-gray-700">Return to Theatre</span>
@@ -1265,7 +1273,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                     <input
                       type="text"
                       value={formData.return_to_theatre_reason}
-                      onChange={(e) => setFormData({ ...formData, return_to_theatre_reason: e.target.value })}
+                      onChange={(e) => updateFormData({ return_to_theatre_reason: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       placeholder="Reason for return to theatre..."
                     />
@@ -1278,7 +1286,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                     <input
                       type="checkbox"
                       checked={formData.readmission_30d}
-                      onChange={(e) => setFormData({ ...formData, readmission_30d: e.target.checked })}
+                      onChange={(e) => updateFormData({ readmission_30d: e.target.checked })}
                       className="mr-2 h-4 w-4"
                     />
                     <span className="text-sm font-medium text-gray-700">30-Day Readmission</span>
@@ -1287,7 +1295,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                     <input
                       type="text"
                       value={formData.readmission_reason}
-                      onChange={(e) => setFormData({ ...formData, readmission_reason: e.target.value })}
+                      onChange={(e) => updateFormData({ readmission_reason: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       placeholder="Reason for readmission..."
                     />
@@ -1306,7 +1314,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                       <input
                         type="checkbox"
                         checked={formData.anastomotic_leak_occurred}
-                        onChange={(e) => setFormData({ ...formData, anastomotic_leak_occurred: e.target.checked })}
+                        onChange={(e) => updateFormData({ anastomotic_leak_occurred: e.target.checked })}
                         className="mr-2 h-4 w-4"
                       />
                       <span className="text-sm font-medium text-gray-700">Anastomotic Leak Occurred</span>
@@ -1321,7 +1329,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                             </label>
                             <SearchableSelect
                               value={formData.anastomotic_leak_severity}
-                              onChange={(value) => setFormData({ ...formData, anastomotic_leak_severity: value })}
+                              onChange={(value) => updateFormData({ anastomotic_leak_severity: value })}
                               options={[
                                 { value: 'A', label: 'Grade A - Asymptomatic (radiological only)' },
                                 { value: 'B', label: 'Grade B - Requires medical intervention' },
@@ -1335,7 +1343,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                           <DateInput
                             label="Date Identified *"
                             value={formData.anastomotic_leak_date}
-                            onChange={(e) => setFormData({ ...formData, anastomotic_leak_date: e.target.value })}
+                            onChange={(e) => updateFormData({ anastomotic_leak_date: e.target.value })}
                           />
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1344,7 +1352,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                             <input
                               type="number"
                               value={formData.anastomotic_leak_days_post_surgery}
-                              onChange={(e) => setFormData({ ...formData, anastomotic_leak_days_post_surgery: e.target.value })}
+                              onChange={(e) => updateFormData({ anastomotic_leak_days_post_surgery: e.target.value })}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                               placeholder="e.g., 7"
                             />
@@ -1355,7 +1363,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                             </label>
                             <SearchableSelect
                               value={formData.anastomotic_leak_presentation}
-                              onChange={(value) => setFormData({ ...formData, anastomotic_leak_presentation: value })}
+                              onChange={(value) => updateFormData({ anastomotic_leak_presentation: value })}
                               options={[
                                 { value: 'clinical', label: 'Clinical signs' },
                                 { value: 'radiological', label: 'CT/imaging' },
@@ -1381,9 +1389,9 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                                   checked={formData.anastomotic_leak_clinical_signs.includes(sign)}
                                   onChange={(e) => {
                                     if (e.target.checked) {
-                                      setFormData({ ...formData, anastomotic_leak_clinical_signs: [...formData.anastomotic_leak_clinical_signs, sign] })
+                                      updateFormData({ anastomotic_leak_clinical_signs: [...formData.anastomotic_leak_clinical_signs, sign] })
                                     } else {
-                                      setFormData({ ...formData, anastomotic_leak_clinical_signs: formData.anastomotic_leak_clinical_signs.filter((s: string) => s !== sign) })
+                                      updateFormData({ anastomotic_leak_clinical_signs: formData.anastomotic_leak_clinical_signs.filter((s: string) => s !== sign) })
                                     }
                                   }}
                                   className="mr-2 h-4 w-4"
@@ -1401,7 +1409,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                             </label>
                             <SearchableSelect
                               value={formData.anastomotic_leak_ct_finding}
-                              onChange={(value) => setFormData({ ...formData, anastomotic_leak_ct_finding: value })}
+                              onChange={(value) => updateFormData({ anastomotic_leak_ct_finding: value })}
                               options={[
                                 { value: 'free_fluid', label: 'Free fluid' },
                                 { value: 'gas', label: 'Extraluminal gas' },
@@ -1420,7 +1428,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                             </label>
                             <SearchableSelect
                               value={formData.anastomotic_leak_endoscopy_finding}
-                              onChange={(value) => setFormData({ ...formData, anastomotic_leak_endoscopy_finding: value })}
+                              onChange={(value) => updateFormData({ anastomotic_leak_endoscopy_finding: value })}
                               options={[
                                 { value: 'defect_visible', label: 'Defect visible' },
                                 { value: 'dehiscence', label: 'Dehiscence' },
@@ -1440,7 +1448,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                           </label>
                           <SearchableSelect
                             value={formData.anastomotic_leak_management}
-                            onChange={(value) => setFormData({ ...formData, anastomotic_leak_management: value })}
+                            onChange={(value) => updateFormData({ anastomotic_leak_management: value })}
                             options={[
                               { value: 'conservative', label: 'Conservative (antibiotics/NBM)' },
                               { value: 'percutaneous_drainage', label: 'Percutaneous drainage' },
@@ -1458,7 +1466,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                             <input
                               type="checkbox"
                               checked={formData.anastomotic_leak_reoperation}
-                              onChange={(e) => setFormData({ ...formData, anastomotic_leak_reoperation: e.target.checked })}
+                              onChange={(e) => updateFormData({ anastomotic_leak_reoperation: e.target.checked })}
                               className="mr-2 h-4 w-4"
                             />
                             <span className="text-sm font-medium text-gray-700">Reoperation Performed</span>
@@ -1472,7 +1480,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                                 </label>
                                 <SearchableSelect
                                   value={formData.anastomotic_leak_reoperation_procedure}
-                                  onChange={(value) => setFormData({ ...formData, anastomotic_leak_reoperation_procedure: value })}
+                                  onChange={(value) => updateFormData({ anastomotic_leak_reoperation_procedure: value })}
                                   options={[
                                     { value: 'washout', label: 'Washout/drainage' },
                                     { value: 'resection', label: 'Resection' },
@@ -1488,7 +1496,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                               <DateInput
                                 label="Reoperation Date"
                                 value={formData.anastomotic_leak_reoperation_date}
-                                onChange={(e) => setFormData({ ...formData, anastomotic_leak_reoperation_date: e.target.value })}
+                                onChange={(e) => updateFormData({ anastomotic_leak_reoperation_date: e.target.value })}
                               />
                             </div>
                           )}
@@ -1499,7 +1507,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                             <input
                               type="checkbox"
                               checked={formData.anastomotic_leak_icu_admission}
-                              onChange={(e) => setFormData({ ...formData, anastomotic_leak_icu_admission: e.target.checked })}
+                              onChange={(e) => updateFormData({ anastomotic_leak_icu_admission: e.target.checked })}
                               className="mr-2 h-4 w-4"
                             />
                             <span className="text-sm font-medium text-gray-700">ICU/HDU Admission</span>
@@ -1512,7 +1520,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                               <input
                                 type="number"
                                 value={formData.anastomotic_leak_icu_los_days}
-                                onChange={(e) => setFormData({ ...formData, anastomotic_leak_icu_los_days: e.target.value })}
+                                onChange={(e) => updateFormData({ anastomotic_leak_icu_los_days: e.target.value })}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                                 placeholder="Days"
                               />
@@ -1525,7 +1533,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                             <input
                               type="number"
                               value={formData.anastomotic_leak_total_hospital_stay}
-                              onChange={(e) => setFormData({ ...formData, anastomotic_leak_total_hospital_stay: e.target.value })}
+                              onChange={(e) => updateFormData({ anastomotic_leak_total_hospital_stay: e.target.value })}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                               placeholder="From surgery to discharge"
                             />
@@ -1537,7 +1545,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                             <input
                               type="checkbox"
                               checked={formData.anastomotic_leak_defunctioning_stoma_present}
-                              onChange={(e) => setFormData({ ...formData, anastomotic_leak_defunctioning_stoma_present: e.target.checked })}
+                              onChange={(e) => updateFormData({ anastomotic_leak_defunctioning_stoma_present: e.target.checked })}
                               className="mr-2 h-4 w-4"
                             />
                             <span className="text-sm font-medium text-gray-700">Protective Stoma Present at Time of Leak</span>
@@ -1546,7 +1554,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                             <input
                               type="checkbox"
                               checked={formData.anastomotic_leak_mortality}
-                              onChange={(e) => setFormData({ ...formData, anastomotic_leak_mortality: e.target.checked })}
+                              onChange={(e) => updateFormData({ anastomotic_leak_mortality: e.target.checked })}
                               className="mr-2 h-4 w-4"
                             />
                             <span className="text-sm font-medium text-gray-700 text-red-600">Mortality</span>
@@ -1558,7 +1566,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                             <input
                               type="checkbox"
                               checked={formData.anastomotic_leak_resolved}
-                              onChange={(e) => setFormData({ ...formData, anastomotic_leak_resolved: e.target.checked })}
+                              onChange={(e) => updateFormData({ anastomotic_leak_resolved: e.target.checked })}
                               className="mr-2 h-4 w-4"
                             />
                             <span className="text-sm font-medium text-gray-700">Leak Resolved</span>
@@ -1567,7 +1575,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                             <DateInput
                               label="Resolution Date"
                               value={formData.anastomotic_leak_resolution_date}
-                              onChange={(e) => setFormData({ ...formData, anastomotic_leak_resolution_date: e.target.value })}
+                              onChange={(e) => updateFormData({ anastomotic_leak_resolution_date: e.target.value })}
                             />
                           )}
                         </div>
@@ -1578,7 +1586,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                           </label>
                           <textarea
                             value={formData.anastomotic_leak_notes}
-                            onChange={(e) => setFormData({ ...formData, anastomotic_leak_notes: e.target.value })}
+                            onChange={(e) => updateFormData({ anastomotic_leak_notes: e.target.value })}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                             rows={3}
                             placeholder="Additional clinical details..."
@@ -1603,7 +1611,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                   <input
                     type="text"
                     value={formData.regimen}
-                    onChange={(e) => setFormData({ ...formData, regimen: e.target.value })}
+                    onChange={(e) => updateFormData({ regimen: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     placeholder="e.g., FOLFOX"
                     required
@@ -1616,7 +1624,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                   <input
                     type="number"
                     value={formData.cycle_number}
-                    onChange={(e) => setFormData({ ...formData, cycle_number: e.target.value })}
+                    onChange={(e) => updateFormData({ cycle_number: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     placeholder="1"
                     required
@@ -1631,14 +1639,14 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                   <input
                     type="text"
                     value={formData.dose}
-                    onChange={(e) => setFormData({ ...formData, dose: e.target.value })}
+                    onChange={(e) => updateFormData({ dose: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     placeholder="e.g., 85mg/m²"
                   />
                 </div>
                 <SurgeonSearch
                   value={formData.surgeon}
-                  onChange={(name) => setFormData({ ...formData, surgeon: name })}
+                  onChange={(name) => updateFormData({ surgeon: name })}
                   label="Oncologist"
                   placeholder="Type to search oncologists..."
                 />
@@ -1657,7 +1665,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                   <input
                     type="text"
                     value={formData.site}
-                    onChange={(e) => setFormData({ ...formData, site: e.target.value })}
+                    onChange={(e) => updateFormData({ site: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     placeholder="e.g., Pelvis"
                     required
@@ -1670,7 +1678,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                   <input
                     type="text"
                     value={formData.total_dose}
-                    onChange={(e) => setFormData({ ...formData, total_dose: e.target.value })}
+                    onChange={(e) => updateFormData({ total_dose: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     placeholder="50"
                     required
@@ -1683,7 +1691,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                   <input
                     type="number"
                     value={formData.fractions}
-                    onChange={(e) => setFormData({ ...formData, fractions: e.target.value })}
+                    onChange={(e) => updateFormData({ fractions: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     placeholder="25"
                     required
@@ -1692,7 +1700,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
               </div>
               <SurgeonSearch
                 value={formData.surgeon}
-                onChange={(name) => setFormData({ ...formData, surgeon: name })}
+                onChange={(name) => updateFormData({ surgeon: name })}
                 label="Oncologist"
                 placeholder="Type to search oncologists..."
               />
@@ -1710,7 +1718,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                   <input
                     type="text"
                     value={formData.regimen}
-                    onChange={(e) => setFormData({ ...formData, regimen: e.target.value })}
+                    onChange={(e) => updateFormData({ regimen: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     placeholder="e.g., Pembrolizumab"
                     required
@@ -1720,7 +1728,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
               
               <SurgeonSearch
                 value={formData.surgeon}
-                onChange={(name) => setFormData({ ...formData, surgeon: name })}
+                onChange={(name) => updateFormData({ surgeon: name })}
                 label={treatmentType === 'surgery' ? 'Lead Surgeon' : 'Clinician'}
                 placeholder={`Type to search ${treatmentType === 'surgery' ? 'surgeons' : 'clinicians'}...`}
               />
@@ -1736,7 +1744,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
             </label>
             <textarea
               value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              onChange={(e) => updateFormData({ notes: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               rows={3}
               placeholder="Additional notes..."
@@ -1746,10 +1754,29 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
 
           {/* Navigation Buttons */}
           <div className="flex justify-between items-center pt-4 border-t">
-            <Button type="button" variant="secondary" onClick={onCancel}>
-              Cancel
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button type="button" variant="secondary" onClick={onCancel}>
+                Cancel
+              </Button>
+              {mode === 'edit' && hasUnsavedChanges && (
+                <span className="text-xs text-amber-600 font-medium whitespace-nowrap">
+                  (unsaved changes)
+                </span>
+              )}
+            </div>
             <div className="flex space-x-3">
+              {mode === 'edit' && hasUnsavedChanges && (
+                <Button
+                  onClick={(e) => {
+                    handleSubmit(e, true) // forceSubmit = true to bypass step check
+                    setHasUnsavedChanges(false)
+                  }}
+                  variant="primary"
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  ✓ Update Record
+                </Button>
+              )}
               {currentStep > 1 && (
                 <Button type="button" variant="secondary" onClick={(e) => prevStep(e)}>
                   ← Previous
@@ -1760,9 +1787,11 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                   Next →
                 </Button>
               ) : (
-                <Button type="submit" variant="primary">
-                  {mode === 'edit' ? 'Update Treatment' : 'Add Treatment'}
-                </Button>
+                !hasUnsavedChanges && (
+                  <Button type="submit" variant="primary">
+                    {mode === 'edit' ? 'Update Treatment' : 'Add Treatment'}
+                  </Button>
+                )
               )}
             </div>
           </div>

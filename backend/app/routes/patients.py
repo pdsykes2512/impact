@@ -40,19 +40,10 @@ async def create_patient(patient: PatientCreate):
 
 
 @router.get("/count")
-async def count_patients():
-    """Get total count of patients"""
+async def count_patients(search: Optional[str] = None):
+    """Get total count of patients with optional search filter"""
     collection = await get_patients_collection()
-    total = await collection.count_documents({})
-    return {"count": total}
 
-
-@router.get("/", response_model=List[Patient])
-async def list_patients(skip: int = 0, limit: int = 100, search: Optional[str] = None):
-    """List all patients with pagination and optional search, sorted by most recent episode referral date"""
-    collection = await get_patients_collection()
-    episodes_collection = await get_episodes_collection()
-    
     # Build query with search filter if provided
     query = {}
     if search:
@@ -65,7 +56,30 @@ async def list_patients(skip: int = 0, limit: int = 100, search: Optional[str] =
                 {"nhs_number": search_pattern}
             ]
         }
-    
+
+    total = await collection.count_documents(query)
+    return {"count": total}
+
+
+@router.get("/", response_model=List[Patient])
+async def list_patients(skip: int = 0, limit: int = 100, search: Optional[str] = None):
+    """List all patients with pagination and optional search, sorted by most recent episode referral date"""
+    collection = await get_patients_collection()
+    episodes_collection = await get_episodes_collection()
+
+    # Build query with search filter if provided
+    query = {}
+    if search:
+        # Search across patient_id, mrn, and nhs_number (case-insensitive, remove spaces)
+        search_pattern = {"$regex": search.replace(" ", ""), "$options": "i"}
+        query = {
+            "$or": [
+                {"patient_id": search_pattern},
+                {"mrn": search_pattern},
+                {"nhs_number": search_pattern}
+            ]
+        }
+
     # Use aggregation to join with episodes and get most recent referral date
     pipeline = [
         {"$match": query},
@@ -87,7 +101,7 @@ async def list_patients(skip: int = 0, limit: int = 100, search: Optional[str] =
                         "$map": {
                             "input": "$episodes",
                             "as": "ep",
-                            "in": {"$toDate": "$$ep.referral_date"}
+                            "in": "$$ep.referral_date"
                         }
                     }
                 }
@@ -101,15 +115,15 @@ async def list_patients(skip: int = 0, limit: int = 100, search: Optional[str] =
         {"$skip": skip},
         {"$limit": limit}
     ]
-    
+
     patients = await collection.aggregate(pipeline).to_list(length=None)
-    
+
     # Convert ObjectId to string
     for patient in patients:
         patient["_id"] = str(patient["_id"])
         # Remove most_recent_referral from output (only used for sorting)
         patient.pop("most_recent_referral", None)
-    
+
     return [Patient(**patient) for patient in patients]
 
 

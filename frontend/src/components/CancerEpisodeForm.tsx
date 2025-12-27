@@ -33,6 +33,8 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
   const [addTreatmentNow, setAddTreatmentNow] = useState(false)
   const [showTumourModal, setShowTumourModal] = useState(false)
   const [showTreatmentModal, setShowTreatmentModal] = useState(false)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [selectedPatientDetails, setSelectedPatientDetails] = useState<{ mrn?: string; nhs_number?: string } | null>(null)
 
   const [formData, setFormData] = useState(() => {
     if (initialData) {
@@ -127,6 +129,10 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
 
   const updateFormData = (field: string, value: any) => {
     setFormData((prev: any) => ({ ...prev, [field]: value }))
+    // Mark as changed when in edit mode
+    if (mode === 'edit' && !hasUnsavedChanges) {
+      setHasUnsavedChanges(true)
+    }
   }
 
   // Map cancer type to subspecialty for filtering clinicians
@@ -173,8 +179,8 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
 
   const getStepTitle = (stepNum: number): string => {
     const titles: { [key: number]: string } = {
-      1: 'Patient & Basics',
-      2: 'Referral & Process',
+      1: 'Patient Details',
+      2: 'Referral Details',
       3: 'MDT & Planning',
       4: 'Treatment Status',
       5: 'Clinical Data',
@@ -209,12 +215,12 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
     setCurrentStep(6)
   }
 
-  const handleSubmit = (e?: React.FormEvent) => {
+  const handleSubmit = (e?: React.FormEvent, forceSubmit: boolean = false) => {
     e?.preventDefault()
     e?.stopPropagation()
-    
-    // Only submit if on final step
-    if (currentStep < totalSteps) {
+
+    // Only submit if on final step (unless forceSubmit is true for Update Record button)
+    if (!forceSubmit && currentStep < totalSteps) {
       return
     }
     
@@ -247,34 +253,97 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
 
       {/* Patient Selection */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <PatientSearch
-          value={formData.patient_id}
-          onChange={async (mrn, patientData) => {
-            updateFormData('patient_id', mrn)
-            
-            // Generate episode ID when patient is selected
-            if (patientData?.nhs_number && mode === 'create') {
-              try {
-                // Fetch existing episodes for this patient to get count
-                const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
-                const response = await fetch(`${API_URL}/episodes/?patient_id=${mrn}`, {
-                  headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+        {mode === 'edit' ? (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Patient <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={formData.patient_id}
+              readOnly
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+              placeholder="Patient ID (Read-only)"
+            />
+            <p className="mt-1 text-xs text-gray-500">Patient cannot be changed in edit mode</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-4">
+              <PatientSearch
+                value={formData.patient_id}
+                onChange={async (patientId, patientData) => {
+                  updateFormData('patient_id', patientId)
+
+                  // Store patient details for display
+                  if (patientData) {
+                    setSelectedPatientDetails({
+                      mrn: patientData.mrn,
+                      nhs_number: patientData.nhs_number
+                    })
+                  } else {
+                    setSelectedPatientDetails(null)
                   }
-                })
-                const episodes = await response.json()
-                const episodeCount = Array.isArray(episodes) ? episodes.length : 0
-                
-                const newEpisodeId = generateEpisodeId(patientData.nhs_number, episodeCount)
-                updateFormData('episode_id', newEpisodeId)
-              } catch (error) {
-                console.error('Failed to generate episode ID:', error)
-              }
-            }
-          }}
-          label="Patient"
-          required
-        />
+
+                  // Generate episode ID when patient is selected
+                  if (patientData?.nhs_number && mode === 'create') {
+                    try {
+                      // Fetch existing episodes for this patient to get count
+                      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+                      const response = await fetch(`${API_URL}/episodes/?patient_id=${patientId}`, {
+                        headers: {
+                          'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                      })
+                      const episodes = await response.json()
+                      const episodeCount = Array.isArray(episodes) ? episodes.length : 0
+
+                      const newEpisodeId = generateEpisodeId(patientData.nhs_number, episodeCount)
+                      updateFormData('episode_id', newEpisodeId)
+                    } catch (error) {
+                      console.error('Failed to generate episode ID:', error)
+                    }
+                  }
+                }}
+                label="Patient"
+                required
+              />
+
+              {/* Display selected patient details */}
+              {selectedPatientDetails && formData.patient_id ? (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      MRN
+                    </label>
+                    <input
+                      type="text"
+                      value={selectedPatientDetails.mrn || '-'}
+                      readOnly
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      NHS Number
+                    </label>
+                    <input
+                      type="text"
+                      value={selectedPatientDetails.nhs_number || '-'}
+                      readOnly
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 text-sm"
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div></div>
+                  <div></div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Cancer Type */}
@@ -760,7 +829,7 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
   )
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" style={{ margin: 0 }}>
       <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 z-10">
@@ -774,27 +843,29 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
               {Array.from({ length: totalSteps }, (_, i) => i + 1)
                 .filter(stepNum => mode === 'edit' ? stepNum !== 5 : true) // Skip step 5 in edit mode
                 .map((stepNum, index, array) => {
-                  const isClickable = mode === 'edit' && stepNum <= currentStep
                   return (
                     <div key={stepNum} className="flex items-center flex-1">
-                      <div
-                        onClick={() => isClickable && setCurrentStep(stepNum)}
+                      <button
+                        onClick={() => mode === 'edit' ? setCurrentStep(stepNum) : undefined}
+                        disabled={mode === 'create'}
                         className={`
-                          w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors
-                          ${currentStep >= stepNum ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}
-                          ${isClickable ? 'cursor-pointer hover:bg-blue-700' : ''}
+                          w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all
+                          ${currentStep === stepNum ? 'bg-blue-600 text-white' :
+                            currentStep > stepNum ? 'bg-green-600 text-white' :
+                            'bg-gray-200 text-gray-600'}
+                          ${mode === 'edit' ? 'cursor-pointer hover:ring-2 hover:ring-blue-400' : 'cursor-default'}
                         `}
-                        title={getStepTitle(stepNum)}
+                        title={mode === 'edit' ? `Jump to ${getStepTitle(stepNum)}` : getStepTitle(stepNum)}
                       >
-                        {index + 1}
-                      </div>
+                        {currentStep > stepNum ? '✓' : index + 1}
+                      </button>
                       <div className="ml-3 text-sm flex-1">
                         <div className={`font-medium ${currentStep >= stepNum ? 'text-blue-600' : 'text-gray-600'}`}>
                           {getStepTitle(stepNum)}
                         </div>
                       </div>
                       {index < array.length - 1 && (
-                        <div className={`flex-1 h-1 mx-4 ${currentStep > stepNum ? 'bg-blue-600' : 'bg-gray-200'}`} />
+                        <div className={`flex-1 h-1 mx-4 ${currentStep > stepNum ? 'bg-green-600' : 'bg-gray-200'}`} />
                       )}
                     </div>
                   )
@@ -817,45 +888,68 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 flex justify-between">
-          <Button onClick={onCancel} variant="secondary">
-            Cancel
-          </Button>
-
-          <div className="flex gap-3">
-            {currentStep > 1 && (
-              <Button onClick={(e) => prevStep(e)} variant="secondary">
-                ← Previous
+        <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <Button onClick={onCancel} variant="secondary">
+                Cancel
               </Button>
-            )}
-            {currentStep < totalSteps ? (
-              <Button 
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  
-                  if (currentStep === 5 && mode === 'create') {
-                    // On step 5, handle clinical data modals
-                    if (addTumourNow) {
-                      setShowTumourModal(true)
-                    } else if (addTreatmentNow) {
-                      setShowTreatmentModal(true)
+              {mode === 'edit' && hasUnsavedChanges && (
+                <span className="text-xs text-amber-600 font-medium whitespace-nowrap">
+                  (unsaved changes)
+                </span>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              {/* Show Update Record button when in edit mode with unsaved changes */}
+              {mode === 'edit' && hasUnsavedChanges && (
+                <Button
+                  onClick={(e) => {
+                    handleSubmit(e, true) // forceSubmit = true to bypass step check
+                    setHasUnsavedChanges(false)
+                  }}
+                  variant="primary"
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  ✓ Update Record
+                </Button>
+              )}
+
+              {currentStep > 1 && (
+                <Button onClick={(e) => prevStep(e)} variant="secondary">
+                  ← Previous
+                </Button>
+              )}
+              {currentStep < totalSteps ? (
+                <Button
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+
+                    if (currentStep === 5 && mode === 'create') {
+                      // On step 5, handle clinical data modals
+                      if (addTumourNow) {
+                        setShowTumourModal(true)
+                      } else if (addTreatmentNow) {
+                        setShowTreatmentModal(true)
+                      } else {
+                        nextStep(e)
+                      }
                     } else {
                       nextStep(e)
                     }
-                  } else {
-                    nextStep(e)
-                  }
-                }} 
-                variant="primary"
-              >
-                Next →
-              </Button>
-            ) : (
-              <Button onClick={(e) => handleSubmit(e)} variant="primary">
-                {mode === 'create' ? 'Create Episode' : 'Update Episode'}
-              </Button>
-            )}
+                  }}
+                  variant="primary"
+                >
+                  Next →
+                </Button>
+              ) : (
+                <Button onClick={(e) => handleSubmit(e)} variant="primary">
+                  {mode === 'create' ? 'Create Episode' : 'Update Episode'}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>

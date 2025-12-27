@@ -62,7 +62,10 @@ export function SearchableSelect<T>({
   const filter = filterOption || defaultFilter
 
   // Filter options based on search
-  const filteredOptions = options.filter((option) => filter(option, searchTerm))
+  // If search is empty, show all options (up to a reasonable limit)
+  const filteredOptions = searchTerm.trim() === ''
+    ? options.slice(0, 100)  // Show first 100 options when no search
+    : options.filter((option) => filter(option, searchTerm))
 
   const handleSelect = (option: T) => {
     const val = getOptionValue(option)
@@ -137,7 +140,7 @@ export function SearchableSelect<T>({
           </button>
         )}
         {showDropdown && filteredOptions.length > 0 && !disabled && (
-          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          <div className="absolute z-[100] w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
             {filteredOptions.map((option, index) => (
               <div
                 key={index}

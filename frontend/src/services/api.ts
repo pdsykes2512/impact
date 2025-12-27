@@ -24,7 +24,8 @@ api.interceptors.request.use((config) => {
 export const apiService = {
   // Patients
   patients: {
-    list: () => api.get('/patients/'),
+    list: (params?: any) => api.get('/patients/', { params }),
+    count: (params?: any) => api.get('/patients/count', { params }),
     get: (patientId: string) => api.get(`/patients/${patientId}`),
     create: (data: any) => api.post('/patients/', data),
     update: (patientId: string, data: any) => api.put(`/patients/${patientId}`, data),
@@ -34,6 +35,7 @@ export const apiService = {
   // Episodes
   episodes: {
     list: (params?: any) => api.get('/episodes/', { params }),
+    count: (params?: any) => api.get('/episodes/count', { params }),
     get: (episodeId: string) => api.get(`/episodes/${episodeId}`),
     create: (data: any) => api.post('/episodes/', data),
     update: (episodeId: string, data: any) => api.put(`/episodes/${episodeId}`, data),
