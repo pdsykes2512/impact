@@ -91,7 +91,8 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
     const fetchProviderName = async () => {
       if (episode?.provider_first_seen) {
         try {
-          const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+          // Use empty string for relative URLs when VITE_API_URL is /api (uses Vite proxy)
+          const API_URL = import.meta.env.VITE_API_URL === '/api' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:8000/api')
           const response = await fetch(`${API_URL}/nhs-providers/${episode.provider_first_seen}`)
           if (response.ok) {
             const provider = await response.json()
@@ -125,7 +126,8 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
     
     try {
       setLoading(true)
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+      // Use empty string for relative URLs when VITE_API_URL is /api (uses Vite proxy)
+      const API_URL = import.meta.env.VITE_API_URL === '/api' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:8000/api')
       const response = await fetch(`${API_URL}/episodes/${episode.episode_id}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -148,7 +150,8 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
   const handleAddTreatment = async (treatment: any) => {
     if (!episode) return
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+      // Use empty string for relative URLs when VITE_API_URL is /api (uses Vite proxy)
+      const API_URL = import.meta.env.VITE_API_URL === '/api' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:8000/api')
       const response = await fetch(
         `${API_URL}/episodes/${episode.episode_id}/treatments`,
         {
@@ -178,7 +181,8 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
     if (!editingTreatment || !episode) return
     
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+      // Use empty string for relative URLs when VITE_API_URL is /api (uses Vite proxy)
+      const API_URL = import.meta.env.VITE_API_URL === '/api' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:8000/api')
       const response = await fetch(
         `${API_URL}/episodes/${episode.episode_id}/treatments/${editingTreatment.treatment_id}`,
         {
@@ -208,7 +212,8 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
   const handleAddTumour = async (tumour: any) => {
     if (!episode) return
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+      // Use empty string for relative URLs when VITE_API_URL is /api (uses Vite proxy)
+      const API_URL = import.meta.env.VITE_API_URL === '/api' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:8000/api')
       const response = await fetch(
         `${API_URL}/episodes/${episode.episode_id}/tumours`,
         {
@@ -238,7 +243,8 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
     if (!editingTumour || !episode) return
     
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+      // Use empty string for relative URLs when VITE_API_URL is /api (uses Vite proxy)
+      const API_URL = import.meta.env.VITE_API_URL === '/api' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:8000/api')
       const response = await fetch(
         `${API_URL}/episodes/${episode.episode_id}/tumours/${editingTumour.tumour_id}`,
         {
@@ -274,7 +280,8 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
     if (!deleteTumourConfirmation.tumour || !episode) return
     
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+      // Use empty string for relative URLs when VITE_API_URL is /api (uses Vite proxy)
+      const API_URL = import.meta.env.VITE_API_URL === '/api' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:8000/api')
       const response = await fetch(
         `${API_URL}/episodes/${episode.episode_id}/tumours/${deleteTumourConfirmation.tumour.tumour_id}`,
         {
@@ -308,7 +315,8 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
     if (!deleteTreatmentConfirmation.treatment || !episode) return
     
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+      // Use empty string for relative URLs when VITE_API_URL is /api (uses Vite proxy)
+      const API_URL = import.meta.env.VITE_API_URL === '/api' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:8000/api')
       const response = await fetch(
         `${API_URL}/episodes/${episode.episode_id}/treatments/${deleteTreatmentConfirmation.treatment.treatment_id}`,
         {
@@ -338,7 +346,8 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
     if (!episode) return
     
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+      // Use empty string for relative URLs when VITE_API_URL is /api (uses Vite proxy)
+      const API_URL = import.meta.env.VITE_API_URL === '/api' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:8000/api')
       const response = await fetch(`${API_URL}/investigations`, {
         method: 'POST',
         headers: {
@@ -365,7 +374,8 @@ export function CancerEpisodeDetailModal({ episode, onClose, onEdit }: CancerEpi
     if (!editingInvestigation || !episode) return
     
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+      // Use empty string for relative URLs when VITE_API_URL is /api (uses Vite proxy)
+      const API_URL = import.meta.env.VITE_API_URL === '/api' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:8000/api')
       const response = await fetch(
         `${API_URL}/investigations/${editingInvestigation.investigation_id}`,
         {

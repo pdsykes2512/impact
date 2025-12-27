@@ -150,8 +150,9 @@ export function EpisodesPage() {
   const handleCreate = async (data: any) => {
     try {
       console.log('Creating cancer episode with data:', data)
-      
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+
+      // Use empty string for relative URLs when VITE_API_URL is /api (uses Vite proxy)
+      const API_URL = import.meta.env.VITE_API_URL === '/api' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:8000/api')
       const response = await fetch(`${API_URL}/episodes/`, {
         method: 'POST',
         headers: {
@@ -201,9 +202,10 @@ export function EpisodesPage() {
 
   const handleEdit = async (data: any) => {
     if (!editingEpisode) return
-    
+
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+      // Use empty string for relative URLs when VITE_API_URL is /api (uses Vite proxy)
+      const API_URL = import.meta.env.VITE_API_URL === '/api' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:8000/api')
       const response = await fetch(`${API_URL}/episodes/${editingEpisode.episode_id}`, {
         method: 'PUT',
         headers: {

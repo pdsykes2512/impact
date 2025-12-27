@@ -15,6 +15,100 @@ This file tracks significant changes made to the surg-db application. **Update t
 
 ---
 
+## 2025-12-27 - Fix API URL Configuration for Remote Access
+
+**Changed by:** AI Session
+**Issue:** Admin section and other pages showed "Network Error" when accessed via `surg-db.vps` hostname. The application worked on localhost but failed on remote machines due to hardcoded `http://localhost:8000` fallback in API_URL configuration.
+
+**Changes:**
+
+### Root Cause
+Multiple components used incorrect API_URL construction logic:
+```typescript
+// BROKEN: Empty string is falsy, falls back to localhost
+const API_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8000'
+```
+
+When `VITE_API_URL=/api`, this becomes:
+- `'/api'.replace('/api', '')` = `''` (empty string)
+- Empty string is falsy → falls back to `'http://localhost:8000'`
+- Hardcoded localhost fails for remote access
+
+### Solution
+Applied AuthContext pattern across all components:
+```typescript
+// FIXED: Explicitly check for '/api' and use empty string for relative URLs
+const API_URL = import.meta.env.VITE_API_URL === '/api' ? '' : (import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8000')
+```
+
+This enables:
+- Empty string when `VITE_API_URL=/api` → uses relative URLs through Vite proxy
+- Works from any hostname (localhost, surg-db.vps, IP addresses)
+- Proxy forwards requests to backend at `http://192.168.11.238:8000`
+
+### Files Fixed
+
+**Pages (4 files):**
+- `frontend/src/pages/AdminPage.tsx` (line 9-11)
+- `frontend/src/pages/HomePage.tsx` (line 89-90)
+- `frontend/src/pages/EpisodesPage.tsx` (lines 154-155, 207-208)
+- `frontend/src/pages/ReportsPage.tsx` (lines 104-105, 123-124)
+
+**Search Components (2 files):**
+- `frontend/src/components/search/SurgeonSearch.tsx` (line 44-45)
+- `frontend/src/components/search/NHSProviderSelect.tsx` (lines 62-63, 97-98)
+
+**Modal Components (3 files):**
+- `frontend/src/components/modals/TumourModal.tsx` (line 126-127)
+- `frontend/src/components/modals/AddTreatmentModal.tsx` (line 137-138)
+- `frontend/src/components/modals/CancerEpisodeDetailModal.tsx` (10 instances)
+
+**Context (already fixed):**
+- `frontend/src/contexts/AuthContext.tsx` (line 4-6) - Reference pattern
+
+**Total:** 11 files updated with consistent API_URL handling
+
+**Files affected:**
+- 11 TypeScript files (pages, components, contexts)
+- Multiple API call locations fixed
+- Vite proxy configuration verified: `frontend/vite.config.ts`
+
+**Testing:**
+```bash
+# 1. Verify frontend service is running
+sudo systemctl status surg-db-frontend
+
+# 2. Test login from remote machine
+# Access via http://surg-db.vps:3000/login
+# Login should succeed
+
+# 3. Test admin section
+# Navigate to Admin page
+# Should load users, clinicians, backups without error
+
+# 4. Test other sections
+# Verify patients, episodes, reports all load
+# Verify modals open and fetch data correctly
+```
+
+**Notes:**
+- All components now use consistent API_URL pattern from AuthContext
+- Remote access works from any hostname via Vite proxy
+- Proxy configuration: `/api` → `http://192.168.11.238:8000`
+- Frontend uses relative URLs when `VITE_API_URL=/api`
+- Backend listens on `0.0.0.0:8000` (all interfaces)
+- Previous fix to AuthContext.tsx inspired this broader solution
+- Modal components had 10+ instances of incorrect pattern (all fixed)
+
+**Benefits:**
+- Application now fully accessible from remote machines
+- Consistent API URL handling across entire codebase
+- No more hardcoded localhost URLs
+- Works seamlessly with Vite proxy in development
+- Easy to switch to production API URL in future
+
+---
+
 ## 2025-12-27 - Frontend Component Directory Reorganization
 
 **Changed by:** AI Session

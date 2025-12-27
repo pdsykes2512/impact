@@ -41,7 +41,8 @@ export function SurgeonSearch({
     const fetchSurgeons = async () => {
       setLoading(true)
       try {
-        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+        // Use empty string for relative URLs when VITE_API_URL is /api (uses Vite proxy)
+        const API_URL = import.meta.env.VITE_API_URL === '/api' ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:8000/api')
         const baseUrl = API_URL.endsWith('/api') ? API_URL.slice(0, -4) : API_URL
         const url = `${baseUrl}/api/admin/clinicians`
         

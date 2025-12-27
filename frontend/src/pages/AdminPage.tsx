@@ -6,7 +6,9 @@ import { Card } from '../components/common/Card'
 import { Button } from '../components/common/Button'
 import { Table, TableHeader, TableBody, TableRow, TableHeadCell, TableCell } from '../components/common/Table'
 
-const API_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8000'
+// Use empty string for relative URLs when VITE_API_URL is /api (uses Vite proxy)
+// Otherwise fall back to localhost for direct backend access
+const API_URL = import.meta.env.VITE_API_URL === '/api' ? '' : (import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8000')
 
 interface User {
   _id: string

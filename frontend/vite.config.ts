@@ -17,6 +17,7 @@ export default defineConfig({
       '/api': {
         target: 'http://192.168.11.238:8000',
         changeOrigin: true,
+        rewrite: (path) => path
       }
     }
   }
