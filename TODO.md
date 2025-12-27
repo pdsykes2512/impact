@@ -147,7 +147,7 @@
 ### User Experience
 - ✅ Add loading spinners for async operations
 - ✅ Implement toast notifications for success/error messages
-- [ ] Add pagination to patient and episode lists
+- ✅ Add pagination to patient and episode lists
 - [ ] Implement data export functionality (CSV/Excel)
 - [ ] Add print-friendly views for reports
 - [ ] Create keyboard shortcuts for common actions

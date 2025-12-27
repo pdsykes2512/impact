@@ -15,6 +15,42 @@ This file tracks significant changes made to the surg-db application. **Update t
 
 ---
 
+## 2025-12-27 - Fix Patients with Future Birth Dates Causing Pagination Errors
+
+**Changed by:** AI Session  
+**Issue:** Pages 7 and 8 of the patient list showed "Failed to load patient" errors. Backend logs showed Pydantic validation errors: `demographics.age: Input should be greater than or equal to 0 [input_value=-25]`. Investigation revealed 404 patients had future dates of birth (2026-2074) resulting in negative ages.
+
+**Root Cause:** The data import script's 2-digit year parser had an edge case where years like "44" were interpreted as "2044" instead of "1944". The `parse_dob()` function checked `if dt.year > 2050` but years between 2026-2050 slipped through, along with datetime formatting issues during storage.
+
+**Changes:**
+1. Created `/root/surg-db/execution/fix_future_dobs.py` - Script to find and fix all patients with negative ages
+2. Fixed 404 patients by subtracting 100 years from their DOB (e.g., 2044 → 1944, 2050 → 1950)
+3. Recalculated ages for all affected patients
+4. Updated `updated_at` timestamp for each modified patient record
+
+**Files affected:**
+- `execution/fix_future_dobs.py` (new)
+- `execution/check_negative_ages.py` (new, diagnostic script)
+- MongoDB `surgdb.patients` collection (404 records updated)
+
+**Testing:**
+```bash
+# Verify no more negative ages exist
+python3 execution/check_negative_ages.py
+
+# Test pagination pages that were failing
+curl "http://localhost:8000/api/patients/?skip=150&limit=25"  # Page 7
+curl "http://localhost:8000/api/patients/?skip=175&limit=25"  # Page 8
+```
+
+**Notes:**
+- The issue only appeared on pages 7-8 because those specific pagination ranges contained patients with the problematic DOBs
+- The fix is retroactive; the import script logic in `execution/import_fresh_with_improvements.py` should also be reviewed to prevent this issue on future imports
+- Consider updating `parse_dob()` to be more conservative: any year > current_year - 10 should subtract 100 years
+- All DOBs should be stored as datetime objects (which they are), but age should be calculated dynamically rather than stored
+
+---
+
 ## 2025-12-27 - Fix API URL Configuration for Remote Access
 
 **Changed by:** AI Session
