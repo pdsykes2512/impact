@@ -232,14 +232,34 @@ async def get_all_treatments():
     """Get all treatments with minimal data (for dashboard statistics)"""
     from ..database import get_treatments_collection
     treatments_collection = await get_treatments_collection()
-    
+
     # Fetch only the fields we need for date calculations
     treatments = await treatments_collection.find(
         {},
         {"treatment_date": 1, "treatment_type": 1, "_id": 0}
     ).to_list(length=None)
-    
+
     return treatments
+
+
+@router.get("/treatments/{treatment_id}")
+async def get_treatment_by_id(treatment_id: str):
+    """Get a specific treatment by its treatment_id"""
+    treatments_collection = await get_treatments_collection()
+
+    # Find the treatment
+    treatment = await treatments_collection.find_one({"treatment_id": treatment_id})
+
+    if not treatment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Treatment {treatment_id} not found"
+        )
+
+    # Convert ObjectId to string
+    treatment["_id"] = str(treatment["_id"])
+
+    return treatment
 
 
 @router.get("/")
