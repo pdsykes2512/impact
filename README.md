@@ -2,7 +2,7 @@
 
 A production-ready NBOCA-compliant surgical outcomes tracking system for colorectal cancer care, built with modern web technologies and comprehensive data validation.
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![NBOCA](https://img.shields.io/badge/NBOCA-COSD%20v9%2Fv10-orange.svg)
 
@@ -39,20 +39,28 @@ This system provides comprehensive surgical outcomes tracking with full National
 - **TNM Staging**: v7 and v8 support with all components
 - **Pathology Results**: Grade, lymph nodes, margins, molecular markers
 - **Treatment Recording**: Surgery, chemotherapy, radiotherapy
-- **Outcomes Tracking**: Complications, readmissions, mortality
+- **Complications**: Clavien-Dindo grading (I-V) with detailed tracking
+- **Anastomotic Leaks**: ISGPS severity grading (A-C) with NBOCA compliance
+- **Investigation Tracking**: Imaging, endoscopy, laboratory results (17,564+ records)
+- **Follow-up Visits**: Clinic visit scheduling and outcome recording
+- **Outcomes Tracking**: Mortality (30/90-day), RTT, readmissions
 
 ### Analytics & Reports
 - **Dashboard**: Real-time statistics and KPIs
-- **Outcome Metrics**: Complication rates, mortality, readmissions
-- **Surgeon Performance**: Aggregated metrics per clinician
+- **Outcome Metrics**: Complication rates, mortality, readmissions, RTT
+- **Surgeon Performance**: Aggregated metrics per clinician with yearly breakdown
 - **NBOCA Reports**: 30/90-day mortality, anastomotic leak rates, conversion rates
 - **Excel Export**: Professional formatted reports with styling
-- **Trends Analysis**: Time-series data visualization
+- **Trends Analysis**: Yearly trends (2023-2025) with color-coded metrics
+- **Data Quality Dashboard**: Real-time completeness tracking per COSD field
 
-### Security & Access Control
+### Security & Data Protection
 - **JWT Authentication**: Secure token-based authentication
 - **Role-Based Access**: Admin, surgeon, data entry, viewer roles
+- **Field-Level Encryption**: AES-256 encryption for sensitive patient data (NHS numbers, MRN)
 - **Password Hashing**: bcrypt with salt for password security
+- **Audit Logging**: Comprehensive CRUD tracking with user context
+- **Database Backups**: Automated daily backups with encryption and web UI
 - **Admin Panel**: User and clinician management interface
 
 ## 🏗️ Tech Stack
@@ -244,23 +252,38 @@ For issues, questions, or contributions:
 
 ## 🗺️ Roadmap
 
-### v1.1 (Q1 2026)
-- [ ] Outcome tracking (30/90-day mortality)
-- [ ] Complication tracking with Clavien-Dindo grading
+### v1.1 (Released - December 2025)
+- ✅ Outcome tracking (30/90-day mortality, RTT, readmissions)
+- ✅ Complication tracking with Clavien-Dindo grading (I-V)
+- ✅ Anastomotic leak tracking with ISGPS severity grading (A-C)
+- ✅ Excel report export with professional formatting
+- ✅ Investigation tracking (imaging, endoscopy, laboratory)
+- ✅ Follow-up visit management
+- ✅ Comprehensive audit logging for all CRUD operations
+- ✅ Data quality dashboard with completeness metrics
+- ✅ Yearly outcome trends (2023-2025)
+- ✅ Return to theatre (RTT) tracking
+- ✅ Database backup system with encryption and web UI
+- ✅ Field-level encryption for sensitive patient data
+
+### v1.2 (Q1 2026)
 - [ ] PDF report export
 - [ ] Email notifications for follow-ups
+- [ ] Mobile-responsive design improvements
+- [ ] Advanced search and filtering with saved queries
+- [ ] Data visualization charts (Chart.js/D3)
+- [ ] Session timeout handling
+- [ ] HTTPS/SSL configuration guide
 
-### v1.2 (Q2 2026)
-- [ ] Mobile-responsive design
-- [ ] Advanced search and filtering
-- [ ] Data visualization charts
-- [ ] Audit trail for all changes
-
-### v2.0 (Q3 2026)
+### v2.0 (Q2-Q3 2026)
 - [ ] Multi-tenancy support
-- [ ] EHR integration
-- [ ] Real-time collaboration
-- [ ] Machine learning predictions
+- [ ] EHR integration architecture
+- [ ] File upload for surgical notes/images
+- [ ] Real-time collaboration features
+- [ ] Lab results import functionality
+- [ ] Automated report generation
+- [ ] Print-friendly views for reports
+- [ ] Keyboard shortcuts for common actions
 
 ## 📊 Statistics
 
@@ -273,6 +296,6 @@ For issues, questions, or contributions:
 
 ---
 
-**Version**: 1.0.0  
-**Last Updated**: December 23, 2025  
+**Version**: 1.1.0
+**Last Updated**: December 27, 2025
 **Status**: Production Ready ✅
