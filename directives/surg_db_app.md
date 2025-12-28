@@ -1,4 +1,4 @@
-# Surgical Outcomes Database Application
+# IMPACT Application (Integrated Monitoring Platform for Audit Care & Treatment)
 
 ## Goal
 Build a full-stack application to store, manage, and report on patient surgery outcome data with a NoSQL database backend and web-based frontend for data entry and reporting.

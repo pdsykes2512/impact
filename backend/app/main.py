@@ -1,6 +1,6 @@
 """
 FastAPI Main Application
-Surgical Outcomes Database API
+IMPACT API - Integrated Monitoring Platform for Audit Care & Treatment
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -65,7 +65,7 @@ app.include_router(backups.router)  # Database backup management
 async def root():
     """Root endpoint"""
     return {
-        "message": "Surgical Outcomes Database API",
+        "message": "IMPACT API - Integrated Monitoring Platform for Audit Care & Treatment",
         "version": settings.api_version,
         "docs": "/docs"
     }

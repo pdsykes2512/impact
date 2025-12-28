@@ -1,11 +1,11 @@
 [Unit]
-Description=Surgical Database Frontend
+Description=IMPACT Frontend
 After=network.target
 
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/root/surg-db/frontend
+WorkingDirectory=/root/impact/frontend
 Environment="PATH=/usr/local/bin:/usr/bin:/bin"
 ExecStart=/usr/bin/npm run dev -- --host 0.0.0.0 --port 3000
 Restart=always

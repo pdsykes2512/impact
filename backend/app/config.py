@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     # API settings
     api_host: str = "0.0.0.0"
     api_port: int = 8000
-    api_title: str = "Surgical Outcomes Database API"
+    api_title: str = "IMPACT API"
     api_version: str = "1.0.0"
     
     # Security settings

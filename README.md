@@ -1,4 +1,4 @@
-# Surgical Outcomes Database
+# IMPACT - Integrated Monitoring Platform for Audit Care & Treatment
 
 A production-ready NBOCA-compliant surgical outcomes tracking system for colorectal cancer care, built with modern web technologies and comprehensive data validation.
 
@@ -95,8 +95,8 @@ This system provides comprehensive surgical outcomes tracking with full National
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/pdsykes2512/surg-db.git
-cd surg-db
+git clone https://github.com/pdsykes2512/impact.git
+cd impact
 ```
 
 ### 2. Backend Setup
@@ -245,9 +245,9 @@ This project is licensed under the MIT License - see LICENSE file for details.
 ## 📞 Support
 
 For issues, questions, or contributions:
-- **Issues**: https://github.com/pdsykes2512/surg-db/issues
+- **Issues**: https://github.com/pdsykes2512/impact/issues
 - **Email**: support@example.com
-- **Documentation**: https://github.com/pdsykes2512/surg-db/wiki
+- **Documentation**: https://github.com/pdsykes2512/impact/wiki
 
 ## 🗺️ Roadmap
 

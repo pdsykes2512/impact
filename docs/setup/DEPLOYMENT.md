@@ -1,6 +1,6 @@
 # Deployment Guide
 
-Complete guide for deploying the Surgical Outcomes Database to production environments.
+Complete guide for deploying IMPACT (Integrated Monitoring Platform for Audit Care & Treatment) to production environments.
 
 ## 📋 Table of Contents
 
@@ -143,8 +143,8 @@ sudo useradd -m -s /bin/bash surgapp
 sudo su - surgapp
 
 # Clone repository
-git clone https://github.com/pdsykes2512/surg-db.git
-cd surg-db
+git clone https://github.com/pdsykes2512/impact.git
+cd impact
 ```
 
 ### 4. Backend Setup

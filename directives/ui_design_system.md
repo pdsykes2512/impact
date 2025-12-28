@@ -1,7 +1,7 @@
 # UI Design System
 
 ## Overview
-Professional UI design system for the Surgical Outcomes Database application with standardized components and layout patterns.
+Professional UI design system for the IMPACT application with standardized components and layout patterns.
 
 ## Components
 
@@ -9,7 +9,7 @@ Professional UI design system for the Surgical Outcomes Database application wit
 Master page wrapper providing consistent structure across all pages.
 
 **Features:**
-- Sticky header with logo and branding ("Surgical Outcomes Database & Analytics")
+- Sticky header with logo and branding ("IMPACT - Audit Care & Treatment")
 - Navigation bar with active route highlighting
 - User menu showing full name, role, and logout button
 - Main content area with max-width container (max-w-7xl)

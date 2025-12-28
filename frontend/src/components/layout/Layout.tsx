@@ -39,8 +39,8 @@ export function Layout({ children }: LayoutProps) {
                 </svg>
               </div>
               <div className="ml-2 sm:ml-3">
-                <h1 className="text-lg sm:text-xl font-bold text-gray-900">Surgical Outcomes</h1>
-                <p className="text-xs text-gray-500 hidden sm:block">Database & Analytics</p>
+                <h1 className="text-lg sm:text-xl font-bold text-gray-900">IMPACT</h1>
+                <p className="text-xs text-gray-500 hidden sm:block">Audit Care & Treatment</p>
               </div>
             </div>
 
@@ -186,7 +186,7 @@ export function Layout({ children }: LayoutProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             <p className="text-sm text-gray-500">
-              © 2025 Surgical Outcomes Database. All rights reserved.
+              © 2025 IMPACT. All rights reserved.
             </p>
             <div className="flex space-x-4 text-sm text-gray-500">
               <span>Version 1.0.0</span>

@@ -1,6 +1,6 @@
 # Development Guide
 
-Complete guide for developers working on the Surgical Outcomes Database.
+Complete guide for developers working on IMPACT (Integrated Monitoring Platform for Audit Care & Treatment).
 
 ## Table of Contents
 

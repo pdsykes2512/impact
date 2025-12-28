@@ -1,6 +1,6 @@
 # API Documentation
 
-Complete API reference for the Surgical Outcomes Database REST API.
+Complete API reference for the IMPACT REST API.
 
 ## Base URL
 

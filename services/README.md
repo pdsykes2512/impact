@@ -1,6 +1,6 @@
 # Systemd Service Files
 
-This directory contains the systemd service configuration files for the Surgical Database application.
+This directory contains the systemd service configuration files for the IMPACT application (Integrated Monitoring Platform for Audit Care & Treatment).
 
 ## Services
 

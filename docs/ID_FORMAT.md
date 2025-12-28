@@ -1,6 +1,6 @@
 # ID Format Standards
 
-All entity IDs in the Surgical Outcomes Database follow a standardized format: **PREFIX-NHSNUMBER-COUNTER**
+All entity IDs in IMPACT follow a standardized format: **PREFIX-NHSNUMBER-COUNTER**
 
 ## Format Structure
 

@@ -1,6 +1,6 @@
 # Recent Changes Log
 
-This file tracks significant changes made to the surg-db application. **Update this file at the end of each work session** to maintain continuity between AI chat sessions.
+This file tracks significant changes made to the IMPACT application (formerly surg-db). **Update this file at the end of each work session** to maintain continuity between AI chat sessions.
 
 ## Format
 ```
@@ -12,6 +12,91 @@ This file tracks significant changes made to the surg-db application. **Update t
 **Testing:** How to verify it works
 **Notes:** Any important context for future sessions
 ```
+
+---
+
+## 2025-12-28 - Project Rebranding to IMPACT
+
+**Changed by:** AI Session
+**Issue:** User wanted to rebrand the project from "Surgical Outcomes Database" to "IMPACT" (Integrated Monitoring Platform for Audit Care & Treatment).
+
+**Changes:**
+
+### 1. Frontend UI Branding Updates
+- **LoginPage.tsx**: Changed title to "IMPACT" with subtitle "Integrated Monitoring Platform for Audit Care & Treatment"
+- **Layout.tsx**: Header now shows "IMPACT" with "Audit Care & Treatment" subtitle; footer shows "© 2025 IMPACT"
+- **HomePage.tsx**: Dashboard subtitle updated to "Integrated Monitoring Platform for Audit Care & Treatment"
+- **package.json**: Package name changed from `surg-outcomes-frontend` to `impact-frontend`
+
+### 2. Backend Configuration Updates
+- **config.py**: API title changed from "Surgical Outcomes Database API" to "IMPACT API"
+- **main.py**: Module docstring and root endpoint message updated to reflect IMPACT branding
+
+### 3. Documentation Updates
+All documentation files updated with IMPACT branding:
+- **README.md**: Title changed, GitHub URLs updated to `/impact`
+- **TODO.md**: Title updated
+- **directives/surg_db_app.md**: Title updated to "IMPACT Application"
+- **directives/ui_design_system.md**: Branding references updated
+- **docs/setup/DEVELOPMENT.md**: Title and references updated
+- **docs/setup/DEPLOYMENT.md**: Title and clone URLs updated
+- **docs/guides/USER_GUIDE.md**: Introduction and references updated
+- **docs/ID_FORMAT.md**: References updated
+- **docs/api/API_DOCUMENTATION.md**: Title updated
+
+### 4. Systemd Service Files
+- **surg-db-backend.service**: Description changed to "IMPACT Backend API", working directory updated to `/root/impact`
+- **surg-db-frontend.service**: Description changed to "IMPACT Frontend", working directory updated to `/root/impact/frontend`
+- **services/README.md**: Updated to reference IMPACT
+
+### 5. Repository and Directory Rename
+- **GitHub repository**: Renamed from `surg-db` to `impact` using `gh repo rename`
+- **Local directory**: Renamed from `/root/surg-db` to `/root/impact`
+- **Git remote**: Automatically updated to `https://github.com/pdsykes2512/impact.git`
+
+**Files affected:**
+- `frontend/src/pages/LoginPage.tsx`
+- `frontend/src/components/layout/Layout.tsx`
+- `frontend/src/pages/HomePage.tsx`
+- `frontend/package.json`
+- `backend/app/config.py`
+- `backend/app/main.py`
+- `README.md`
+- `TODO.md`
+- `directives/surg_db_app.md`
+- `directives/ui_design_system.md`
+- `docs/setup/DEVELOPMENT.md`
+- `docs/setup/DEPLOYMENT.md`
+- `docs/guides/USER_GUIDE.md`
+- `docs/ID_FORMAT.md`
+- `docs/api/API_DOCUMENTATION.md`
+- `services/surg-db-backend.service`
+- `services/surg-db-frontend.service`
+- `services/README.md`
+- `RECENT_CHANGES.md`
+
+**Post-Change Actions Required:**
+1. **Update systemd service files in production:**
+   ```bash
+   sudo cp /root/impact/services/surg-db-backend.service /etc/systemd/system/
+   sudo cp /root/impact/services/surg-db-frontend.service /etc/systemd/system/
+   sudo systemctl daemon-reload
+   sudo systemctl restart surg-db-backend
+   sudo systemctl restart surg-db-frontend
+   ```
+
+2. **Verify services are running:**
+   ```bash
+   sudo systemctl status surg-db-backend
+   sudo systemctl status surg-db-frontend
+   ```
+
+**Notes:**
+- Service names remain `surg-db-backend` and `surg-db-frontend` to avoid production disruption
+- Service descriptions and working directories updated to reflect new `/root/impact` path
+- The hostname `surg-db.vps` and MongoDB database name `surg_outcomes` were intentionally NOT changed to avoid infrastructure disruption
+- All user-facing branding now shows "IMPACT"
+- GitHub repository URL updated - old URLs will redirect automatically
 
 ---
 

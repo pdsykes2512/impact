@@ -1,6 +1,6 @@
 # User Guide
 
-Complete guide for using the Surgical Outcomes Database application.
+Complete guide for using IMPACT (Integrated Monitoring Platform for Audit Care & Treatment).
 
 ## Table of Contents
 
@@ -18,7 +18,7 @@ Complete guide for using the Surgical Outcomes Database application.
 
 ## Introduction
 
-The Surgical Outcomes Database is designed to help surgical teams record, track, and analyze patient outcomes, with special compliance support for the National Bowel Cancer Audit (NBOCA).
+IMPACT is designed to help surgical teams record, track, and analyze patient outcomes, with special compliance support for the National Bowel Cancer Audit (NBOCA).
 
 ### User Roles
 
