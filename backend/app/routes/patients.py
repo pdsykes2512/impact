@@ -1,22 +1,41 @@
 """
 Patient API routes
 """
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from typing import List, Optional
 from datetime import datetime
 from bson import ObjectId
+import re
 
 from ..models.patient import Patient, PatientCreate, PatientUpdate
 from ..database import get_patients_collection, get_episodes_collection
 from ..utils.encryption import encrypt_document, decrypt_document
+from ..auth import get_current_user, require_data_entry_or_higher, require_admin
 
 
 router = APIRouter(prefix="/api/patients", tags=["patients"])
 
 
+def sanitize_search_input(search: str) -> str:
+    """
+    Sanitize search input to prevent NoSQL injection via regex
+
+    Args:
+        search: Raw search string from user
+
+    Returns:
+        Escaped search string safe for regex use
+    """
+    # Remove spaces and escape regex special characters
+    return re.escape(search.replace(" ", ""))
+
+
 @router.post("/", response_model=Patient, status_code=status.HTTP_201_CREATED)
-async def create_patient(patient: PatientCreate):
-    """Create a new patient"""
+async def create_patient(
+    patient: PatientCreate,
+    current_user: dict = Depends(require_data_entry_or_higher)
+):
+    """Create a new patient (requires data_entry role or higher)"""
     collection = await get_patients_collection()
 
     # Check if record_number already exists
@@ -31,6 +50,8 @@ async def create_patient(patient: PatientCreate):
     patient_dict = patient.model_dump()
     patient_dict["created_at"] = datetime.utcnow()
     patient_dict["updated_at"] = datetime.utcnow()
+    patient_dict["created_by"] = current_user["username"]
+    patient_dict["updated_by"] = current_user["username"]
 
     # Encrypt sensitive fields before storing
     encrypted_patient = encrypt_document(patient_dict)
@@ -46,15 +67,19 @@ async def create_patient(patient: PatientCreate):
 
 
 @router.get("/count")
-async def count_patients(search: Optional[str] = None):
-    """Get total count of patients with optional search filter"""
+async def count_patients(
+    search: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get total count of patients with optional search filter (requires authentication)"""
     collection = await get_patients_collection()
 
     # Build query with search filter if provided
     query = {}
     if search:
-        # Search across patient_id, mrn, and nhs_number (case-insensitive, remove spaces)
-        search_pattern = {"$regex": search.replace(" ", ""), "$options": "i"}
+        # Sanitize search input to prevent NoSQL injection
+        safe_search = sanitize_search_input(search)
+        search_pattern = {"$regex": safe_search, "$options": "i"}
         query = {
             "$or": [
                 {"patient_id": search_pattern},
@@ -68,16 +93,22 @@ async def count_patients(search: Optional[str] = None):
 
 
 @router.get("/", response_model=List[Patient])
-async def list_patients(skip: int = 0, limit: int = 100, search: Optional[str] = None):
-    """List all patients with pagination and optional search, sorted by most recent episode referral date"""
+async def list_patients(
+    skip: int = 0,
+    limit: int = 100,
+    search: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """List all patients with pagination and optional search, sorted by most recent episode referral date (requires authentication)"""
     collection = await get_patients_collection()
     episodes_collection = await get_episodes_collection()
 
     # Build query with search filter if provided
     query = {}
     if search:
-        # Search across patient_id, mrn, and nhs_number (case-insensitive, remove spaces)
-        search_pattern = {"$regex": search.replace(" ", ""), "$options": "i"}
+        # Sanitize search input to prevent NoSQL injection
+        safe_search = sanitize_search_input(search)
+        search_pattern = {"$regex": safe_search, "$options": "i"}
         query = {
             "$or": [
                 {"patient_id": search_pattern},
@@ -150,8 +181,11 @@ async def list_patients(skip: int = 0, limit: int = 100, search: Optional[str] =
 
 
 @router.get("/{patient_id}", response_model=Patient)
-async def get_patient(patient_id: str):
-    """Get a specific patient by patient_id"""
+async def get_patient(
+    patient_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get a specific patient by patient_id (requires authentication)"""
     collection = await get_patients_collection()
 
     patient = await collection.find_one({"patient_id": patient_id})
@@ -168,10 +202,14 @@ async def get_patient(patient_id: str):
 
 
 @router.put("/{patient_id}", response_model=Patient)
-async def update_patient(patient_id: str, patient_update: PatientUpdate):
-    """Update a patient"""
+async def update_patient(
+    patient_id: str,
+    patient_update: PatientUpdate,
+    current_user: dict = Depends(require_data_entry_or_higher)
+):
+    """Update a patient (requires data_entry role or higher)"""
     collection = await get_patients_collection()
-    
+
     # Check if patient exists
     existing = await collection.find_one({"patient_id": patient_id})
     if not existing:
@@ -179,12 +217,12 @@ async def update_patient(patient_id: str, patient_update: PatientUpdate):
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Patient {patient_id} not found"
         )
-    
+
     # Update only provided fields
     update_data = patient_update.model_dump(exclude_unset=True)
     if update_data:
         update_data["updated_at"] = datetime.utcnow()
-        update_data["updated_by"] = "system"  # TODO: Replace with actual user from auth
+        update_data["updated_by"] = current_user["username"]
 
         # Encrypt sensitive fields before updating
         encrypted_update = encrypt_document(update_data)
@@ -203,16 +241,19 @@ async def update_patient(patient_id: str, patient_update: PatientUpdate):
 
 
 @router.delete("/{patient_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_patient(patient_id: str):
-    """Delete a patient"""
+async def delete_patient(
+    patient_id: str,
+    current_user: dict = Depends(require_admin)
+):
+    """Delete a patient (requires admin role)"""
     collection = await get_patients_collection()
-    
+
     result = await collection.delete_one({"patient_id": patient_id})
-    
+
     if result.deleted_count == 0:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Patient {patient_id} not found"
         )
-    
+
     return None

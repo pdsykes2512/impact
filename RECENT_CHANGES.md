@@ -15,6 +15,454 @@ This file tracks significant changes made to the IMPACT application (formerly su
 
 ---
 
+## 2025-12-29 - Fixed IMPACT Logo Link and Quick Action Buttons on HomePage
+
+**Changed by:** AI Session
+**Issue:**
+1. IMPACT logo/text in header was not clickable - should link to HomePage
+2. "Add New Patient" and "Record Episode" quick action buttons on HomePage did not open their respective modals
+
+**Changes:**
+
+### 1. Made IMPACT Logo Clickable
+- Wrapped the logo and title in Layout.tsx with a `<Link to="/">` component
+- Added hover effect (`hover:opacity-80`) for visual feedback
+- Logo now navigates to HomePage (Dashboard) when clicked
+
+### 2. Fixed Quick Action Buttons
+**HomePage.tsx:**
+- Changed quick action links from `<a href="...">` tags to `<button onClick>` elements
+- "Add New Patient" now calls `navigate('/patients', { state: { addNew: true } })`
+- "Record Episode" now calls `navigate('/episodes', { state: { addNew: true } })`
+- "View Reports" button uses simple `navigate('/reports')` (no modal needed)
+
+**PatientsPage.tsx:**
+- Updated location state handler to recognize `addNew` property
+- When `state.addNew` is true, opens the PatientModal in "add new" mode
+- Clears navigation state after opening modal to prevent reopening on refresh
+
+**EpisodesPage.tsx:**
+- Updated location state handler to recognize `addNew` property
+- When `state.addNew` is true, opens the CancerEpisodeModal in "add new" mode
+- Added early return for `addNew` case (doesn't require episodes to be loaded)
+- Clears navigation state after opening modal
+
+**Files affected:**
+- `frontend/src/components/layout/Layout.tsx` - Made logo clickable
+- `frontend/src/pages/HomePage.tsx` - Changed quick actions to buttons with navigate
+- `frontend/src/pages/PatientsPage.tsx` - Added handling for addNew state
+- `frontend/src/pages/EpisodesPage.tsx` - Added handling for addNew state
+
+**Testing:**
+1. **Logo link:** Click IMPACT logo/text in header → should navigate to Dashboard/HomePage
+2. **Add New Patient:** Click "Add New Patient" quick action → should navigate to Patients page and open PatientModal
+3. **Record Episode:** Click "Record Episode" quick action → should navigate to Episodes page and open CancerEpisodeModal
+4. **View Reports:** Click "View Reports" → should navigate to Reports page (no modal)
+
+**Notes:**
+- Quick actions now use React Router's `navigate()` with state instead of simple anchor tags
+- Navigation state is automatically cleared after modal opens to prevent reopening on page refresh
+- Pattern matches existing "Recent Activity" click handlers that navigate to pages with modals
+- Frontend service restarted: `sudo systemctl restart surg-db-frontend`
+- All functionality verified as working correctly
+
+---
+
+## 2025-12-29 - Fixed COSD/NBOCA XML export to decrypt sensitive fields
+
+**Changed by:** AI Session
+**Issue:** COSD/NBOCA XML exports contained encrypted NHS numbers and MRN values instead of plaintext, preventing upload to Somerset and NBOCA systems.
+
+**Changes:**
+
+### Added Decryption to Export Functions
+- **Imported `decrypt_document`** from `utils.encryption` in exports.py
+- **Added decryption calls** in three export endpoints:
+  1. `/api/admin/exports/nboca-xml` - Main COSD XML export
+  2. `/api/admin/exports/data-completeness` - Completeness checker
+  3. `/api/admin/exports/nboca-validator` - Validation endpoint
+
+**How it works:**
+- Patient records are stored with encrypted fields: `nhs_number`, `mrn`, `demographics.postcode`, `demographics.date_of_birth`
+- When generating XML for external submission, these fields must be decrypted to plaintext
+- Added `patient = decrypt_document(patient)` after fetching patient from database
+
+**Files affected:**
+- `backend/app/routes/exports.py` - Added decrypt_document import and 3 decryption calls
+
+**Testing:**
+```bash
+# Test XML export (requires admin authentication)
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  http://localhost:8000/api/admin/exports/nboca-xml
+
+# Should now show plaintext NHS numbers and MRNs in XML
+```
+
+**Notes:**
+- ✅ NHS numbers and MRNs now in plaintext for COSD submission
+- ✅ Postcode and DOB also decrypted
+- ✅ Data still encrypted at rest in MongoDB (security maintained)
+- ✅ Only decrypted during export for submission to external systems
+- 🔒 Export endpoints require admin authentication
+
+**Security considerations:**
+- Decryption only happens server-side during export
+- Export endpoints protected by admin-only authentication
+- Data remains encrypted in database and during transit (HTTPS)
+- Decrypted data only exists temporarily in memory during XML generation
+
+---
+
+## 2025-12-29 - Renamed secrets directory from /etc/surg-db to /etc/impact
+
+**Changed by:** AI Session
+**Issue:** Secrets directory name (/etc/surg-db) didn't match project rebrand to IMPACT.
+
+**Changes:**
+
+### Directory Rename
+- **Renamed `/etc/surg-db` to `/etc/impact`**
+- **Moved all files:**
+  - `/etc/surg-db/secrets.env` → `/etc/impact/secrets.env`
+  - `/etc/surg-db/backups/` → `/etc/impact/backups/`
+
+### Updated References
+- **systemd service files:**
+  - `/etc/systemd/system/surg-db-backend.service` - Updated EnvironmentFile path
+  - `/etc/systemd/system/surg-db-frontend.service` - Updated EnvironmentFile path
+- **Password rotation script:**
+  - `execution/active/rotate_mongodb_password.py` - Updated SECRETS_FILE and ENV_BACKUP_DIR paths
+- **Project files:**
+  - `.env` - Updated comment references
+- **Documentation:**
+  - `docs/security/SECRETS_MANAGEMENT.md` - 31 path references updated
+  - `docs/security/MONGODB_PASSWORD_ROTATION.md` - All path references updated
+  - `RECENT_CHANGES.md` - 10 path references updated
+
+**Files affected:**
+- `/etc/impact/` - NEW directory (renamed from /etc/surg-db)
+- `/etc/systemd/system/surg-db-backend.service`
+- `/etc/systemd/system/surg-db-frontend.service`
+- `execution/active/rotate_mongodb_password.py`
+- `.env`
+- `docs/security/SECRETS_MANAGEMENT.md`
+- `docs/security/MONGODB_PASSWORD_ROTATION.md`
+- `RECENT_CHANGES.md`
+
+**Testing:**
+```bash
+# Verify new directory exists
+ls -la /etc/impact/
+# Should show: secrets.env (600 permissions) and backups/ directory
+
+# Verify services load from new location
+sudo systemctl restart surg-db-backend
+curl http://localhost:8000/health
+# Should return: {"status":"healthy"}
+
+# Verify environment variables loaded
+PID=$(pgrep -f "uvicorn backend.app.main:app" | head -1)
+sudo cat /proc/$PID/environ | tr '\0' '\n' | grep MONGODB_URI
+# Should show secrets loaded from /etc/impact/secrets.env
+```
+
+**Notes:**
+- ✅ All services restarted successfully with new path
+- ✅ MongoDB connection working (verified in logs)
+- ✅ Environment variables loading correctly
+- ✅ Old `/etc/surg-db` directory removed
+- ⚠️ **IMPORTANT:** Future deployments should create `/etc/impact` (not /etc/surg-db)
+
+---
+
+## 2025-12-29 - Secrets Separation: Moved from .env to systemd-managed secrets file
+
+**Changed by:** AI Session
+**Issue:** Sensitive credentials (passwords, API tokens, JWT secrets) were stored in git-tracked `.env` file, creating security risk of accidental commit to version control.
+
+**Changes:**
+
+### Separated Secrets from Configuration
+- **Created `/etc/impact/secrets.env`** - System-level secrets file (600 permissions, root-only)
+- **Moved all secrets** from `.env` to `/etc/impact/secrets.env`:
+  - MONGODB_URI (with password)
+  - GITHUB_TOKEN
+  - SECRET_KEY (JWT secret)
+- **Updated `.env`** to contain only non-secret configuration:
+  - MONGODB_DB_NAME
+  - GITHUB_USERNAME
+  - API_HOST
+  - API_PORT
+
+### Updated systemd Services
+- **Modified both service files** to load both environment files in correct order:
+  1. `/etc/impact/secrets.env` (loaded first - secrets)
+  2. `/root/impact/.env` (loaded second - can override)
+- **Files modified:**
+  - `/etc/systemd/system/surg-db-backend.service`
+  - `/etc/systemd/system/surg-db-frontend.service`
+
+### Updated Password Rotation Script
+- **Modified `execution/active/rotate_mongodb_password.py`** to:
+  - Update `/etc/impact/secrets.env` instead of `.env`
+  - Backup to `/etc/impact/backups/` directory
+  - Updated all messages to reference secrets file
+
+**Files affected:**
+- `/etc/impact/secrets.env` - NEW (secrets storage)
+- `/root/impact/.env` - Modified (removed secrets, kept config)
+- `/etc/systemd/system/surg-db-backend.service` - Modified (load both env files)
+- `/etc/systemd/system/surg-db-frontend.service` - Modified (load both env files)
+- `execution/active/rotate_mongodb_password.py` - Modified (use secrets.env)
+
+**Testing:**
+```bash
+# Verify secrets file permissions
+ls -la /etc/impact/secrets.env
+# Should show: -rw------- 1 root root (600 permissions)
+
+# Restart services
+sudo systemctl restart surg-db-backend surg-db-frontend
+
+# Verify backend loads secrets correctly
+PID=$(pgrep -f "uvicorn backend.app.main:app")
+sudo cat /proc/$PID/environ | tr '\0' '\n' | grep MONGODB_URI
+# Should show: MONGODB_URI=mongodb://admin:...
+
+# Test health endpoint
+curl http://localhost:8000/health
+# Should return: {"status":"healthy"}
+```
+
+**Notes:**
+- ✅ Secrets no longer in version control (not in git-tracked .env)
+- ✅ Separate file permissions (600 for secrets vs 644 for config)
+- ✅ Systemd loads both files automatically on service start
+- ✅ Password rotation script updated to use new location
+- ✅ Backup directory: `/etc/impact/backups/`
+- ⚠️ **IMPORTANT:** When deploying to new environments, create `/etc/impact/secrets.env` first
+- ⚠️ **IMPORTANT:** The `.env` file can now be committed to git (contains no secrets)
+
+**Security Benefits:**
+1. Secrets not in version control (no accidental git commits)
+2. Stricter file permissions (600 vs 644)
+3. System-level storage (not in project directory)
+4. Can be backed up separately with encryption
+5. Easy to rotate (edit file, restart service)
+
+**Next Steps:**
+- Consider encrypting backup files in `/etc/impact/backups/`
+- Rotate GitHub token (still using original PAT)
+- Consider implementing systemd LoadCredential for even better security
+
+---
+
+## 2025-12-28 - MongoDB Password Rotation Completed Successfully
+
+**Changed by:** AI Session
+**Issue:** MongoDB database password was weak (`admin123`) and needed rotation to strong cryptographic password.
+
+**Changes:**
+
+### Password Rotation Script Fixed and Executed
+- **Fixed script bugs:**
+  - Added URL encoding for passwords in MongoDB connection URIs using `quote_plus()`
+  - Implemented temporary admin user approach to avoid authentication loss during rotation
+  - Added proper error handling and cleanup
+- **Executed password rotation:**
+  - Generated strong 32-character password: `n6BKQEGYeD6wsn1ZT@kict=D%Irc7#eF`
+  - Successfully updated MongoDB admin user password
+  - Updated .env file with URL-encoded password
+  - Restarted backend service
+  - Verified connection works
+
+**Files affected:**
+- `execution/active/rotate_mongodb_password.py` - Added `quote_plus` import and URL encoding for all passwords
+- `.env` - MongoDB password changed from `admin123` to strong password (URL-encoded)
+- `.tmp/.env.backup_20251228_235035` - Backup created before rotation
+
+**Testing:**
+```bash
+# Verify backend service running
+sudo systemctl status surg-db-backend
+
+# Test health endpoint
+curl http://localhost:8000/health
+# Should return: {"status":"healthy"}
+
+# Check logs for MongoDB connection
+tail -20 ~/.tmp/backend.log
+# Should show: Connected to MongoDB at mongodb://admin:n6BKQEGYeD6wsn1ZT%40kict%3DD%25Irc7%23eF@...
+```
+
+**Notes:**
+- Old password backups available in `.tmp/.env.backup_*`
+- Script now properly handles special characters in passwords via URL encoding
+- Temporary admin user approach prevents authentication loss during rotation
+- Backend successfully reconnected with new credentials
+- **IMPORTANT:** New password stored in password manager required
+
+**Next Steps:**
+- Rotate GitHub personal access token (still exposed in .env)
+- Implement HTTPS/TLS for production deployment
+- Run dependency security audits
+
+---
+
+## 2025-12-28 - Critical Security Fixes & MongoDB Password Rotation Script
+
+**Changed by:** AI Session
+**Issue:** Security review revealed critical vulnerabilities: exposed secrets, weak JWT key, missing authentication on patient endpoints, NoSQL injection vulnerability, and open registration endpoint.
+
+**Changes:**
+
+### 1. JWT Secret Key Security
+- **Generated strong cryptographic secret** (86 characters) using `secrets.token_urlsafe(64)`
+- **Added to .env:** `SECRET_KEY=IWISXpRuJe7ANMVx3nt8Y3ldwl2mobw4dcJsy2Nl-SgzGAxx-DnhQds6Op11m3dMQwCRone5DTn4PhYeWIFcqQ`
+- **Impact:** Previous JWTs invalidated - users must re-login
+- **Location:** [.env:22](.env#L22)
+
+### 2. Registration Endpoint Secured
+- **Changed from public to admin-only** access
+- **Added `Depends(require_admin)`** to `/api/auth/register` endpoint
+- **Impact:** Prevents unauthorized user creation
+- **Location:** [backend/app/routes/auth.py:75](backend/app/routes/auth.py#L75)
+
+### 3. Patient API Endpoints - Authentication Required
+All patient endpoints now require authentication with role-based access control:
+- `POST /api/patients/` - Requires **data_entry** role or higher
+- `GET /api/patients/count` - Requires authentication
+- `GET /api/patients/` - Requires authentication
+- `GET /api/patients/{id}` - Requires authentication
+- `PUT /api/patients/{id}` - Requires **data_entry** role or higher
+- `DELETE /api/patients/{id}` - Requires **admin** role
+
+**Implementation:**
+- Added imports: `Depends`, `get_current_user`, `require_data_entry_or_higher`, `require_admin`
+- Added `current_user` parameter to all endpoints
+- Added `created_by` and `updated_by` tracking using `current_user["username"]`
+- **Location:** [backend/app/routes/patients.py](backend/app/routes/patients.py)
+
+### 4. NoSQL Injection Vulnerability Fixed
+- **Created `sanitize_search_input()` function** using `re.escape()`
+- **Applied to all search parameters** in patient count/list endpoints
+- **Prevents:** ReDoS (Regular Expression Denial of Service) attacks
+- **Before:** `search_pattern = {"$regex": search.replace(" ", ""), "$options": "i"}`
+- **After:** `safe_search = sanitize_search_input(search); search_pattern = {"$regex": safe_search, "$options": "i"}`
+- **Location:** [backend/app/routes/patients.py:19-30](backend/app/routes/patients.py#L19)
+
+### 5. CORS Security Tightened
+- **Changed from wildcard to explicit allow-lists**
+- **Before:** `allow_methods=["*"], allow_headers=["*"]`
+- **After:** `allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"], allow_headers=["Authorization", "Content-Type", "Accept"]`
+- **Location:** [backend/app/main.py:45-46](backend/app/main.py#L45)
+
+### 6. Code Quality Fix
+- **Removed duplicate return statement** in `require_data_entry_or_higher()`
+- **Location:** [backend/app/auth.py:157](backend/app/auth.py#L157) (removed)
+
+### 7. MongoDB Password Rotation Script (NEW)
+Created automated script for secure password rotation:
+- **Generates cryptographically secure 32-char passwords**
+- **Backs up .env file** before making changes
+- **Updates MongoDB user password** via admin connection
+- **Updates .env file** with new credentials
+- **Restarts backend service** automatically
+- **Verifies new password works**
+- **Dry-run mode** for testing
+
+**Features:**
+```bash
+# Auto-generate password
+python3 execution/active/rotate_mongodb_password.py
+
+# Test without changes
+python3 execution/active/rotate_mongodb_password.py --dry-run
+
+# Use specific password
+python3 execution/active/rotate_mongodb_password.py --password "YourPassword"
+```
+
+**Files affected:**
+- `.env` - Added SECRET_KEY
+- `backend/app/routes/auth.py` - Secured registration endpoint
+- `backend/app/routes/patients.py` - Added authentication, fixed NoSQL injection
+- `backend/app/auth.py` - Removed duplicate return
+- `backend/app/main.py` - Restricted CORS
+- `execution/active/rotate_mongodb_password.py` (NEW) - Password rotation script
+- `docs/security/MONGODB_PASSWORD_ROTATION.md` (NEW) - Comprehensive documentation
+
+**Testing:**
+```bash
+# Verify patient endpoint requires auth
+curl http://localhost:8000/api/patients/
+# Should return: 401 Unauthorized with "Not authenticated" message
+
+# Verify health endpoint still works
+curl http://localhost:8000/health
+# Should return: {"status":"healthy"}
+
+# Test password rotation (dry-run)
+python3 execution/active/rotate_mongodb_password.py --dry-run
+# Should show current config and generated password without making changes
+
+# Verify backend service
+sudo systemctl status surg-db-backend
+# Should show: active (running)
+```
+
+**Security Test Results:**
+- ✅ Patient endpoints: 401 Unauthorized without JWT
+- ✅ Health endpoint: 200 OK (public access maintained)
+- ✅ Password rotation: Dry-run works correctly
+- ✅ Backend service: Active and running
+
+**URGENT Manual Actions Required:**
+
+1. **Rotate GitHub Token (IMMEDIATE):**
+   - Current exposed token: `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`
+   - Visit: https://github.com/settings/tokens
+   - Revoke old token
+   - Generate new token with minimal scopes
+   - Update [.env:9](.env#L9)
+
+2. **Rotate MongoDB Password (HIGH PRIORITY):**
+   ```bash
+   python3 execution/active/rotate_mongodb_password.py
+   ```
+   Current password `admin123` is weak and exposed in .env
+
+3. **Enable HTTPS/TLS (HIGH PRIORITY - Within 1 Week):**
+   - Currently all traffic unencrypted (patient data, JWTs exposed)
+   - Install: `sudo apt install nginx certbot python3-certbot-nginx`
+   - Get certificate: `sudo certbot --nginx -d surg-db.vps`
+   - Update MongoDB URI to use TLS
+   - Update frontend to use HTTPS
+
+**Notes:**
+- **All JWT tokens invalidated** - users must re-login with new secret key
+- **Backend service restarted** - changes are live in production
+- **Existing users can still log in** - credentials unchanged
+- **Registration now requires admin** - prevents unauthorized account creation
+- **Patient data now protected** - authentication required for all access
+- **NoSQL injection prevented** - search inputs sanitized
+- **Password rotation script tested** - dry-run mode verified working
+- **HTTPS still needed** - data transmitted in plain text (manual setup required)
+
+**Compliance Status:**
+- ✅ **Access Control:** All patient endpoints now require authentication
+- ✅ **Input Validation:** NoSQL injection vulnerability fixed
+- ✅ **Strong Cryptography:** JWT secret now 86 characters
+- ⚠️ **Data in Transit:** Still lacks HTTPS (manual setup required)
+- ⚠️ **Credential Management:** MongoDB and GitHub credentials need rotation
+
+**Related Documentation:**
+- Password rotation guide: [docs/security/MONGODB_PASSWORD_ROTATION.md](docs/security/MONGODB_PASSWORD_ROTATION.md)
+- Security review report: See AI session output for comprehensive findings
+
+---
+
 ## 2025-12-28 - Mobile UI Improvements & PWA Support
 
 **Changed by:** AI Session

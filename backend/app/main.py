@@ -36,14 +36,14 @@ app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 # Request logging middleware (add first to log all requests)
 app.add_middleware(RequestLoggingMiddleware)
 
-# CORS middleware
+# CORS middleware - restricted to specific methods and headers for security
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
     allow_origin_regex=settings.cors_origin_regex,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
 )
 
 # Include routers

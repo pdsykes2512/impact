@@ -10,6 +10,7 @@ from ..auth import (
     create_access_token,
     get_password_hash,
     get_current_user,
+    require_admin,
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
 from ..middleware import limiter, AUTH_LIMIT
@@ -72,11 +73,12 @@ async def get_current_user_info(current_user: dict = Depends(get_current_user)):
 async def register(
     request: Request,
     user_data: UserCreate,
+    current_user: dict = Depends(require_admin),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """
-    Register a new user (open endpoint - in production, restrict this or remove it)
-    
+    Register a new user (ADMIN ONLY - requires authentication)
+
     - **email**: Valid email address
     - **password**: Minimum 8 characters
     - **full_name**: User's full name

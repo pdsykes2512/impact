@@ -154,4 +154,3 @@ def require_data_entry_or_higher(current_user: dict = Depends(get_current_user))
             detail="Data entry access or higher required"
         )
     return current_user
-    return current_user

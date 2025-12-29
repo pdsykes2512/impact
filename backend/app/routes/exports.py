@@ -9,6 +9,7 @@ from xml.dom import minidom
 from ..database import get_database
 from ..models.user import User
 from ..auth import get_current_user, require_admin
+from ..utils.encryption import decrypt_document
 
 router = APIRouter(prefix="/api/admin/exports", tags=["Admin - Exports"])
 
@@ -436,8 +437,11 @@ async def export_nboca_xml(
         patient = await db.patients.find_one({"patient_id": episode["patient_id"]})
         if not patient:
             continue
-        
+
         patient["_id"] = str(patient["_id"])
+
+        # Decrypt sensitive fields (NHS number, MRN, postcode, DOB) for export
+        patient = decrypt_document(patient)
         
         # Fetch treatments and tumours from separate collections using episode_id (not _id)
         episode_id = episode.get("episode_id") or str(episode["_id"])
@@ -515,7 +519,10 @@ async def check_data_completeness(
         patient = await db.patients.find_one({"record_number": episode["patient_id"]})
         if not patient:
             continue
-        
+
+        # Decrypt sensitive fields for validation
+        patient = decrypt_document(patient)
+
         # Check patient demographics
         if patient.get("nhs_number"):
             completeness["patient_demographics"]["nhs_number"] += 1
@@ -644,11 +651,14 @@ async def validate_nboca_submission(
         tumours = await tumours_cursor.to_list(length=None)
         treatments_cursor = db.treatments.find({"episode_id": episode_id})
         treatments = await treatments_cursor.to_list(length=None)
-        
+
         # === PATIENT VALIDATION ===
         if not patient:
             episode_validation["errors"].append("Patient record not found")
         else:
+            # Decrypt sensitive fields for validation
+            patient = decrypt_document(patient)
+
             demographics = patient.get("demographics", {})
             
             # NHS Number
