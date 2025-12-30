@@ -13,9 +13,6 @@ interface Patient {
     gender: string;
     ethnicity?: string;
     postcode?: string;
-    bmi?: number;
-    weight_kg?: number;
-    height_cm?: number;
     deceased_date?: string;
   };
   medical_history?: {
@@ -38,10 +35,7 @@ interface PatientFormData {
     gender: string;
     ethnicity?: string;
     postcode?: string;
-    bmi?: number;
-    weight_kg?: number;
     deceased_date?: string;
-    height_cm?: number;
   };
   medical_history: {
     conditions: string[];
@@ -89,31 +83,6 @@ export function PatientModal({ patient, onClose, onSubmit, onDelete, loading = f
   });
   const [validationError, setValidationError] = useState<string>('');
 
-  // Auto-calculate BMI when height or weight changes (only if both are present)
-  useEffect(() => {
-    const weight = formData.demographics.weight_kg;
-    const height_cm = formData.demographics.height_cm;
-
-    if (weight && height_cm) {
-      // BMI = weight (kg) / height (m)²
-      const height_m = height_cm / 100;
-      const bmi = weight / (height_m * height_m);
-
-      // Update BMI if it's different (avoid infinite loops)
-      const roundedBmi = Math.round(bmi * 10) / 10; // Round to 1 decimal place
-      if (formData.demographics.bmi !== roundedBmi) {
-        setFormData(prev => ({
-          ...prev,
-          demographics: {
-            ...prev.demographics,
-            bmi: roundedBmi
-          }
-        }));
-      }
-    }
-    // Note: Do NOT clear BMI when height/weight are missing - allow manual entry
-  }, [formData.demographics.weight_kg, formData.demographics.height_cm]);
-
   useEffect(() => {
     if (patient) {
       setFormData({
@@ -125,9 +94,6 @@ export function PatientModal({ patient, onClose, onSubmit, onDelete, loading = f
           gender: patient.demographics.gender,
           ethnicity: patient.demographics.ethnicity || '',
           postcode: patient.demographics.postcode || '',
-          bmi: patient.demographics.bmi,
-          weight_kg: patient.demographics.weight_kg,
-          height_cm: patient.demographics.height_cm,
           deceased_date: patient.demographics.deceased_date || '',
         },
         medical_history: patient.medical_history || {
@@ -386,67 +352,6 @@ export function PatientModal({ patient, onClose, onSubmit, onDelete, loading = f
                     </optgroup>
                     <option value="Prefer not to say">Prefer not to say</option>
                   </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Physical Measurements */}
-            <div className="mb-6">
-              <h3 className="text-lg font-medium mb-3 text-gray-700">Physical Measurements</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Weight (kg)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="20"
-                    max="300"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={formData.demographics.weight_kg || ''}
-                    onChange={(e) => handleInputChange('demographics.weight_kg', e.target.value ? parseFloat(e.target.value) : undefined)}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Height (m)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="1.0"
-                    max="2.5"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={formData.demographics.height_cm ? (formData.demographics.height_cm / 100).toFixed(2) : ''}
-                    onChange={(e) => {
-                      const meters = e.target.value ? parseFloat(e.target.value) : undefined
-                      const cm = meters ? meters * 100 : undefined
-                      handleInputChange('demographics.height_cm', cm)
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    BMI {formData.demographics.weight_kg && formData.demographics.height_cm ? '(auto-calculated)' : ''}
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="10"
-                    max="80"
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-md ${
-                      formData.demographics.weight_kg && formData.demographics.height_cm
-                        ? 'bg-gray-50 cursor-not-allowed'
-                        : 'focus:outline-none focus:ring-2 focus:ring-blue-500'
-                    }`}
-                    value={formData.demographics.bmi || ''}
-                    onChange={(e) => handleInputChange('demographics.bmi', e.target.value ? parseFloat(e.target.value) : undefined)}
-                    readOnly={!!(formData.demographics.weight_kg && formData.demographics.height_cm)}
-                    disabled={!!(formData.demographics.weight_kg && formData.demographics.height_cm)}
-                  />
                 </div>
               </div>
             </div>

@@ -15,6 +15,62 @@ This file tracks significant changes made to the IMPACT application (formerly su
 
 ---
 
+## 2025-12-30 - Moved Vitals Fields from Patient Modal to Treatment Modal
+
+**Changed by:** AI Session (Claude Code) - UI Vitals Migration
+
+**Purpose:**
+Following the data migration that moved height, weight, and BMI from patient demographics to treatment documents, updated the UI to reflect this change by moving these fields from the patient modal to the treatment modal.
+
+**Rationale:**
+Since vitals are now recorded per treatment (not per patient), they should be entered when creating/editing treatments, not when creating/editing patients. This provides a more accurate representation of patient measurements at the time of each surgical procedure.
+
+**Changes:**
+
+### 1. Updated AddTreatmentModal ([frontend/src/components/modals/AddTreatmentModal.tsx](frontend/src/components/modals/AddTreatmentModal.tsx))
+   - Added vitals fields to formData initialization (lines 191-194)
+   - Added vitals to initialData mapping for edit mode (lines 184-186)
+   - Added Patient Vitals section in Step 1 of treatment creation (lines 620-679)
+   - Added auto-calculation of BMI when weight and height entered (lines 312-324)
+   - Included vitals in treatment submission (lines 382-385)
+
+### 2. Removed Vitals from PatientModal ([frontend/src/components/modals/PatientModal.tsx](frontend/src/components/modals/PatientModal.tsx))
+   - Removed height_cm, weight_kg, and bmi from Patient interface
+   - Removed height_cm, weight_kg, and bmi from PatientFormData interface
+   - Removed Physical Measurements section from modal UI
+   - Removed BMI auto-calculation useEffect
+
+### 3. Updated DATABASE_SCHEMA.md ([DATABASE_SCHEMA.md](DATABASE_SCHEMA.md))
+   - Removed height_cm, weight_kg, and bmi from patients collection demographics (lines 59-64)
+   - Added height_cm, weight_kg, and bmi to treatments collection (lines 185-188)
+   - Documented that these fields are "recorded per treatment as they can change"
+
+**Results:**
+- ✅ Patient modal no longer contains vitals fields
+- ✅ Treatment modal now includes vitals fields in Step 1
+- ✅ BMI auto-calculates when height and weight are entered in treatment modal
+- ✅ Database schema documentation accurately reflects the data structure
+- ✅ UI matches the backend data model
+
+**User Experience:**
+- When creating a new patient, users no longer enter height/weight/BMI
+- When creating a new treatment, users can optionally enter current height/weight/BMI
+- BMI automatically calculates when both height and weight are provided
+- Vitals are displayed in the treatment summary, not patient demographics
+
+**Files Modified:**
+- `frontend/src/components/modals/AddTreatmentModal.tsx` - Added vitals fields
+- `frontend/src/components/modals/PatientModal.tsx` - Removed vitals fields
+- `DATABASE_SCHEMA.md` - Updated schema documentation
+
+**Technical Notes:**
+- Vitals are stored at treatment level for longitudinal tracking
+- Frontend automatically restarts to apply changes
+- Backward compatibility maintained - existing patient records without treatment vitals still work
+- BMI calculation formula: weight(kg) / (height(m))²
+
+---
+
 ## 2025-12-30 - Moved Height, Weight, and BMI to Treatment Documents
 
 **Changed by:** AI Session (Claude Code) - Vitals Migration

@@ -179,7 +179,11 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
         blood_loss_ml: initialData.blood_loss_ml ? String(initialData.blood_loss_ml) : '',
         units_transfused: initialData.units_transfused ? String(initialData.units_transfused) : '',
         anesthesia_duration_minutes: initialData.anesthesia_duration_minutes ? String(initialData.anesthesia_duration_minutes) : '',
-        operation_duration_minutes: initialData.operation_duration_minutes ? String(initialData.operation_duration_minutes) : ''
+        operation_duration_minutes: initialData.operation_duration_minutes ? String(initialData.operation_duration_minutes) : '',
+        // Patient vitals
+        height_cm: initialData.height_cm ? String(initialData.height_cm) : '',
+        weight_kg: initialData.weight_kg ? String(initialData.weight_kg) : '',
+        bmi: initialData.bmi ? String(initialData.bmi) : ''
       }
     }
     return {
@@ -187,7 +191,12 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
     treatment_type: 'surgery',
     treatment_date: new Date().toISOString().split('T')[0],
     provider_organisation: 'RHU',
-    
+
+    // Patient vitals at time of treatment
+    height_cm: '',
+    weight_kg: '',
+    bmi: '',
+
     // Surgery fields - comprehensive
     procedure_name: '',
     opcs4_code: '',
@@ -299,7 +308,21 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
       setFormData((prev: any) => ({ ...prev, treatment_id: newTreatmentId }))
     }
   }, [patientNhsNumber, treatmentCount, mode, treatmentType])
-  
+
+  // Auto-calculate BMI when weight and height are entered
+  useEffect(() => {
+    const weight = parseFloat(formData.weight_kg)
+    const heightCm = parseFloat(formData.height_cm)
+
+    if (weight && heightCm && weight > 0 && heightCm > 0) {
+      const heightM = heightCm / 100
+      const calculatedBmi = (weight / (heightM * heightM)).toFixed(1)
+      if (formData.bmi !== calculatedBmi) {
+        setFormData((prev: any) => ({ ...prev, bmi: calculatedBmi }))
+      }
+    }
+  }, [formData.weight_kg, formData.height_cm])
+
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -369,6 +392,11 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
       provider_organisation: formData.provider_organisation || undefined,
       notes: formData.notes
     }
+
+    // Add patient vitals if provided
+    if (formData.height_cm) treatment.height_cm = parseFloat(formData.height_cm)
+    if (formData.weight_kg) treatment.weight_kg = parseFloat(formData.weight_kg)
+    if (formData.bmi) treatment.bmi = parseFloat(formData.bmi)
 
     if (treatmentType === 'surgery') {
       // Procedure details
@@ -606,6 +634,67 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                   placeholder="Search NHS Trust..."
                 />
                 <p className="mt-1 text-xs text-gray-500">NBOCA (CR1450) - NHS Trust Code where treatment provided</p>
+              </div>
+
+              {/* Patient Vitals at Time of Treatment */}
+              <div>
+                <h3 className="text-lg font-medium mb-3 text-gray-700">Patient Vitals at Time of Treatment</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Weight (kg)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="20"
+                      max="300"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={formData.weight_kg || ''}
+                      onChange={(e) => updateFormData({ weight_kg: e.target.value })}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Height (m)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="1.0"
+                      max="2.5"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={formData.height_cm ? (parseFloat(formData.height_cm) / 100).toFixed(2) : ''}
+                      onChange={(e) => {
+                        const meters = e.target.value ? parseFloat(e.target.value) : ''
+                        const cm = meters ? meters * 100 : ''
+                        updateFormData({ height_cm: cm ? String(cm) : '' })
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      BMI {formData.weight_kg && formData.height_cm ? '(auto-calculated)' : ''}
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="10"
+                      max="80"
+                      className={`w-full px-3 py-2 border border-gray-300 rounded-md ${
+                        formData.weight_kg && formData.height_cm
+                          ? 'bg-gray-50 cursor-not-allowed'
+                          : 'focus:outline-none focus:ring-2 focus:ring-blue-500'
+                      }`}
+                      value={formData.bmi || ''}
+                      onChange={(e) => updateFormData({ bmi: e.target.value })}
+                      readOnly={!!(formData.weight_kg && formData.height_cm)}
+                      disabled={!!(formData.weight_kg && formData.height_cm)}
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Surgery-Specific Fields */}

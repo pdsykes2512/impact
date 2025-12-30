@@ -61,10 +61,7 @@ Patient (1) ──► Episode (N) ──► Treatment (N)
         "age": int | null,               # 0-150
         "gender": str,                    # Required, min 1 char
         "ethnicity": str | null,
-        "postcode": str | null,          # UK postcode
-        "bmi": float | null,             # 0-100
-        "weight_kg": float | null,       # 0-500
-        "height_cm": float | null        # 0-300
+        "postcode": str | null           # UK postcode
     },
     "medical_history": {
         "conditions": [str],             # List of medical conditions
@@ -184,6 +181,11 @@ Patient (1) ──► Episode (N) ──► Treatment (N)
 
     # Provider
     "provider_organisation": str | null,  # CR1450: NHS Trust code
+
+    # Patient Vitals at Time of Treatment
+    "height_cm": float | null,           # Patient height in cm (0-300) - recorded per treatment as it can change
+    "weight_kg": float | null,           # Patient weight in kg (0-500) - recorded per treatment as it can change
+    "bmi": float | null,                 # Body Mass Index (0-100) - recorded per treatment as it can change
 
     # Classification
     "classification": {
