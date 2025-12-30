@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { Button } from '../common/Button'
+import { useModalShortcuts } from '../../hooks/useModalShortcuts'
 
 interface Patient {
   _id: string;
@@ -82,6 +83,26 @@ export function PatientModal({ patient, onClose, onSubmit, onDelete, loading = f
     },
   });
   const [validationError, setValidationError] = useState<string>('');
+
+  // Keyboard shortcuts: Escape to close, Cmd/Ctrl+Enter to submit
+  useModalShortcuts({
+    onClose,
+    onSubmit: () => {
+      // Validate before submit
+      const hasMRN = formData.mrn && formData.mrn.trim().length > 0;
+      const hasNHS = formData.nhs_number && formData.nhs_number.replace(/\s/g, '').length === 10;
+
+      if (!hasMRN && !hasNHS) {
+        setValidationError('At least one of MRN or NHS Number must be provided');
+        return;
+      }
+
+      setValidationError('');
+      onSubmit(formData);
+    },
+    isOpen: true,
+    canSubmit: !loading
+  });
 
   useEffect(() => {
     if (patient) {

@@ -1,3 +1,5 @@
+import { useModalShortcuts } from '../../hooks/useModalShortcuts'
+
 interface EpisodeDetailModalProps {
   episode: any
   onClose: () => void
@@ -5,6 +7,12 @@ interface EpisodeDetailModalProps {
 }
 
 export function EpisodeDetailModal({ episode, onClose, onEdit }: EpisodeDetailModalProps) {
+  // Keyboard shortcuts: Escape to close (view-only modal)
+  useModalShortcuts({
+    onClose,
+    isOpen: true
+  })
+
   if (!episode) return null
 
   const formatDate = (dateStr: string) => {

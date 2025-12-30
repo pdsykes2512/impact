@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useModalShortcuts } from '../../hooks/useModalShortcuts'
 import { Button } from '../common/Button'
 import { DateInput } from '../common/DateInput'
 import { SurgeonSearch } from '../search/SurgeonSearch'
@@ -352,6 +353,18 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
 
   // Step navigation
   const totalSteps = treatmentType === 'surgery' ? 4 : 2
+
+  // Keyboard shortcuts: Escape to close, Cmd/Ctrl+Enter to submit (only on final step)
+  useModalShortcuts({
+    onClose: onCancel,
+    onSubmit: currentStep === totalSteps ? () => {
+      const fakeEvent = { preventDefault: () => {}, stopPropagation: () => {} } as React.FormEvent
+      handleSubmit(fakeEvent, true)
+    } : undefined,
+    isOpen: true,
+    canSubmit: currentStep === totalSteps
+  })
+
   const nextStep = (e?: React.MouseEvent) => {
     e?.preventDefault()
     e?.stopPropagation()
@@ -701,70 +714,86 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
               {treatmentType === 'surgery' && (
                 <>
               {/* Procedure Details */}
-              <div className="relative">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Primary Procedure (OPCS-4) *
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={procedureSearch}
-                    onChange={(e) => {
-                      setProcedureSearch(e.target.value)
-                      setShowProcedureDropdown(true)
-                    }}
-                    onFocus={() => setShowProcedureDropdown(true)}
-                    placeholder="Type to search procedures..."
-                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 ${procedureSearch ? 'pr-10' : ''}`}
-                    required
-                  />
-                  {procedureSearch && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setProcedureSearch('')
-                        updateFormData({ procedure_name: '', opcs4_code: '' })
-                        setShowProcedureDropdown(false)
+              <div className="grid grid-cols-3 gap-4">
+                <div className="col-span-2 relative">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Primary Procedure (OPCS-4) *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={procedureSearch}
+                      onChange={(e) => {
+                        setProcedureSearch(e.target.value)
+                        setShowProcedureDropdown(true)
                       }}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                      aria-label="Clear procedure"
-                    >
-                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  )}
-                </div>
-                {showProcedureDropdown && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                    {OPCS4_PROCEDURES.filter(proc =>
-                      proc.name.toLowerCase().includes(procedureSearch.toLowerCase()) ||
-                      proc.code.toLowerCase().includes(procedureSearch.toLowerCase())
-                    ).slice(0, 50).map((proc) => (
+                      onFocus={() => setShowProcedureDropdown(true)}
+                      placeholder="Type to search procedures..."
+                      className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 ${procedureSearch ? 'pr-10' : ''}`}
+                      required
+                    />
+                    {procedureSearch && (
                       <button
-                        key={proc.code}
                         type="button"
                         onClick={() => {
-                          updateFormData({
-                            procedure_name: proc.name,
-                            opcs4_code: proc.code
-                          })
-                          setProcedureSearch(`${proc.code} - ${proc.name}`)
+                          setProcedureSearch('')
+                          updateFormData({ procedure_name: '', opcs4_code: '' })
                           setShowProcedureDropdown(false)
                         }}
-                        className="w-full px-3 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                        aria-label="Clear procedure"
                       >
-                        <span className="font-medium text-blue-600">{proc.code}</span> - {proc.name}
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
                       </button>
-                    ))}
-                    {OPCS4_PROCEDURES.filter(proc =>
-                      proc.name.toLowerCase().includes(procedureSearch.toLowerCase()) ||
-                      proc.code.toLowerCase().includes(procedureSearch.toLowerCase())
-                    ).length === 0 && (
-                      <div className="px-3 py-2 text-gray-500 text-sm">No matching procedures</div>
                     )}
                   </div>
-                )}
+                  {showProcedureDropdown && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                      {OPCS4_PROCEDURES.filter(proc =>
+                        proc.name.toLowerCase().includes(procedureSearch.toLowerCase()) ||
+                        proc.code.toLowerCase().includes(procedureSearch.toLowerCase())
+                      ).slice(0, 50).map((proc) => (
+                        <button
+                          key={proc.code}
+                          type="button"
+                          onClick={() => {
+                            updateFormData({
+                              procedure_name: proc.name,
+                              opcs4_code: proc.code
+                            })
+                            setProcedureSearch(`${proc.code} - ${proc.name}`)
+                            setShowProcedureDropdown(false)
+                          }}
+                          className="w-full px-3 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                        >
+                          <span className="font-medium text-blue-600">{proc.code}</span> - {proc.name}
+                        </button>
+                      ))}
+                      {OPCS4_PROCEDURES.filter(proc =>
+                        proc.name.toLowerCase().includes(procedureSearch.toLowerCase()) ||
+                        proc.code.toLowerCase().includes(procedureSearch.toLowerCase())
+                      ).length === 0 && (
+                        <div className="px-3 py-2 text-gray-500 text-sm">No matching procedures</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    OPCS-4 Code
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.opcs4_code}
+                    disabled
+                    readOnly
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 font-medium"
+                    placeholder="Auto-filled"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">Auto-populated from procedure selection</p>
+                </div>
               </div>
 
               {/* Classification */}

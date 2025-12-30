@@ -1,5 +1,6 @@
 import { capitalize, formatAnatomicalSite, formatClinicalTNM, formatPathologicalTNM } from '../../utils/formatters'
 import { calculateStage, formatStage } from '../../utils/cancerStaging'
+import { useModalShortcuts } from '../../hooks/useModalShortcuts'
 import { Button } from '../common/Button'
 
 interface TumourSummaryModalProps {
@@ -9,6 +10,12 @@ interface TumourSummaryModalProps {
 }
 
 export function TumourSummaryModal({ tumour, onClose, onEdit }: TumourSummaryModalProps) {
+  // Keyboard shortcuts: Escape to close (view-only modal)
+  useModalShortcuts({
+    onClose,
+    isOpen: true
+  })
+
   if (!tumour) return null
 
   const getTumourTypeColor = (type: string) => {

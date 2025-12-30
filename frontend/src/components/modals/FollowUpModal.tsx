@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useModalShortcuts } from '../../hooks/useModalShortcuts'
 import { Button } from '../common/Button'
 import { DateInput } from '../common/DateInput'
 import { SurgeonSearch } from '../search/SurgeonSearch'
@@ -56,6 +57,16 @@ export function FollowUpModal({ episodeId, patientId, onSubmit, onCancel, mode =
   })
 
   const [investigationInput, setInvestigationInput] = useState('')
+
+  // Keyboard shortcuts: Escape to close, Cmd/Ctrl+Enter to submit
+  useModalShortcuts({
+    onClose: onCancel,
+    onSubmit: () => {
+      const fakeEvent = { preventDefault: () => {} } as React.FormEvent
+      handleSubmit(fakeEvent)
+    },
+    isOpen: true
+  })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

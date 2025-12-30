@@ -15,6 +15,874 @@ This file tracks significant changes made to the IMPACT application (formerly su
 
 ---
 
+## 2025-12-30 - Implemented Comprehensive Keyboard Shortcuts System
+
+**Changed by:** AI Session (Claude Code)
+
+**Issue:** Application had no keyboard shortcuts, requiring mouse for all navigation and actions. This slowed down data entry workflows and reduced accessibility for keyboard-only users.
+
+**Changes:**
+
+### 1. Core Infrastructure
+- Installed `react-hotkeys-hook` library (7.4KB) for cross-platform keyboard shortcut handling
+- Created three reusable hooks:
+  - `useModalShortcuts.ts` - Escape to close, Cmd/Ctrl+Enter to submit
+  - `useKeyboardShortcuts.ts` - Global navigation shortcuts (Cmd+1-4)
+  - Platform-aware key handling (⌘ on Mac, Ctrl on Windows/Linux)
+
+### 2. Modal Shortcuts (10 modals)
+All modals now support:
+- **Escape** → Close modal
+- **Cmd/Ctrl+Enter** → Submit/Save form
+
+Modified modals:
+- `PatientModal.tsx` - Patient data entry
+- `AddTreatmentModal.tsx` - Multi-step treatment form (Cmd+Enter only on final step)
+- `TumourModal.tsx` - Tumour details
+- `InvestigationModal.tsx` - Investigation records
+- `FollowUpModal.tsx` - Follow-up appointments
+- `CancerEpisodeDetailModal.tsx` - Episode details (view mode)
+- `EpisodeDetailModal.tsx` - Episode summary (view mode)
+- `TreatmentSummaryModal.tsx` - Treatment summary (view mode)
+- `TumourSummaryModal.tsx` - Tumour summary (view mode)
+- `CancerEpisodeForm.tsx` - Cancer episode creation (multi-step)
+
+### 3. Global Navigation
+- **?** (Shift+/) → Opens Help Dialog showing all shortcuts
+- **Cmd/Ctrl+1** → Navigate to Dashboard
+- **Cmd/Ctrl+2** → Navigate to Patients page
+- **Cmd/Ctrl+3** → Navigate to Episodes page
+- **Cmd/Ctrl+4** → Navigate to Reports page
+
+### 4. Page-Specific Shortcuts
+**Patients Page:**
+- **Cmd/Ctrl+K** → Focus search input
+- **Cmd/Ctrl+Shift+P** → Open Add Patient modal
+
+**Episodes Page:**
+- **Cmd/Ctrl+K** → Focus search input
+- **Cmd/Ctrl+Shift+E** → Open Add Episode modal
+
+### 5. Help Dialog
+- Created comprehensive keyboard shortcuts reference
+- Platform-aware display (shows ⌘ on Mac, Ctrl elsewhere)
+- Organized by category: Modal Actions, Quick Actions, Page Navigation, Help
+- Accessible via **?** key from any page
+
+**Files Created:**
+- `frontend/src/hooks/useModalShortcuts.ts` - Modal keyboard handling hook
+- `frontend/src/hooks/useKeyboardShortcuts.ts` - Global navigation shortcuts hook
+- `frontend/src/components/modals/HelpDialog.tsx` - Keyboard shortcuts reference modal
+
+**Files Modified:**
+- `frontend/src/App.tsx` - Added AppContent wrapper for Router context, Help Dialog integration
+- `frontend/src/pages/PatientsPage.tsx` - Search focus, Add Patient shortcut
+- `frontend/src/pages/EpisodesPage.tsx` - Search focus, Add Episode shortcut
+- `frontend/src/components/modals/PatientModal.tsx` - Escape/Cmd+Enter shortcuts
+- `frontend/src/components/modals/AddTreatmentModal.tsx` - Escape/Cmd+Enter shortcuts (final step only)
+- `frontend/src/components/modals/TumourModal.tsx` - Escape/Cmd+Enter shortcuts
+- `frontend/src/components/modals/InvestigationModal.tsx` - Escape/Cmd+Enter shortcuts
+- `frontend/src/components/modals/FollowUpModal.tsx` - Escape/Cmd+Enter shortcuts
+- `frontend/src/components/modals/CancerEpisodeDetailModal.tsx` - Escape shortcut (view mode)
+- `frontend/src/components/modals/EpisodeDetailModal.tsx` - Escape shortcut (view mode)
+- `frontend/src/components/modals/TreatmentSummaryModal.tsx` - Escape shortcut (view mode)
+- `frontend/src/components/modals/TumourSummaryModal.tsx` - Escape shortcut (view mode)
+- `frontend/src/components/forms/CancerEpisodeForm.tsx` - Escape/Cmd+Enter shortcuts
+
+**Package Dependencies:**
+- Added `react-hotkeys-hook` (v4.5.1) to `package.json`
+
+**Testing:**
+User should test the following shortcuts:
+
+1. **Global Navigation:**
+   - Press **?** → Help Dialog opens showing all shortcuts
+   - Press **Esc** → Help Dialog closes
+   - Press **Cmd/Ctrl+1** → Navigates to Dashboard
+   - Press **Cmd/Ctrl+2** → Navigates to Patients
+   - Press **Cmd/Ctrl+3** → Navigates to Episodes
+   - Press **Cmd/Ctrl+4** → Navigates to Reports
+
+2. **Patients Page:**
+   - Press **Cmd/Ctrl+K** → Search input receives focus
+   - Press **Cmd/Ctrl+Shift+P** → Add Patient modal opens
+   - In modal: Press **Esc** → Modal closes
+   - Fill form, press **Cmd/Ctrl+Enter** → Form submits
+
+3. **Episodes Page:**
+   - Press **Cmd/Ctrl+K** → Search input receives focus
+   - Press **Cmd/Ctrl+Shift+E** → Add Episode modal opens
+   - In modal: Press **Esc** → Modal closes
+   - Navigate to final step, press **Cmd/Ctrl+Enter** → Form submits
+
+4. **All Modals:**
+   - Open any modal → Press **Esc** → Closes
+   - In edit modals → Press **Cmd/Ctrl+Enter** → Submits
+   - In view modals → Press **Esc** → Closes
+
+**Expected Results:**
+- ✅ All shortcuts work on Mac (Cmd key) and Windows/Linux (Ctrl key)
+- ✅ Shortcuts do not interfere with text input (automatically disabled in form fields)
+- ✅ Help Dialog displays correct platform-specific key symbols
+- ✅ Multi-step modals only submit on final step with Cmd+Enter
+- ✅ Page navigation works from any page except Login
+
+**Notes:**
+- **Architecture Decision:** Used `react-hotkeys-hook` instead of alternatives due to:
+  - Automatic input field exclusion (shortcuts disabled when typing)
+  - Cross-platform modifier key normalization (`mod` → Cmd/Ctrl)
+  - Lightweight (7.4KB vs 45KB for deprecated react-hotkeys)
+  - TypeScript native support
+  - Active maintenance
+
+- **Router Context Fix:** Had to create `AppContent` component wrapper because `useKeyboardShortcuts` uses `useNavigate()` which requires Router context. The hook must be called inside `<Router>`.
+
+- **Multi-Step Modal Handling:** `AddTreatmentModal` and `CancerEpisodeForm` only enable Cmd+Enter submission on the final step to prevent accidental submissions mid-workflow.
+
+- **Accessibility:** Shortcuts automatically respect form inputs - when user is typing in text fields, keyboard shortcuts are disabled. This prevents conflicts and maintains expected typing behavior.
+
+- **Bundle Impact:** Total addition of ~12KB gzipped (<0.5% of typical frontend bundle size).
+
+---
+
+## 2025-12-30 - Keyboard Shortcuts Enhancement: Table Navigation & Visual Hints (Phases 5-6)
+
+**Changed by:** AI Session (Claude Code)
+
+**Issue:** Initial keyboard shortcuts implementation (Phases 1-4) provided navigation and modal shortcuts, but lacked table navigation and visual hints to help users discover the shortcuts.
+
+**Changes:**
+
+### Phase 5: Table Navigation
+Created keyboard shortcuts for navigating data tables without mouse:
+
+**New Hook:**
+- `frontend/src/hooks/useTableNavigation.ts` - Comprehensive table keyboard navigation
+  - **Arrow Up/Down** → Select rows with visual highlight (wraps from top to bottom)
+  - **E** → Edit selected row
+  - **Shift+D** → Delete selected row (opens confirmation)
+  - **[** → Previous page
+  - **]** → Next page
+  - Automatic selection reset on pagination
+  - Disabled when modals are open (respects modal context)
+
+**Modified Pages:**
+- `frontend/src/pages/PatientsPage.tsx` - Added table navigation with blue ring highlight for selected row
+- `frontend/src/pages/EpisodesPage.tsx` - Added table navigation with blue ring highlight for selected row
+- AdminPage skipped (tables don't have edit/delete actions, navigation not beneficial)
+
+**Visual Feedback:**
+- Selected rows show `ring-2 ring-blue-500 bg-blue-50` styling for clear visual indication
+- Selection persists until user navigates or opens a modal
+
+### Phase 6: Visual Hints & Discoverability
+Added visual cues throughout the UI to help users discover keyboard shortcuts:
+
+**1. Button Component Enhancement:**
+- `frontend/src/components/common/Button.tsx` - Added optional `keyboardHint` prop
+  - Displays keyboard shortcut badge on buttons (e.g., "⌘⇧P" or "Ctrl+Shift+P")
+  - Platform-aware display (⌘ symbols on Mac, Ctrl text on Windows/Linux)
+  - Styled as subtle semi-transparent badge with monospace font
+  - Includes `aria-keyshortcuts` attribute for accessibility
+
+**2. Primary Action Buttons:**
+- `frontend/src/pages/PatientsPage.tsx` - "Add Patient" button shows platform-aware hint
+- `frontend/src/pages/EpisodesPage.tsx` - "Cancer Episode" button shows platform-aware hint
+
+**3. Pagination Controls:**
+- `frontend/src/components/common/Pagination.tsx` - Previous/Next buttons show "[" and "]" hints
+  - Helps users discover [ ] shortcuts for table pagination
+  - Consistent with table navigation paradigm
+
+**4. Footer Hint:**
+- `frontend/src/components/layout/Layout.tsx` - Added "Press ? for shortcuts" clickable hint
+  - Always visible in footer on desktop (hidden on mobile)
+  - Clicking the hint opens Help Dialog
+  - Uses kbd styling for visual consistency
+  - Responsive layout with flex-wrap for mobile
+
+**Files Created:**
+- `frontend/src/hooks/useTableNavigation.ts` (~120 lines)
+
+**Files Modified:**
+- `frontend/src/components/common/Button.tsx` - Added keyboardHint prop
+- `frontend/src/pages/PatientsPage.tsx` - Table navigation + keyboard hint
+- `frontend/src/pages/EpisodesPage.tsx` - Table navigation + keyboard hint
+- `frontend/src/components/common/Pagination.tsx` - Keyboard hints on prev/next buttons
+- `frontend/src/components/layout/Layout.tsx` - Footer hint
+
+**Complete Keyboard Shortcuts List:**
+Now includes all shortcuts from Phases 1-6:
+
+**Modal Actions:**
+- Escape → Close modal
+- Cmd/Ctrl+Enter → Submit form
+
+**Quick Actions:**
+- Cmd/Ctrl+Shift+P → Add Patient (on Patients page)
+- Cmd/Ctrl+Shift+E → Add Episode (on Episodes page)
+- Cmd/Ctrl+K → Focus search input
+
+**Page Navigation:**
+- Cmd/Ctrl+1 → Dashboard
+- Cmd/Ctrl+2 → Patients
+- Cmd/Ctrl+3 → Episodes
+- Cmd/Ctrl+4 → Reports
+
+**Table Navigation:**
+- ↑ / ↓ → Select row (with visual highlight)
+- E → Edit selected row
+- Shift+D → Delete selected row
+- [ → Previous page
+- ] → Next page
+
+**Help:**
+- ? → Show Help Dialog
+
+**Testing:**
+User should test the new table navigation and visual hints:
+
+1. **Table Navigation - Patients Page:**
+   - Navigate to Patients page
+   - Press **↓** → First patient row highlights with blue ring
+   - Press **↓** multiple times → Selection moves down, wraps to top
+   - Press **↑** → Selection moves up, wraps to bottom
+   - Press **E** → Edit modal opens for selected patient
+   - Press **Esc** → Modal closes
+   - Select a row, press **Shift+D** → Delete confirmation opens
+   - Press **]** → Next page loads, selection resets
+   - Press **[** → Previous page loads
+
+2. **Table Navigation - Episodes Page:**
+   - Navigate to Episodes page
+   - Press **↓** → First episode row highlights
+   - Press **E** → Edit modal opens for selected episode
+   - Press **Shift+D** → Delete confirmation opens
+   - Test **[** and **]** for pagination
+
+3. **Visual Hints:**
+   - Patients page → "Add Patient" button shows "⌘⇧P" or "Ctrl+Shift+P"
+   - Episodes page → "Cancer Episode" button shows "⌘⇧E" or "Ctrl+Shift+E"
+   - Any page with pagination → Previous button shows "[", Next button shows "]"
+   - Footer → "Press ? for shortcuts" hint visible on all pages
+   - Click footer hint → Help Dialog opens
+
+4. **Keyboard Hint Styling:**
+   - Button hints use semi-transparent background that adapts to button color
+   - Monospace font for keyboard symbols
+   - Platform detection works (Mac shows ⌘, Windows/Linux shows Ctrl)
+
+**Expected Results:**
+- ✅ Table navigation works on both Patients and Episodes pages
+- ✅ Selected rows show clear visual highlight (blue ring + light blue background)
+- ✅ Arrow keys wrap around (bottom → top, top → bottom)
+- ✅ Selection resets when changing pages with [ ] or clicking pagination
+- ✅ E and Shift+D only work when a row is selected
+- ✅ All keyboard hints display correctly with platform-aware symbols
+- ✅ Footer hint is clickable and opens Help Dialog
+- ✅ Shortcuts remain disabled when modals are open (no interference)
+
+**Notes:**
+- **AdminPage Excluded:** AdminPage tables don't have row-level edit/delete actions, so table navigation (E, Shift+D) wouldn't provide value. Only pagination shortcuts [ ] would work, but without the full navigation experience, it was deemed not worth adding.
+
+- **Selection State Management:** The useTableNavigation hook manages selectedIndex state internally and provides resetSelection() function. When modals are opened (enabled: false), shortcuts are disabled to prevent conflicts.
+
+- **Visual Accessibility:** Selected row styling uses `ring-2 ring-blue-500 bg-blue-50` which provides:
+  - 2px blue ring outline (WCAG compliant color contrast)
+  - Light blue background tint
+  - Works for both keyboard and visual users
+
+- **Platform Detection:** Uses `navigator.platform.toUpperCase().indexOf('MAC') >= 0` for Mac detection, same pattern as HelpDialog for consistency.
+
+- **Keyboard Hint Design:** The kbd element styling (`bg-white/20 border border-white/30`) creates a subtle glass-morphism effect that works on both light and dark button backgrounds.
+
+- **User Discoverability:** With visual hints on buttons, pagination controls, and footer, users can now discover shortcuts through:
+  1. Visual cues (hints on buttons/pagination)
+  2. Footer reminder (always visible)
+  3. Help Dialog (? key)
+  4. Tooltips (aria-keyshortcuts for screen readers)
+
+---
+
+## 2025-12-30 - Fixed Postcode Field Path in Export Validation Endpoints
+
+**Changed by:** AI Session (Claude Code)
+
+**Issue:** The "Validate COSD Data" and "Check Data Completeness" buttons in Admin Exports section were incorrectly checking `contact.postcode` instead of `demographics.postcode`, resulting in wrong values (0% postcode completeness when it should be ~100%).
+
+**Root Cause:**
+- Postcodes were migrated from `contact.postcode` to `demographics.postcode` (see earlier migration)
+- Export validation endpoints were not updated to reflect this schema change
+- This caused postcode completeness to show 0% and validation errors for all episodes
+
+**Changes:**
+
+### 1. Fixed Data Completeness Endpoint ([exports.py:553](backend/app/routes/exports.py#L553))
+   - Changed from `contact.get("postcode")` to `demographics.get("postcode")`
+   - Now correctly counts postcodes (7,971 patients with postcodes)
+
+### 2. Fixed COSD XML Export ([exports.py:69-71](backend/app/routes/exports.py#L69-L71))
+   - Changed from `contact.get("postcode")` to `demographics.get("postcode")`
+   - Ensures postcode is included in XML exports for NHS England
+
+### 3. Fixed NBOCA Validator ([exports.py:710](backend/app/routes/exports.py#L710))
+   - Changed from `contact.get("postcode")` to `demographics.get("postcode")`
+   - Validation now correctly identifies missing postcodes
+
+### 4. Added Loading Animations ([AdminPage.tsx:931-992, 1049-1107](frontend/src/pages/AdminPage.tsx))
+   - Added loading state to "Validate COSD Data" button
+   - Added loading state to "Check Data Completeness" button
+   - Shows animated spinner and progress messages during calculation
+   - Buttons disabled while loading to prevent duplicate requests
+
+**Files affected:**
+- `backend/app/routes/exports.py` - Fixed postcode field paths (3 locations)
+- `frontend/src/pages/AdminPage.tsx` - Added loading states and animations
+
+**Testing:**
+User should test both buttons in Admin > Exports section:
+1. Click "📊 Check Data Completeness" - should now show ~100% postcode completeness
+2. Click "🔍 Validate COSD Data" - should not show "Postcode missing" errors for episodes with postcodes
+3. Both buttons should show loading spinner and progress messages
+
+**Expected Results:**
+- ✅ Postcode completeness: ~100% (7,971/~8,000 episodes)
+- ✅ COSD XML exports include postcodes
+- ✅ Validation correctly identifies missing postcodes (only for episodes without postcodes)
+- ✅ Loading animations show progress during calculation
+
+---
+
+## 2025-12-30 - Added impact_system Database to Backup Script
+
+**Changed by:** AI Session (Claude Code)
+
+**Issue:** Daily backup cronjob was only backing up the `impact` database, missing the `impact_system` database which contains users, clinicians, and audit logs.
+
+**Changes:**
+- Modified [backup_database.py](execution/active/backup_database.py:38) to backup both databases
+- Added `DATABASES_TO_BACKUP = [DB_NAME, DB_SYSTEM_NAME]` configuration
+- Updated `get_database_stats()` to gather statistics for multiple databases
+- Modified `backup_with_mongodump()` to loop through and backup each database with `--db` flag
+- Updated `backup_with_pymongo()` fallback method to handle multiple databases
+- Fixed `create_manifest()` to use new multi-database stats structure
+
+**Files affected:**
+- `execution/active/backup_database.py` - Core backup functionality
+
+**Testing:**
+- Ran test backup: `python3 execution/active/backup_database.py --manual --note "Testing dual database backup" --no-encrypt`
+- Verified both databases backed up successfully:
+  - `impact`: 5 collections, 45,983 documents
+  - `impact_system`: 3 collections, 20 documents (users, clinicians, audit_logs)
+- Confirmed manifest.json shows correct multi-database structure
+
+**Notes:**
+- Nightly cronjob (2 AM) will now backup both databases automatically
+- Backup manifest now includes detailed stats for each database
+- Total backup size increased from ~2.3 MB to ~2.4 MB with system database included
+- Both encrypted and unencrypted backup modes tested and working
+
+---
+
+## 2025-12-30 - Deleted impact_test Database
+
+**Changed by:** AI Session (Claude Code)
+
+**Issue:** User requested deletion of the `impact_test` test database as it's no longer needed.
+
+**Changes:**
+- Dropped `impact_test` database from MongoDB
+- All services and scripts now use production `impact` database
+
+**Verification:**
+- Confirmed database was deleted successfully
+- Remaining databases: admin, config, impact (production), impact_system, local, surg_outcomes, surgdb, surgdb_v2
+
+**Notes:**
+- The test database had 5 collections with similar structure to production
+- All backup scripts and services were already updated to use production `impact` database
+- No data loss as production `impact` database remains intact
+
+---
+
+## 2025-12-30 - Fixed TNM Staging Display in Data Quality Report
+
+**Changed by:** AI Session (Claude Code)
+
+**Issue:** TNM staging fields were showing as 0% complete in Data Quality Report, but actually had 58-71% completeness. The report wasn't checking tumour fields at all.
+
+**Root Cause:**
+- TNM staging data is stored in the `tumours` collection with fields: `clinical_t`, `clinical_n`, `clinical_m`, `pathological_t`, `pathological_n`, `pathological_m`
+- Data Quality Report only checked `episodes` and `treatments` collections, skipping tumours entirely
+
+**Changes:**
+- Added tumour field checks to Data Quality Report endpoint
+- Added TNM staging fields: clinical_t, clinical_n, clinical_m, pathological_t, pathological_n, pathological_m
+- Values of "x" (unknown) are excluded from completeness calculations, only actual staging values (0, 1, 2, 3, 4, 4a, 4b) count as complete
+
+**Actual TNM Completeness:**
+```
+Clinical T:     58.54% (4,735/8,088 tumours)
+Clinical N:     58.57% (4,737/8,088)
+Clinical M:     71.54% (5,786/8,088)
+Pathological T: 68.37% (5,530/8,088)
+Pathological N: 65.38% (5,288/8,088)
+Pathological M: 15.28% (1,236/8,088)
+```
+
+**Files affected:**
+- `backend/app/routes/reports.py` (lines 401-440 for Data Quality, lines 511-515 for COSD)
+
+**Testing:**
+```bash
+# Check data quality report
+curl "http://localhost:8000/api/reports/data-quality" | jq '.tumour_fields'
+
+# Check COSD completeness report
+curl "http://localhost:8000/api/reports/cosd-completeness" | jq '.cosd_fields[] | select(.category == "Diagnosis")'
+```
+
+**COSD Report vs Data Quality Report:**
+- **COSD Report**: Counts tumours with either pathological OR clinical staging
+  - T Stage: 85.38% (6,780/7,941 episodes)
+  - N Stage: 82.84% (6,578/7,941)
+  - M Stage: 73.68% (5,851/7,941)
+- **Data Quality Report**: Counts clinical and pathological separately (58-71% for each)
+
+**Notes:**
+- Pathological M staging is lower (15.3%) because many patients don't have distant metastases
+- Clinical staging is performed pre-operatively, pathological staging from surgical specimens
+- TNM staging is a COSD (Cancer Outcomes and Services Dataset) mandatory field
+- COSD report was checking wrong field paths: `staging.t_stage` instead of `clinical_t`/`pathological_t`
+
+---
+
+## 2025-12-30 - Added MDT and Medical Acronyms to Formatter
+
+**Changed by:** AI Session (Claude Code)
+
+**Issue:** "Colorectal mdt" was displaying as "Colorectal Mdt" instead of "Colorectal MDT" in episode summaries. Medical acronyms need to be fully capitalized.
+
+**Changes:**
+- Added centralized `MEDICAL_ACRONYMS` constant with common medical acronyms: MDT, NHS, ICU, HDU, ITU, CT, MRI, PET, etc.
+- Updated `snakeToTitle()` to recognize and preserve acronyms in uppercase
+- Enhanced `formatCodedValue()` to handle space-separated values with acronym awareness
+- Updated `formatInvestigationType()` to use shared acronyms list
+
+**Examples:**
+```typescript
+formatCodedValue('colorectal mdt')      // → 'Colorectal MDT'
+formatCodedValue('colorectal_mdt')      // → 'Colorectal MDT'
+formatCodedValue('nhs hospital')        // → 'NHS Hospital'
+formatCodedValue('icu admission')       // → 'ICU Admission'
+```
+
+**Files affected:**
+- `frontend/src/utils/formatters.ts`
+
+**Testing:**
+- View any episode with "colorectal mdt" - should display as "Colorectal MDT"
+- All existing formatters continue to work correctly
+- Frontend service restarted successfully
+
+---
+
+## 2025-12-30 - Fixed Backup Cronjob Authentication
+
+**Changed by:** AI Session (Claude Code)
+
+**Issue:** Daily backup cronjob was using incorrect database name and missing MongoDB authentication credentials.
+
+**Changes:**
+- Updated [backup_database.py](execution/active/backup_database.py:31-35) to load credentials from `/etc/impact/secrets.env`
+- Fixed default database name from `surgdb` to `impact`
+- Updated `/etc/impact/secrets.env` to use production database: `MONGODB_DB_NAME=impact` (was `impact_test`)
+
+**Before:**
+```python
+# Load environment variables
+load_dotenv()
+
+MONGODB_URI = os.getenv('MONGODB_URI')
+DB_NAME = os.getenv('MONGODB_DB_NAME', 'surgdb')
+```
+
+**After:**
+```python
+# Load environment variables
+load_dotenv('/etc/impact/secrets.env')
+load_dotenv('.env')
+
+MONGODB_URI = os.getenv('MONGODB_URI')
+DB_NAME = os.getenv('MONGODB_DB_NAME', 'impact')
+```
+
+**Files affected:**
+- `execution/active/backup_database.py`
+- `/etc/impact/secrets.env`
+
+**Testing:**
+```bash
+# Manual backup test
+python3 execution/active/backup_database.py --manual --note "Test" --no-encrypt
+
+# Should show:
+# ✓ Connected to impact (production database)
+# ✓ Database: impact
+# ✓ Total documents: 45983
+# ✓ Successfully backed up all collections
+```
+
+**Notes:**
+- Cronjob runs daily at 2 AM: `0 2 * * * cd /root/impact && /usr/bin/python3 /root/impact/execution/active/backup_database.py >> ~/.tmp/backup.log 2>&1`
+- Backups are stored in `~/.tmp/backups/` with encryption
+- Same authentication fix pattern used for migration scripts earlier
+
+---
+
+## 2025-12-30 - Comprehensive Lead Clinician Cleanup for All Clinicians
+
+**Changed by:** AI Session (Claude Code)
+
+**Issue:** User requested comprehensive cleanup of lead clinician assignments for ALL clinicians, ensuring lead clinician matches actual surgical team membership.
+
+**Changes:**
+
+### Phase 1: Jim Khan Specific Cleanup
+Created and executed: [cleanup_khan_lead_clinician.py](execution/migrations/cleanup_khan_lead_clinician.py)
+- Updated 238 episodes where Khan was incorrectly assigned as lead clinician
+
+### Phase 2: System-Wide Cleanup
+Created and executed: [cleanup_all_lead_clinicians.py](execution/migrations/cleanup_all_lead_clinicians.py)
+
+**Analysis:**
+- Total episodes with lead clinician: **6,451**
+- Episodes with CORRECT attribution (kept): **4,388** (68%)
+- Episodes with INCORRECT attribution (updated): **2,063** (32%)
+
+**Top Clinicians with Incorrect Attributions:**
+1. **Dan O'Leary**: 478 episodes corrected
+2. **Parvaiz**: 464 episodes corrected
+3. **Senapati**: 248 episodes corrected
+4. **John Conti**: 198 episodes corrected
+5. **Thompson**: 159 episodes corrected
+6. **Armstrong**: 83 episodes corrected
+7. **Skull**: 69 episodes corrected
+
+**Update Logic:**
+- For each episode, checked if lead_clinician is in surgical team (primary surgeon, assistant, or second assistant)
+- If NOT in team, updated lead_clinician to:
+  - **Primary surgeon's name** from treatment (if available)
+  - **None** if no treatments or no primary surgeon specified
+
+**Impact on Surgeon Performance Metrics:**
+
+*Before cleanup:*
+- Dan O'Leary: 871 surgeries
+- John Conti: 787 surgeries
+- Jim Khan: 942 surgeries (after Phase 1)
+- Gerald David: 345 surgeries
+
+*After comprehensive cleanup:*
+- **Jim Khan: 969 surgeries** (+27 from phase 2)
+- **John Conti: 637 surgeries** (-150, reassigned to actual surgeons)
+- **Dan O'Leary: 400 surgeries** (-471, reassigned to actual surgeons)
+- **Gerald David: 323 surgeries** (-22, reassigned to actual surgeons)
+
+**Files affected:**
+- `execution/migrations/cleanup_khan_lead_clinician.py` (created - Phase 1)
+- `execution/migrations/cleanup_all_lead_clinicians.py` (created - Phase 2)
+- Database: `impact.episodes` collection (2,301 total documents updated across both phases)
+
+**Rationale:**
+- **Critical data quality improvement**: 32% of episodes had incorrect lead clinician attribution
+- Lead clinician should match who actually performed/led the surgery
+- Enables accurate surgeon performance metrics for clinical governance
+- Prevents incorrect attribution of outcomes to wrong surgeons
+- Improves compliance with COSD reporting requirements
+
+**Testing:**
+Both scripts include:
+- Dry-run capability with preview of changes
+- Detailed before/after reporting
+- Audit trail (`last_modified_at`, `last_modified_by`)
+
+**Notes:**
+- Changes are immediately reflected in surgeon performance reports
+- 4,388 episodes (68%) already had correct attribution
+- Scripts are reusable for future data quality checks
+- Major corrections for Dan O'Leary (-471) and John Conti (-150) improve data accuracy
+
+---
+
+## 2025-12-30 - Clean Up Jim Khan as Lead Clinician Based on Surgical Team (SUPERSEDED)
+
+**Changed by:** AI Session (Claude Code)
+
+**Issue:** User requested removal of Jim Khan as lead clinician from episodes where Khan is not listed in the surgical team (primary surgeon, assistant, or second assistant).
+
+**Changes:**
+
+Created and executed migration script: [cleanup_khan_lead_clinician.py](execution/migrations/cleanup_khan_lead_clinician.py)
+
+**Analysis:**
+- Total episodes with Khan as lead clinician: **1,180**
+- Episodes where Khan IS in surgical team (kept): **942**
+- Episodes where Khan is NOT in surgical team (updated): **238**
+
+**Updates Made:**
+- For 238 episodes, updated `lead_clinician` field from "Jim Khan" to:
+  - **Primary surgeon's name** from treatment (if available)
+  - **None** if no treatments or no primary surgeon specified
+- Examples of updates:
+  - Jim Khan → Habib (E-DB2EA6-01)
+  - Jim Khan → Reddy (E-FFD40A-01)
+  - Jim Khan → Singhal (E-C59250-01)
+  - Jim Khan → Dudding (E-8B85DD-01)
+  - Jim Khan → None (episodes with no treatments)
+
+**Files affected:**
+- `execution/migrations/cleanup_khan_lead_clinician.py` (created)
+- Database: `impact.episodes` collection (238 documents updated)
+
+**Rationale:**
+- Lead clinician should accurately reflect who is actually performing/leading the surgical care
+- Episodes were incorrectly attributed to Khan when other surgeons were the primary operators
+- Improves data accuracy for surgeon performance metrics and clinical governance
+
+**Testing:**
+Script includes dry-run capability and shows before/after values for verification.
+
+**Notes:**
+- 942 episodes correctly retain Khan as lead clinician (Khan is in their surgical team)
+- Script sets `last_modified_at` and `last_modified_by` for audit trail
+- Changes are immediately reflected in surgeon performance reports
+
+---
+
+## 2025-12-30 - Filter Reports and Exports to Only Include Treatments with Valid OPCS-4 Codes
+
+**Changed by:** AI Session (Claude Code)
+
+**Issue:** User requested that all reports and surgery outcomes data only include treatments that have a valid OPCS-4 code, ensuring data quality and compliance with COSD requirements.
+
+**Changes:**
+
+### Backend Updates - Reports ([backend/app/routes/reports.py](backend/app/routes/reports.py))
+Updated all report endpoints to filter treatments where OPCS-4 code exists and is not empty:
+
+1. **`/api/reports/summary`** (line 20-24, 140)
+   - Added filter: `{"treatment_type": "surgery", "opcs4_code": {"$exists": True, "$ne": ""}}`
+   - Ensures only surgeries with valid OPCS-4 codes are included in outcome statistics
+   - Added `filter_applied` metadata to response for transparency
+
+2. **`/api/reports/surgeon-performance`** (line 190-194, 293)
+   - Added same OPCS-4 filter to surgical treatment query
+   - Surgeon performance metrics now based only on properly coded procedures
+   - Added `filter_applied` metadata to response
+
+3. **`/api/reports/data-quality`** (line 355-358, 411)
+   - Treatment fields analysis now filtered for valid OPCS-4 codes
+   - Ensures data quality metrics reflect only complete treatment records
+   - Added `filter_applied` metadata to response
+
+4. **`/api/reports/cosd-completeness`** (line 426-429, 559)
+   - Added OPCS-4 filter to base query
+   - COSD completeness metrics now calculated only for valid surgical procedures
+   - Added `filter_applied` metadata to response
+
+### Backend Updates - Exports ([backend/app/routes/exports.py](backend/app/routes/exports.py))
+Updated all NBOCA/COSD export endpoints to filter treatments with valid OPCS-4 codes:
+
+5. **`/api/admin/exports/nboca-xml`** (line 461-464)
+   - Added OPCS-4 filter when fetching treatments for XML export
+   - Only properly coded procedures included in NBOCA submissions
+
+6. **`/api/admin/exports/data-completeness`** (line 570-573)
+   - Data completeness checks now filter for valid OPCS-4 codes
+   - Surgical episode counts based only on properly coded procedures
+
+7. **`/api/admin/exports/nboca-validator`** (line 675-678)
+   - Validation checks now filter for valid OPCS-4 codes
+   - Ensures validation only applies to complete treatment records
+
+**Rationale:**
+- OPCS-4 codes are mandatory COSD fields (Primary Procedure OPCS-4)
+- Including treatments without OPCS-4 codes would skew outcome metrics
+- Ensures all reported data meets NHS England reporting standards
+- Improves data quality and clinical relevance of reports
+- NBOCA exports must only contain complete, validated procedure data
+
+**Files affected:**
+- `backend/app/routes/reports.py`
+- `backend/app/routes/exports.py`
+
+**Testing:**
+```bash
+# Test summary report
+curl "http://localhost:8000/api/reports/summary"
+
+# Test surgeon performance
+curl "http://localhost:8000/api/reports/surgeon-performance"
+
+# Test COSD completeness
+curl "http://localhost:8000/api/reports/cosd-completeness?year=2024"
+```
+
+**Results:**
+- ✅ Summary report shows 7,944 surgeries with valid OPCS-4 codes
+- ✅ Surgeon performance shows 1,150 surgeries for top surgeon (Jim Khan)
+- ✅ All reports now filter correctly and show `filter_applied` metadata
+- ✅ Data quality improved by excluding incomplete records
+- ✅ Yearly breakdowns still functioning (2023: 290, 2024: 312, 2025: 273 surgeries)
+- ✅ COSD 2024 shows 312 treatments with 78.24% completeness
+
+**Notes:**
+- Treatments without OPCS-4 codes are NOT deleted, just excluded from reports
+- Users should ensure all new surgical treatments have OPCS-4 codes selected
+- The OPCS-4 field in the treatment modal (added earlier today) helps ensure this
+
+---
+
+## 2025-12-30 - Added OPCS-4 Code Display Field to Treatment Modal
+
+**Changed by:** AI Session (Claude Code)
+
+**Issue:** User requested that the OPCS-4 code be displayed in the treatment modal as a read-only field that automatically populates when a primary procedure is selected.
+
+**Changes:**
+
+### Frontend Update ([frontend/src/components/modals/AddTreatmentModal.tsx](frontend/src/components/modals/AddTreatmentModal.tsx))
+   - Restructured the Primary Procedure field layout from full-width to a 3-column grid (lines 704-784)
+   - Added read-only OPCS-4 Code display field (lines 770-783)
+   - Field automatically populates when user selects a procedure from the dropdown
+   - Styled with gray background (`bg-gray-50`) to indicate it's auto-filled
+   - Includes helper text: "Auto-populated from procedure selection"
+   - Field is disabled and read-only to prevent manual editing
+
+**Files affected:**
+- `frontend/src/components/modals/AddTreatmentModal.tsx`
+
+**Testing:**
+1. Navigate to any episode and click "Add Treatment"
+2. Select treatment type "Surgery"
+3. On Step 1, search for and select a procedure (e.g., "anterior resection")
+4. Verify the OPCS-4 Code field on the right displays the code (e.g., "H33")
+5. Verify the field is read-only (gray background, cannot edit)
+6. Clear the procedure selection and verify the OPCS-4 code also clears
+
+**Notes:**
+- The OPCS-4 code was already being saved to the database (`formData.opcs4_code`), but wasn't visible to users
+- This change makes the data more transparent and helps users verify they've selected the correct procedure
+- The code is a COSD mandatory field (Primary Procedure OPCS-4)
+
+---
+
+## 2025-12-30 - Added COSD Data Quality Monitoring Card
+
+**Changed by:** AI Session (Claude Code) - COSD Quality Reporting
+
+**Purpose:**
+User requested a specific card in the Reports section for monitoring COSD (Cancer Outcomes and Services Dataset) field completeness with year selection capability. COSD fields are mandatory NHS England fields required for cancer reporting.
+
+**Changes:**
+
+### 1. Created COSD Backend Endpoint ([backend/app/routes/reports.py](backend/app/routes/reports.py))
+   - **NEW** endpoint `/api/reports/cosd-completeness`
+   - Accepts optional `year` parameter for filtering treatments
+   - Analyzes 20+ COSD mandatory fields across 6 categories:
+     - Patient (NHS Number, DOB, Gender, Postcode)
+     - Referral (Referral Date CR0200, Source CR0210, First Seen CR0220, Provider CR1410)
+     - Diagnosis (Primary Date CR0440, Tumour Site ICD-10, Laterality CR0500, Morphology CR0510, Grade CR0520, Stage CR0650)
+     - Treatment (Decision Date CR0710, Treatment Intent CR0720, Primary Surgery Date CR1450, Primary Procedure OPCS-4)
+     - Surgery (Resection Margins CR2200)
+     - Outcomes (Disease Recurrence CR6010)
+   - Returns completeness percentage per field and category averages
+   - Filters by treatment_date when year is specified
+
+### 2. Added COSD Frontend UI ([frontend/src/pages/ReportsPage.tsx](frontend/src/pages/ReportsPage.tsx))
+   - Added COSD interfaces: `COSDField`, `COSDCategory`, `COSDReport` (lines 81-104)
+   - Added state: `cosdData` and `cosdYear` (lines 113-114)
+   - Added `loadCOSDData()` function to fetch COSD metrics
+   - Added useEffect to reload when year changes
+   - Created comprehensive COSD card in Data Quality tab with:
+     - Year selector dropdown (2020-2025 plus "All Years")
+     - Summary statistics (treatments, episodes, patients, overall completeness)
+     - Category breakdown grid with color-coded completeness indicators
+     - Detailed field-by-field table sorted by completeness
+   - Uses existing color scheme for consistency:
+     - Green (≥90%): Excellent
+     - Yellow (70-89%): Acceptable
+     - Orange (50-69%): Needs improvement
+     - Red (<50%): Critical
+
+### 3. COSD Fields Tracked
+   - **Patient Category (4 fields):**
+     - NHS Number, Date of Birth, Gender, Postcode
+   - **Referral Category (4 fields):**
+     - Referral Date (CR0200), Referral Source (CR0210), First Seen Date (CR0220), Provider First Seen (CR1410)
+   - **Diagnosis Category (6 fields):**
+     - Primary Diagnosis Date (CR0440), Tumour Site (ICD-10), Laterality (CR0500), Morphology (CR0510), Grade (CR0520), Stage (CR0650)
+   - **Treatment Category (4 fields):**
+     - Decision Date (CR0710), Treatment Intent (CR0720), Primary Surgery Date (CR1450), Primary Procedure (OPCS-4)
+   - **Surgery Category (1 field):**
+     - Resection Margins (CR2200)
+   - **Outcomes Category (1 field):**
+     - Disease Recurrence (CR6010)
+
+**Results:**
+- ✅ Backend endpoint working correctly (tested with 2024 data: 78.2% completeness, 312 treatments)
+- ✅ Frontend card displays with year selector
+- ✅ Category breakdown shows color-coded completeness
+- ✅ Field details table sortable by completeness
+- ✅ All COSD mandatory fields tracked with CR codes
+- ✅ Year filtering enables trend analysis
+
+**Testing:**
+Backend:
+```bash
+# Test endpoint with 2024 filter
+curl "http://localhost:8000/api/reports/cosd-completeness?year=2024"
+
+# Test endpoint with all years
+curl "http://localhost:8000/api/reports/cosd-completeness"
+```
+
+Frontend:
+1. Navigate to Reports > Data Quality tab
+2. Find "COSD Dataset Completeness" card
+3. Use year dropdown to filter by year
+4. Verify summary stats update
+5. Check category breakdown shows correct percentages
+6. Review field details table for missing data
+
+**Example Output (2024):**
+- Total Treatments: 312
+- Overall Completeness: 78.2%
+- Patient Category: 100%
+- Referral Category: 99.9%
+- Diagnosis Category: 33.97% (needs improvement)
+
+**Files Modified:**
+- `backend/app/routes/reports.py` - Added COSD completeness endpoint
+- `frontend/src/pages/ReportsPage.tsx` - Added COSD card UI and state management
+
+**Technical Notes:**
+- COSD filtering uses `treatment_date` field for year queries
+- Backend uses aggregation pipeline with $or for multiple field checks
+- Frontend uses existing color utility functions for consistency
+- Some fields may show >100% completeness if multiple records per treatment (e.g., tumours)
+- CR codes reference NHS England COSD dataset specification v9.0
+
+**Future Improvements:**
+- Add trend charts showing completeness over time
+- Add data quality drill-down to show specific missing records
+- Add export functionality for COSD compliance reports
+- Add alerts when completeness drops below threshold
+
+---
+
 ## 2025-12-30 - Moved Vitals Fields from Patient Modal to Treatment Modal
 
 **Changed by:** AI Session (Claude Code) - UI Vitals Migration

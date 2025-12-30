@@ -1,5 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts'
+import { useTableNavigation } from '../hooks/useTableNavigation'
 import { PageHeader } from '../components/common/PageHeader'
 import { Card } from '../components/common/Card'
 import { Button } from '../components/common/Button'
@@ -33,6 +35,8 @@ export function EpisodesPage() {
   const { patientId } = useParams<{ patientId: string }>()
   const navigate = useNavigate()
   const location = useLocation()
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
   const [episodes, setEpisodes] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -62,6 +66,15 @@ export function EpisodesPage() {
   const pagination = usePagination({
     initialPageSize: 25,
     onFilterChange: [searchTerm, startDateFilter, endDateFilter]
+  })
+
+  // Keyboard shortcuts: Cmd+K to focus search, Cmd+Shift+E to add episode
+  useKeyboardShortcuts({
+    onFocusSearch: () => searchInputRef.current?.focus(),
+    onAddEpisode: () => {
+      setEditingEpisode(null);
+      setShowModal(true);
+    }
   })
 
   const showToast = useCallback((message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
@@ -369,6 +382,21 @@ export function EpisodesPage() {
   // No need for local filtering - backend handles search
   const filteredEpisodes = episodes
 
+  // Table navigation: arrow keys, E to edit, Shift+D to delete, [/] for pagination
+  const tableNav = useTableNavigation({
+    items: filteredEpisodes,
+    onEdit: (episode) => {
+      setEditingEpisode(episode);
+      setShowModal(true);
+    },
+    onDelete: handleDeleteClick,
+    onPrevPage: () => pagination.handlePageChange(pagination.currentPage - 1),
+    onNextPage: () => pagination.handlePageChange(pagination.currentPage + 1),
+    canGoPrev: pagination.currentPage > 1,
+    canGoNext: pagination.currentPage < pagination.totalPages,
+    enabled: !showModal && !showDetailModal && !deleteConfirmation.show
+  })
+
   // @ts-ignore - Unused but kept for potential future use
   const _getUrgencyColor = (urgency: string) => {
     switch (urgency) {
@@ -404,10 +432,11 @@ export function EpisodesPage() {
                   ← All Episodes
                 </Button>
               )}
-              <Button 
+              <Button
                 variant="primary"
                 className="w-full sm:w-auto"
                 onClick={() => setShowModal(true)}
+                keyboardHint={isMac ? '⌘⇧E' : 'Ctrl+Shift+E'}
               >
                 + Cancer Episode
               </Button>
@@ -466,6 +495,7 @@ export function EpisodesPage() {
             <div className="flex-1">
               <label className="block text-xs font-medium text-gray-600 mb-1">Episode Filter</label>
               <input
+                ref={searchInputRef}
                 type="text"
                 placeholder="Search by Episode ID, Patient ID, Cancer Type, or Clinician..."
                 value={searchTerm}
@@ -536,13 +566,14 @@ export function EpisodesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredEpisodes.map((episode) => (
-                <TableRow 
-                  key={episode.episode_id} 
+              {filteredEpisodes.map((episode, index) => (
+                <TableRow
+                  key={episode.episode_id}
                   onClick={() => {
                     setSelectedEpisode(episode)
                     setShowDetailModal(true)
                   }}
+                  className={tableNav.selectedIndex === index ? 'ring-2 ring-blue-500 bg-blue-50' : ''}
                 >
                   <TableCell className="font-medium text-gray-900">
                     {episode.episode_id}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { useModalShortcuts } from '../../hooks/useModalShortcuts'
 import { Button } from '../common/Button'
 import { ProviderDisplay } from '../common/ProviderDisplay'
 import { AddTreatmentModal } from './AddTreatmentModal'
@@ -79,6 +80,12 @@ export function CancerEpisodeDetailModal({
   const [activeTab, setActiveTab] = useState<'overview' | 'tumours' | 'treatments' | 'investigations' | 'followups'>(initialTab)
   const [viewingTumour, setViewingTumour] = useState<any>(null)
   const [viewingTreatment, setViewingTreatment] = useState<Treatment | null>(null)
+
+  // Keyboard shortcuts: Escape to close (view modal with edit capability)
+  useModalShortcuts({
+    onClose,
+    isOpen: true
+  })
 
   // Delete confirmation states
   const [deleteTumourConfirmation, setDeleteTumourConfirmation] = useState<{ show: boolean; tumour: any | null }>({ show: false, tumour: null })

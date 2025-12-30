@@ -1,5 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import { useTableNavigation } from '../hooks/useTableNavigation';
 import { PageHeader } from '../components/common/PageHeader'
 import { Card } from '../components/common/Card'
 import { Button } from '../components/common/Button'
@@ -65,6 +67,8 @@ interface PatientFormData {
 export function PatientsPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
   const [showModal, setShowModal] = useState(false);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(false);
@@ -74,6 +78,15 @@ export function PatientsPage() {
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ show: boolean; patient: Patient | null }>({ show: false, patient: null });
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+
+  // Keyboard shortcuts: Cmd+K to focus search, Cmd+Shift+P to add patient
+  useKeyboardShortcuts({
+    onFocusSearch: () => searchInputRef.current?.focus(),
+    onAddPatient: () => {
+      setEditingPatient(null);
+      setShowModal(true);
+    }
+  });
 
   // Initialize pagination with auto-reset on search changes
   const pagination = usePagination({
@@ -219,6 +232,18 @@ export function PatientsPage() {
   // No need for local filtering - backend handles search
   const filteredPatients = patients;
 
+  // Table navigation: arrow keys, E to edit, Shift+D to delete, [/] for pagination
+  const tableNav = useTableNavigation({
+    items: filteredPatients,
+    onEdit: handleEdit,
+    onDelete: handleDeleteClick,
+    onPrevPage: () => pagination.handlePageChange(pagination.currentPage - 1),
+    onNextPage: () => pagination.handlePageChange(pagination.currentPage + 1),
+    canGoPrev: pagination.currentPage > 1,
+    canGoNext: pagination.currentPage < pagination.totalPages,
+    enabled: !showModal && !deleteConfirmation.show // Disable when modals are open
+  });
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -230,13 +255,14 @@ export function PatientsPage() {
           </svg>
         }
         action={
-          <Button 
-            variant="primary" 
-            className="w-full sm:w-auto" 
+          <Button
+            variant="primary"
+            className="w-full sm:w-auto"
             onClick={() => {
               setEditingPatient(null);
               setShowModal(true);
             }}
+            keyboardHint={isMac ? '⌘⇧P' : 'Ctrl+Shift+P'}
           >
             + Add Patient
           </Button>
@@ -267,6 +293,7 @@ export function PatientsPage() {
           
           <div>
             <input
+              ref={searchInputRef}
               type="text"
               placeholder="Search by Patient ID, MRN, or NHS Number..."
               value={searchTerm}
@@ -328,10 +355,11 @@ export function PatientsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredPatients.map((patient) => (
-                <TableRow 
-                  key={patient._id} 
+              {filteredPatients.map((patient, index) => (
+                <TableRow
+                  key={patient._id}
                   onClick={() => navigate(`/episodes/${patient.patient_id}`)}
+                  className={tableNav.selectedIndex === index ? 'ring-2 ring-blue-500 bg-blue-50' : ''}
                 >
                   <TableCell className="font-medium text-gray-900">
                     {patient.patient_id}

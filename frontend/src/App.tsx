@@ -1,4 +1,7 @@
+import { useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { useHotkeys } from 'react-hotkeys-hook'
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { HomePage } from './pages/HomePage'
 import { PatientsPage } from './pages/PatientsPage'
 import { EpisodesPage } from './pages/EpisodesPage'
@@ -7,11 +10,17 @@ import { LoginPage } from './pages/LoginPage'
 import { AdminPage } from './pages/AdminPage'
 import { ProtectedRoute } from './components/layout/ProtectedRoute'
 import { Layout } from './components/layout/Layout'
+import { HelpDialog } from './components/modals/HelpDialog'
 
-function App() {
+function AppContent() {
+  const [showHelpDialog, setShowHelpDialog] = useState(false)
+
+  // Global keyboard shortcuts: ? to open help dialog, Cmd+1-4 for page navigation
+  useHotkeys('shift+/', () => setShowHelpDialog(true), { preventDefault: true })
+  useKeyboardShortcuts() // Page navigation (Cmd+1-4) - works here because we're inside Router
 
   return (
-    <Router>
+    <>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route
@@ -76,6 +85,15 @@ function App() {
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      {showHelpDialog && <HelpDialog onClose={() => setShowHelpDialog(false)} />}
+    </>
+  )
+}
+
+function App() {
+  return (
+    <Router>
+      <AppContent />
     </Router>
   )
 }

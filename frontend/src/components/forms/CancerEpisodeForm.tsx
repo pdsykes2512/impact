@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useModalShortcuts } from '../../hooks/useModalShortcuts'
 import { Button } from '../common/Button'
 import { DateInput } from '../common/DateInput'
 import { PatientSearch } from '../search/PatientSearch'
@@ -151,6 +152,17 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
 
   // Calculate total steps based on mode
   const totalSteps = mode === 'edit' ? 5 : 6 // Skip clinical data step in edit mode
+
+  // Keyboard shortcuts: Escape to close, Cmd/Ctrl+Enter to submit (only on final step)
+  useModalShortcuts({
+    onClose: onCancel,
+    onSubmit: currentStep === totalSteps ? () => {
+      const fakeEvent = { preventDefault: () => {}, stopPropagation: () => {} } as React.FormEvent
+      handleSubmit(fakeEvent, true)
+    } : undefined,
+    isOpen: true,
+    canSubmit: currentStep === totalSteps
+  })
 
   // Step navigation with event prevention
   const nextStep = (e?: React.MouseEvent) => {

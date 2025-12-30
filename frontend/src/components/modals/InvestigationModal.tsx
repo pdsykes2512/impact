@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useModalShortcuts } from '../../hooks/useModalShortcuts'
 import { Button } from '../common/Button'
 import { DateInput } from '../common/DateInput'
 
@@ -73,6 +74,16 @@ export function InvestigationModal({ episodeId, patientId, onSubmit, onCancel, m
     findings: {},
     notes: '',
     report_url: ''
+  })
+
+  // Keyboard shortcuts: Escape to close, Cmd/Ctrl+Enter to submit
+  useModalShortcuts({
+    onClose: onCancel,
+    onSubmit: () => {
+      const fakeEvent = { preventDefault: () => {} } as React.FormEvent
+      handleSubmit(fakeEvent)
+    },
+    isOpen: true
   })
 
   // Update form data when initialData changes (for edit mode)

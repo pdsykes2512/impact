@@ -1,4 +1,5 @@
 import { formatDate, formatTreatmentType, formatSurgeon, formatAnatomicalSite } from '../../utils/formatters'
+import { useModalShortcuts } from '../../hooks/useModalShortcuts'
 import { Button } from '../common/Button'
 import { ProviderDisplay } from '../common/ProviderDisplay'
 
@@ -9,6 +10,12 @@ interface TreatmentSummaryModalProps {
 }
 
 export function TreatmentSummaryModal({ treatment, onClose, onEdit }: TreatmentSummaryModalProps) {
+  // Keyboard shortcuts: Escape to close (view-only modal)
+  useModalShortcuts({
+    onClose,
+    isOpen: true
+  })
+
   if (!treatment) return null
 
   const getTreatmentTypeColor = (type: string) => {

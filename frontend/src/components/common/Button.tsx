@@ -5,17 +5,19 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: 'small' | 'medium' | 'large'
   children: ReactNode
   icon?: ReactNode
+  keyboardHint?: string // Optional keyboard shortcut hint (e.g., "⌘K" or "Ctrl+K")
 }
 
-export function Button({ 
-  variant = 'primary', 
-  size = 'medium', 
-  children, 
+export function Button({
+  variant = 'primary',
+  size = 'medium',
+  children,
   icon,
+  keyboardHint,
   className = '',
   disabled,
   type = 'button',
-  ...props 
+  ...props
 }: ButtonProps) {
   const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2'
   
@@ -38,10 +40,16 @@ export function Button({
       type={type}
       className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className} ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
       disabled={disabled}
+      aria-keyshortcuts={keyboardHint}
       {...props}
     >
       {icon && <span className="mr-2">{icon}</span>}
       {children}
+      {keyboardHint && (
+        <kbd className="ml-2 px-1.5 py-0.5 text-xs font-mono bg-white/20 border border-white/30 rounded opacity-80">
+          {keyboardHint}
+        </kbd>
+      )}
     </button>
   )
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useModalShortcuts } from '../../hooks/useModalShortcuts'
 import { Button } from '../common/Button'
 import { DateInput } from '../common/DateInput'
 import { SearchableSelect } from '../common/SearchableSelect'
@@ -117,7 +118,17 @@ const CRM_STATUS = [
 export function TumourModal({ episodeId, onSubmit, onCancel, mode = 'create', initialData }: TumourModalProps) {
   const [patientNhsNumber, setPatientNhsNumber] = useState<string>('')
   const [tumourCount, setTumourCount] = useState<number>(0)
-  
+
+  // Keyboard shortcuts: Escape to close, Cmd/Ctrl+Enter to submit
+  useModalShortcuts({
+    onClose: onCancel,
+    onSubmit: () => {
+      const fakeEvent = { preventDefault: () => {} } as React.FormEvent
+      handleSubmit(fakeEvent)
+    },
+    isOpen: true
+  })
+
   // Fetch episode to get patient NHS number
   useEffect(() => {
     const fetchEpisodeData = async () => {

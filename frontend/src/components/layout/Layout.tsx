@@ -184,14 +184,27 @@ export function Layout({ children }: LayoutProps) {
       {/* Footer */}
       <footer className="bg-white border-t border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <p className="text-sm text-gray-500">
-              © 2025 IMPACT. All rights reserved.
-            </p>
+          <div className="flex justify-between items-center flex-wrap gap-2">
+            <div className="flex items-center gap-4">
+              <p className="text-sm text-gray-500">
+                © 2025 IMPACT. All rights reserved.
+              </p>
+              <span className="text-sm text-gray-400 hidden sm:inline">•</span>
+              <button
+                onClick={() => {
+                  const event = new KeyboardEvent('keydown', { key: '?', shiftKey: true, code: 'Slash' });
+                  document.dispatchEvent(event);
+                }}
+                className="text-sm text-blue-600 hover:text-blue-800 transition-colors hidden sm:inline"
+                title="Show keyboard shortcuts help"
+              >
+                Press <kbd className="px-1.5 py-0.5 text-xs font-mono bg-gray-100 border border-gray-300 rounded">?</kbd> for shortcuts
+              </button>
+            </div>
             <div className="flex space-x-4 text-sm text-gray-500">
               <span>Version 1.0.0</span>
-              <span>•</span>
-              <span>Logged in as {user?.email}</span>
+              <span className="hidden sm:inline">•</span>
+              <span className="hidden sm:inline">Logged in as {user?.email}</span>
             </div>
           </div>
         </div>

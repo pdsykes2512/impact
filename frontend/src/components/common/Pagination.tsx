@@ -112,6 +112,7 @@ export function Pagination({
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage === 1 || loading}
             className="whitespace-nowrap"
+            keyboardHint="["
           >
             <span className="hidden sm:inline">← Previous</span>
             <span className="sm:hidden">←</span>
@@ -149,6 +150,7 @@ export function Pagination({
             onClick={() => onPageChange(currentPage + 1)}
             disabled={currentPage === totalPages || loading}
             className="whitespace-nowrap"
+            keyboardHint="]"
           >
             <span className="hidden sm:inline">Next →</span>
             <span className="sm:hidden">→</span>
