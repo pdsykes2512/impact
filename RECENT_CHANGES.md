@@ -15,6 +15,80 @@ This file tracks significant changes made to the IMPACT application (formerly su
 
 ---
 
+## 2025-12-30 - Fixed Postcode Data Missing in Edit Patient Modal
+
+**Changed by:** AI Session (Claude Code) - Postcode Schema Migration
+
+**Problem:**
+User reported that postcodes don't populate in the edit patient modal. Investigation revealed a schema mismatch:
+- Database stored postcodes in `contact.postcode` (from import script)
+- API model expected postcodes in `demographics.postcode`
+- Frontend couldn't access the data due to this mismatch
+
+**Root Cause:**
+The import script was saving postcodes to `contact.postcode`, but the Pydantic API model and frontend were looking for `demographics.postcode`.
+
+**Solution:**
+Migrated all postcode data from `contact.postcode` to `demographics.postcode` to match the API schema.
+
+**Changes:**
+
+### 1. Created Postcode Migration Script ([execution/data-fixes/move_postcode_to_demographics.py](execution/data-fixes/move_postcode_to_demographics.py))
+   - **NEW** script to move postcodes from contact to demographics
+   - Migrated 7,971 patient records
+   - Cleaned up empty contact objects after migration
+
+### 2. Updated Database Schema
+   - Moved all postcodes from `contact.postcode` to `demographics.postcode`
+   - Removed empty `contact` objects from patient documents
+   - Coverage: 100% (7,971/7,971 patients)
+
+### 3. Updated Frontend Patient Modal ([frontend/src/components/modals/PatientModal.tsx](frontend/src/components/modals/PatientModal.tsx))
+   - Ensured Patient interface matches database schema
+   - Postcode field now reads from `demographics.postcode`
+
+**Results:**
+- ✅ All 7,971 patients now have postcodes in `demographics.postcode`
+- ✅ Edit patient modal now displays postcodes correctly
+- ✅ No more `contact` objects in database (schema simplified)
+- ✅ API and database schemas are now aligned
+
+**Sample Postcodes:**
+```
+GU315RD, GU337QN, PO14 3HX, SO323NY, PO14 3LR, PO6  2BP, etc.
+```
+
+**Verification:**
+```bash
+# Check postcode location and coverage
+python3 -c "
+from pymongo import MongoClient
+import os
+from dotenv import load_dotenv
+load_dotenv('/etc/impact/secrets.env')
+client = MongoClient(os.getenv('MONGODB_URI'))
+db = client['impact']
+with_postcode = db.patients.count_documents({'demographics.postcode': {'\$exists': True, '\$ne': ''}})
+print(f'Patients with postcodes: {with_postcode}')
+"
+# Should output: 7971
+```
+
+**Files Created:**
+- `execution/data-fixes/move_postcode_to_demographics.py` - Postcode migration script
+
+**Files Modified:**
+- Database: `impact.patients` collection (7,971 documents updated)
+- `frontend/src/components/modals/PatientModal.tsx` - Patient interface alignment
+
+**Technical Notes:**
+- Postcode is a demographics field, not a contact field, so this migration makes semantic sense
+- Import script was using `contact.postcode` from legacy database structure
+- Future imports should save directly to `demographics.postcode`
+- This fix resolves the schema mismatch between database, API, and frontend
+
+---
+
 ## 2025-12-30 - Removed OPCS-4 Sub-types from All Procedure Codes
 
 **Changed by:** AI Session (Claude Code) - OPCS Code Simplification
