@@ -380,17 +380,27 @@ async def export_nboca_xml(
         query["cancer_type"] = "bowel"
     
     if start_date or end_date:
-        date_query = {}
+        # String date query (for ISO string date fields like "2020-08-15")
+        string_date_query = {}
         if start_date:
-            date_query["$gte"] = datetime.fromisoformat(start_date)
+            string_date_query["$gte"] = start_date
         if end_date:
-            date_query["$lte"] = datetime.fromisoformat(end_date)
-        # Check multiple possible date fields
+            string_date_query["$lte"] = end_date
+
+        # Datetime query (for datetime fields like created_at)
+        datetime_date_query = {}
+        if start_date:
+            datetime_date_query["$gte"] = datetime.fromisoformat(start_date)
+        if end_date:
+            datetime_date_query["$lte"] = datetime.fromisoformat(end_date)
+
+        # Check multiple possible date fields (most are strings, created_at is datetime)
         query["$or"] = [
-            {"cancer_data.diagnosis_date": date_query},
-            {"diagnosis_date": date_query},
-            {"first_seen_date": date_query},
-            {"created_at": date_query}
+            {"cancer_data.diagnosis_date": string_date_query},
+            {"diagnosis_date": string_date_query},
+            {"first_seen_date": string_date_query},
+            {"referral_date": string_date_query},
+            {"created_at": datetime_date_query}
         ]
     
     # Fetch cancer episodes

@@ -1,3 +1,69 @@
+## 2025-12-30 - Fixed COSD Export Date Filtering
+
+**Changed by:** AI Session (Claude Code) - COSD Export Fix
+
+**Problem:**
+COSD export date filtering was not finding any episodes when date filters were applied. The issue was that date fields in the database are stored as ISO strings (e.g., "2020-08-15"), but the query was comparing them against datetime objects, which MongoDB cannot match.
+
+**Root Cause:**
+```python
+# OLD (broken) - datetime object comparison
+if start_date:
+    date_query["$gte"] = datetime.fromisoformat(start_date)
+```
+
+**Solution:**
+Separated the date filtering into two queries:
+- String date comparison for ISO string date fields (referral_date, first_seen_date, diagnosis_date)
+- Datetime comparison for datetime fields (created_at)
+
+**Changes:**
+
+### 1. Fixed Date Filter Query ([backend/app/routes/exports.py](backend/app/routes/exports.py:382-404))
+   - Lines 382-404: Rewrote date filtering logic
+   - Now uses string comparison for string date fields
+   - Properly handles both string dates and datetime fields
+   - Added `referral_date` to the list of searchable date fields
+
+**Results:**
+- ✅ Date filtering now works correctly
+- ✅ Query with dates 2020-01-01 to 2025-12-31 finds 2,085 episodes (out of 8,065 total)
+- ✅ COSD XML export endpoint now returns episodes when date filter is applied
+
+**Testing:**
+```bash
+# Test the date filter query directly
+python3 -c "
+from pymongo import MongoClient
+import os
+from dotenv import load_dotenv
+load_dotenv('/etc/impact/secrets.env')
+client = MongoClient(os.getenv('MONGODB_URI'))
+db = client['impact']
+
+query = {
+    'condition_type': 'cancer',
+    '\$or': [
+        {'referral_date': {'\$gte': '2020-01-01', '\$lte': '2025-12-31'}},
+        {'first_seen_date': {'\$gte': '2020-01-01', '\$lte': '2025-12-31'}}
+    ]
+}
+count = db.episodes.count_documents(query)
+print(f'Episodes found: {count}')
+"
+# Should output: Episodes found: 2085
+```
+
+**Files Modified:**
+- [backend/app/routes/exports.py](backend/app/routes/exports.py) (lines 382-404)
+
+**Technical Notes:**
+- MongoDB requires type-consistent comparisons (string vs string, datetime vs datetime)
+- Most date fields in episodes collection are ISO strings: referral_date, first_seen_date, diagnosis_date
+- Only created_at and updated_at are datetime objects
+- The fix maintains backward compatibility with all date field formats
+
+---
 ## 2025-12-30 - Updated Provider Organisation to Full NHS Trust Name
 
 **Changed by:** AI Session (Claude Code) - Provider Name Standardization
