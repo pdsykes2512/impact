@@ -1576,6 +1576,11 @@ def import_treatments_surgery(db, csv_path: str, hosp_no_to_patient_id: Dict, ep
             'asa_score': map_asa(row.get('ASA')),  # CR6010
             'provider_organisation': 'Portsmouth Hospitals University NHS Trust',  # CR1450 - COSD Provider Organisation
 
+            # Patient vitals at time of treatment
+            'height_cm': float(row.get('Height')) if pd.notna(row.get('Height')) else None,
+            'weight_kg': float(row.get('Weight')) if pd.notna(row.get('Weight')) else None,
+            'bmi': float(row.get('BMI')) if pd.notna(row.get('BMI')) else None,
+
             'classification': {
                 'urgency': map_urgency(row.get('ModeOp')),  # CLEANED: elective/urgent/emergency
                 'approach': determine_surgical_approach(row),  # Improved logic for approach

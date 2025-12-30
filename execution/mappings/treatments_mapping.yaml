@@ -110,6 +110,34 @@ provider_organisation:
   notes: "NHS Trust providing colorectal surgical services"
 
 # ==============================================================================
+# PATIENT VITALS AT TIME OF TREATMENT
+# ==============================================================================
+
+height_cm:
+  description: "Patient height in centimeters at time of treatment"
+  source: "tblSurgery.Height (from patient demographics)"
+  algorithm: "Convert to float, null if empty"
+  data_type: "float"
+  required: false
+  notes: "Recorded per treatment as patient measurements can change over time"
+
+weight_kg:
+  description: "Patient weight in kilograms at time of treatment"
+  source: "tblSurgery.Weight (from patient demographics)"
+  algorithm: "Convert to float, null if empty"
+  data_type: "float"
+  required: false
+  notes: "Recorded per treatment as patient measurements can change over time"
+
+bmi:
+  description: "Patient BMI at time of treatment"
+  source: "tblSurgery.BMI (from patient demographics)"
+  algorithm: "Convert to float, null if empty"
+  data_type: "float"
+  required: false
+  notes: "Recorded per treatment as patient measurements can change over time. BMI = weight(kg) / height(m)^2"
+
+# ==============================================================================
 # CLASSIFICATION OBJECT
 # ==============================================================================
 

@@ -15,6 +15,85 @@ This file tracks significant changes made to the IMPACT application (formerly su
 
 ---
 
+## 2025-12-30 - Moved Height, Weight, and BMI to Treatment Documents
+
+**Changed by:** AI Session (Claude Code) - Vitals Migration
+
+**Purpose:**
+User requested to move height, weight, and BMI from patient demographics to treatment documents. This enables tracking these measurements with each treatment, as they can vary over time.
+
+**Rationale:**
+Patient vitals (height, weight, BMI) can change between treatments. Recording them per treatment provides:
+- Accurate measurements at time of each surgery
+- Ability to track changes over time
+- Better clinical data for surgical outcomes analysis
+
+**Changes:**
+
+### 1. Created Vitals Migration Script ([execution/data-fixes/copy_vitals_to_treatments.py](execution/data-fixes/copy_vitals_to_treatments.py))
+   - **NEW** script to copy vitals from patient demographics to treatments
+   - Migrated vitals for 4,665 treatments from 4,617 patients
+   - Coverage: 56.7% BMI, 52.5% weight, 48.5% height
+
+### 2. Updated Import Script ([execution/migrations/import_comprehensive.py](execution/migrations/import_comprehensive.py))
+   - Lines 1579-1582: Added vitals fields to treatment document
+   - Future imports will save height_cm, weight_kg, and bmi directly to treatments
+   - Maintains backwards compatibility with existing data
+
+### 3. Updated Treatments Mapping Documentation ([execution/mappings/treatments_mapping.yaml](execution/mappings/treatments_mapping.yaml))
+   - Lines 112-138: Added documentation for vitals fields
+   - Documented that measurements are recorded per treatment
+   - Explained rationale for tracking vitals over time
+
+**Results:**
+- ✅ 4,511 treatments now have BMI (56.7%)
+- ✅ 4,176 treatments now have weight_kg (52.5%)
+- ✅ 3,853 treatments now have height_cm (48.5%)
+- ✅ Import script will save vitals to treatments for all future imports
+- ✅ Enables longitudinal tracking of patient measurements
+
+**Sample Treatment with Vitals:**
+```
+Treatment: T-A12151-01
+Date: 2022-03-01
+Height: 188cm
+Weight: 84.0kg
+BMI: 23.4
+```
+
+**Verification:**
+```bash
+# Check treatment vitals coverage
+python3 -c "
+from pymongo import MongoClient
+import os
+from dotenv import load_dotenv
+load_dotenv('/etc/impact/secrets.env')
+client = MongoClient(os.getenv('MONGODB_URI'))
+db = client['impact']
+with_bmi = db.treatments.count_documents({'bmi': {'\$exists': True, '\$ne': None}})
+print(f'Treatments with BMI: {with_bmi}')
+"
+# Should output: 4511
+```
+
+**Files Created:**
+- `execution/data-fixes/copy_vitals_to_treatments.py` - Vitals migration script
+
+**Files Modified:**
+- Database: `impact.treatments` collection (4,665 documents updated)
+- `execution/migrations/import_comprehensive.py` (lines 1579-1582)
+- `execution/mappings/treatments_mapping.yaml` (lines 112-138)
+
+**Technical Notes:**
+- Vitals are stored at treatment level, not patient level
+- Patient demographics retains vitals for backwards compatibility
+- Missing vitals (None/null) are acceptable - not all treatments have measurements
+- BMI calculated from height and weight, or imported directly if pre-calculated
+- This change enables better tracking of patient health over their treatment journey
+
+---
+
 ## 2025-12-30 - Fixed Postcode Data Missing in Edit Patient Modal
 
 **Changed by:** AI Session (Claude Code) - Postcode Schema Migration
