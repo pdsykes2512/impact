@@ -147,7 +147,15 @@
 - ✅ Add pagination to patient and episode lists
 - [ ] Implement data export functionality (CSV/Excel)
 - [ ] Add print-friendly views for reports
-- [ ] Create keyboard shortcuts for common actions
+- ✅ **Create keyboard shortcuts for common actions** (Complete - 2025-12-31)
+  - ✅ Global help dialog (Shift+/ or ?)
+  - ✅ Page navigation (Cmd/Ctrl+1-4)
+  - ✅ Table navigation (↑/↓ arrows, E to edit, Shift+D to delete)
+  - ✅ Pagination shortcuts ([ previous, ] next page)
+  - ✅ Quick actions (Cmd/Ctrl+Shift+P add patient, Cmd/Ctrl+Shift+E add episode)
+  - ✅ Search focus (Cmd/Ctrl+K)
+  - ✅ Modal shortcuts (Esc to close, Cmd/Ctrl+Enter to submit)
+  - ✅ All shortcuts work with form elements focused (enableOnFormTags)
 
 ### Episode Features
 - ✅ Investigation tracking integrated into episodes
@@ -232,4 +240,4 @@
 - **Backup System:** Daily automated backups with web UI management in Admin → Backups tab
 
 ---
-Last Updated: December 28, 2025
+Last Updated: December 31, 2025
