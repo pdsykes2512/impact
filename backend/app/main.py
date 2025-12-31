@@ -10,7 +10,7 @@ from slowapi.errors import RateLimitExceeded
 from .config import settings
 from .database import Database
 from .routes import patients, episodes_v2, reports, auth, admin, clinicians, exports, codes, nhs_providers, audit, investigations, backups
-from .middleware import limiter, rate_limit_exceeded_handler, RequestLoggingMiddleware
+from .middleware import limiter, rate_limit_exceeded_handler, RequestLoggingMiddleware, register_error_handlers
 
 
 @asynccontextmanager
@@ -29,6 +29,9 @@ app = FastAPI(
     version=settings.api_version,
     lifespan=lifespan
 )
+
+# Register global error handlers for consistent error responses
+register_error_handlers(app)
 
 # Add rate limiter state
 app.state.limiter = limiter
