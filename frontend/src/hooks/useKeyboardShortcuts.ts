@@ -22,10 +22,10 @@ export function useKeyboardShortcuts(options?: UseKeyboardShortcutsOptions) {
   const navigate = useNavigate()
 
   // Page navigation shortcuts
-  useHotkeys('mod+1', () => navigate('/'), { preventDefault: true })
-  useHotkeys('mod+2', () => navigate('/patients'), { preventDefault: true })
-  useHotkeys('mod+3', () => navigate('/episodes'), { preventDefault: true })
-  useHotkeys('mod+4', () => navigate('/reports'), { preventDefault: true })
+  useHotkeys('mod+1', () => navigate('/'), { preventDefault: true, enableOnFormTags: ['INPUT', 'TEXTAREA', 'SELECT'] })
+  useHotkeys('mod+2', () => navigate('/patients'), { preventDefault: true, enableOnFormTags: ['INPUT', 'TEXTAREA', 'SELECT'] })
+  useHotkeys('mod+3', () => navigate('/episodes'), { preventDefault: true, enableOnFormTags: ['INPUT', 'TEXTAREA', 'SELECT'] })
+  useHotkeys('mod+4', () => navigate('/reports'), { preventDefault: true, enableOnFormTags: ['INPUT', 'TEXTAREA', 'SELECT'] })
 
   // Help dialog - already handled in App.tsx, but we keep this for consistency
   // Note: Help is handled globally in App.tsx with shift+/
@@ -41,7 +41,8 @@ export function useKeyboardShortcuts(options?: UseKeyboardShortcutsOptions) {
     },
     {
       preventDefault: true,
-      enabled: !!options?.onFocusSearch
+      enabled: !!options?.onFocusSearch,
+      enableOnFormTags: ['INPUT', 'TEXTAREA', 'SELECT']
     }
   )
 
@@ -56,7 +57,8 @@ export function useKeyboardShortcuts(options?: UseKeyboardShortcutsOptions) {
     },
     {
       preventDefault: true,
-      enabled: !!options?.onAddPatient
+      enabled: !!options?.onAddPatient,
+      enableOnFormTags: ['INPUT', 'TEXTAREA', 'SELECT']
     }
   )
 
@@ -71,7 +73,8 @@ export function useKeyboardShortcuts(options?: UseKeyboardShortcutsOptions) {
     },
     {
       preventDefault: true,
-      enabled: !!options?.onAddEpisode
+      enabled: !!options?.onAddEpisode,
+      enableOnFormTags: ['INPUT', 'TEXTAREA', 'SELECT']
     }
   )
 }

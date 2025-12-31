@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 
 interface NHSProvider {
   code: string
@@ -52,6 +53,28 @@ export function NHSProviderSelect({
   const [providers, setProviders] = useState<NHSProvider[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // Update dropdown position when shown
+  useEffect(() => {
+    if (showDropdown && inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect()
+      const viewportHeight = window.innerHeight
+      const spaceBelow = viewportHeight - rect.bottom
+      const spaceAbove = rect.top
+      
+      // Decide whether to show dropdown above or below
+      const maxDropdownHeight = 240 // max-h-60 in pixels
+      const showAbove = spaceBelow < maxDropdownHeight && spaceAbove > spaceBelow
+      
+      setDropdownPosition({
+        top: showAbove ? rect.top - maxDropdownHeight - 4 : rect.bottom + 4,
+        left: rect.left,
+        width: rect.width
+      })
+    }
+  }, [showDropdown])
 
   // Sync searchTerm with value prop when it changes
   useEffect(() => {
@@ -159,6 +182,7 @@ export function NHSProviderSelect({
       )}
       
       <input
+        ref={inputRef}
         type="text"
         value={searchTerm}
         onChange={handleInputChange}
@@ -174,8 +198,15 @@ export function NHSProviderSelect({
       />
 
       {/* Dropdown */}
-      {showDropdown && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+      {showDropdown && createPortal(
+        <div 
+          className="fixed z-[9999] bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+          style={{
+            top: `${dropdownPosition.top}px`,
+            left: `${dropdownPosition.left}px`,
+            width: `${dropdownPosition.width}px`
+          }}
+        >
           {loading && (
             <div className="px-4 py-3 text-sm text-gray-500 text-center">
               Searching NHS providers...
@@ -215,7 +246,8 @@ export function NHSProviderSelect({
               </div>
             </div>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )

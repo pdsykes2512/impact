@@ -78,6 +78,31 @@ interface DataQualityReport {
   }>
 }
 
+interface COSDField {
+  field: string
+  category: string
+  complete_count: number
+  total_count: number
+  completeness: number
+  missing_count: number
+}
+
+interface COSDCategory {
+  category: string
+  field_count: number
+  avg_completeness: number
+  fields: COSDField[]
+}
+
+interface COSDReport {
+  year: number | null
+  total_treatments: number
+  total_episodes: number
+  total_patients: number
+  overall_completeness: number
+  categories: COSDCategory[]
+}
+
 type Tab = 'outcomes' | 'quality'
 
 export function ReportsPage() {
@@ -85,11 +110,19 @@ export function ReportsPage() {
   const [summary, setSummary] = useState<SummaryReport | null>(null)
   const [surgeonPerf, setSurgeonPerf] = useState<SurgeonPerformance[]>([])
   const [dataQuality, setDataQuality] = useState<DataQualityReport | null>(null)
+  const [cosdData, setCosdData] = useState<COSDReport | null>(null)
+  const [cosdYear, setCosdYear] = useState<number | null>(2024)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     loadReports()
   }, [activeTab])
+
+  useEffect(() => {
+    if (activeTab === 'quality') {
+      loadCOSDData()
+    }
+  }, [cosdYear, activeTab])
 
   const loadReports = async () => {
     try {
@@ -116,6 +149,22 @@ export function ReportsPage() {
       console.error('Failed to load reports:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadCOSDData = async () => {
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || '/api'
+      const yearParam = cosdYear ? `?year=${cosdYear}` : ''
+      const response = await fetch(`${API_URL}/reports/cosd-completeness${yearParam}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      })
+      const data = await response.json()
+      setCosdData(data)
+    } catch (error) {
+      console.error('Failed to load COSD data:', error)
     }
   }
 
@@ -690,6 +739,125 @@ export function ReportsPage() {
               </p>
             </Card>
           </div>
+
+          {/* COSD Data Quality */}
+          {cosdData && (
+            <Card className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-lg font-semibold">COSD Dataset Completeness</h3>
+                  <p className="text-xs text-gray-500 mt-1">Cancer Outcomes and Services Dataset (NHS England mandatory fields)</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-700">Year:</label>
+                  <select
+                    value={cosdYear || ''}
+                    onChange={(e) => setCosdYear(e.target.value ? parseInt(e.target.value) : null)}
+                    className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">All Years</option>
+                    <option value="2025">2025</option>
+                    <option value="2024">2024</option>
+                    <option value="2023">2023</option>
+                    <option value="2022">2022</option>
+                    <option value="2021">2021</option>
+                    <option value="2020">2020</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* COSD Summary Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                  <p className="text-2xl font-bold text-gray-900">{cosdData.total_treatments}</p>
+                  <p className="text-xs text-gray-500 mt-1">Treatments</p>
+                </div>
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                  <p className="text-2xl font-bold text-gray-900">{cosdData.total_episodes}</p>
+                  <p className="text-xs text-gray-500 mt-1">Episodes</p>
+                </div>
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                  <p className="text-2xl font-bold text-gray-900">{cosdData.total_patients}</p>
+                  <p className="text-xs text-gray-500 mt-1">Patients</p>
+                </div>
+                <div className={`text-center p-4 rounded-lg border-2 ${getCompletenessCardColor(cosdData.overall_completeness)}`}>
+                  <p className={`text-2xl font-bold ${getCompletenessTextColor(cosdData.overall_completeness)}`}>
+                    {cosdData.overall_completeness.toFixed(1)}%
+                  </p>
+                  <p className="text-xs text-gray-600 mt-1">Overall Completeness</p>
+                </div>
+              </div>
+
+              {/* COSD Category Breakdown */}
+              <div className="space-y-4 mb-6">
+                <h4 className="text-md font-semibold text-gray-700">COSD Categories</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {cosdData.categories.map((category) => (
+                    <div key={category.category} className={`p-3 rounded-lg border-2 ${getCompletenessCardColor(category.avg_completeness)}`}>
+                      <div className="flex justify-between items-center mb-2">
+                        <h5 className="text-sm font-semibold text-gray-700">{category.category}</h5>
+                        <span className={`text-lg font-bold ${getCompletenessTextColor(category.avg_completeness)}`}>
+                          {category.avg_completeness.toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full ${getCompletenessBarColor(category.avg_completeness)}`}
+                          style={{ width: `${category.avg_completeness}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">{category.field_count} fields</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* COSD Field Details */}
+              <div>
+                <h4 className="text-md font-semibold text-gray-700 mb-3">COSD Field Details</h4>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHeadCell>Field</TableHeadCell>
+                        <TableHeadCell>Category</TableHeadCell>
+                        <TableHeadCell>Complete</TableHeadCell>
+                        <TableHeadCell>Missing</TableHeadCell>
+                        <TableHeadCell>Completeness</TableHeadCell>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {cosdData.categories.flatMap(cat =>
+                        cat.fields.map(field => ({...field, category: cat.category}))
+                      )
+                      .sort((a, b) => a.completeness - b.completeness)
+                      .map((field, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell className="font-medium text-gray-900">
+                            {field.field}
+                          </TableCell>
+                          <TableCell className="text-gray-500 text-sm">
+                            {field.category}
+                          </TableCell>
+                          <TableCell className="text-gray-500">
+                            {field.complete_count.toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-red-600">
+                            {field.missing_count.toLocaleString()}
+                          </TableCell>
+                          <TableCell>
+                            <span className={`text-sm font-semibold px-2 py-1 rounded ${getCompletenessColor(field.completeness)}`}>
+                              {field.completeness.toFixed(1)}%
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </Card>
+          )}
 
           {/* Category Breakdown */}
           <Card className="p-6">

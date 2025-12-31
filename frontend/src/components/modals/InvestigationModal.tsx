@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useModalShortcuts } from '../../hooks/useModalShortcuts'
 import { Button } from '../common/Button'
-import { DateInput } from '../common/DateInput'
+import { DateInputTypeable } from '../common/DateInputTypeable'
 
 interface InvestigationModalProps {
   episodeId: string
@@ -29,7 +29,7 @@ const INVESTIGATION_TYPES = [
 const IMAGING_SUBTYPES = [
   { value: 'ct_chest', label: 'CT Chest' },
   { value: 'ct_abdomen', label: 'CT Abdomen/Pelvis' },
-  { value: 'ct_tap', label: 'CT Thorax/Abdomen/Pelvis' },
+  { value: 'ct_tap', label: 'CT Chest/Abdomen/Pelvis' },
   { value: 'ct_colonography', label: 'CT Colonography' },
   { value: 'mri_pelvis_rectum', label: 'MRI Pelvis/Rectum' },
   { value: 'mri_primary', label: 'MRI Primary Tumour' },
@@ -203,7 +203,7 @@ export function InvestigationModal({ episodeId, patientId, onSubmit, onCancel, m
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Investigation Date *
             </label>
-            <DateInput
+            <DateInputTypeable
               value={formData.date}
               onChange={(e) => setFormData({ ...formData, date: e.target.value })}
               required

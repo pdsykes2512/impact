@@ -3,6 +3,11 @@
  */
 
 /**
+ * Medical and clinical acronyms that should be fully uppercase
+ */
+const MEDICAL_ACRONYMS = ['CT', 'MRI', 'PET', 'US', 'XR', 'MRCP', 'ERCP', 'EUS', 'OGD', 'CT-CAP', 'CAP', 'MDT', 'NHS', 'ICU', 'HDU', 'ITU']
+
+/**
  * Capitalize the first letter of a string
  */
 export const capitalize = (str: string): string => {
@@ -29,33 +34,64 @@ export const formatForDisplay = (str: string): string => {
 }
 
 /**
- * Convert snake_case to Title Case
+ * Convert snake_case to Title Case with acronym awareness
  */
 export const snakeToTitle = (str: string): string => {
   if (!str) return ''
   return str
     .split('_')
-    .map(word => capitalize(word))
+    .map(word => {
+      const upperWord = word.toUpperCase()
+      // Check if this word is a known acronym
+      if (MEDICAL_ACRONYMS.includes(upperWord)) {
+        return upperWord
+      }
+      // Otherwise capitalize normally
+      return capitalize(word)
+    })
     .join(' ')
 }
 
 /**
  * Format coded values for display (universal formatter)
- * Handles: lowercase, snake_case, UPPERCASE, mixed case
+ * Handles: lowercase, snake_case, UPPERCASE, mixed case, acronyms
  * Examples:
  *   'colorectal' -> 'Colorectal'
  *   'upper_gi' -> 'Upper Gi'
- *   'COLORECTAL_MDT' -> 'Colorectal Mdt'
+ *   'COLORECTAL_MDT' -> 'Colorectal MDT'
+ *   'colorectal mdt' -> 'Colorectal MDT'
  *   'surgery' -> 'Surgery'
  */
 export const formatCodedValue = (value: string | undefined | null): string => {
   if (!value) return ''
-  
-  // If it contains underscore, convert snake_case to Title Case
+
+  // If it contains underscore, convert snake_case to Title Case with acronyms
   if (value.includes('_')) {
     return snakeToTitle(value)
   }
-  
+
+  // If it contains spaces, handle each word separately with acronym awareness
+  if (value.includes(' ')) {
+    return value
+      .split(' ')
+      .map(word => {
+        const upperWord = word.toUpperCase()
+        // Check if this word is a known acronym
+        if (MEDICAL_ACRONYMS.includes(upperWord)) {
+          return upperWord
+        }
+        // Otherwise capitalize normally
+        return capitalize(word)
+      })
+      .join(' ')
+  }
+
+  // Single word - check if it's an acronym first
+  const upperValue = value.toUpperCase()
+  if (MEDICAL_ACRONYMS.includes(upperValue)) {
+    return upperValue
+  }
+
   // Otherwise, just capitalize first letter
   return capitalize(value)
 }
@@ -127,7 +163,7 @@ export const formatFieldValue = (value: any): string => {
 }
 
 /**
- * Format date strings consistently as DD-MM-YYYY
+ * Format date strings consistently as DD/MM/YYYY
  */
 export const formatDate = (dateStr: string | null | undefined): string => {
   if (!dateStr) return '-'
@@ -137,7 +173,7 @@ export const formatDate = (dateStr: string | null | undefined): string => {
     const day = date.getDate().toString().padStart(2, '0')
     const month = (date.getMonth() + 1).toString().padStart(2, '0')
     const year = date.getFullYear()
-    return `${day}-${month}-${year}`
+    return `${day}/${month}/${year}`
   } catch {
     return dateStr
   }
@@ -332,20 +368,17 @@ export const formatPathologicalTNM = (
  */
 export const formatInvestigationType = (subtype: string | undefined | null): string => {
   if (!subtype) return '—'
-  
-  // Medical acronyms that should be fully uppercase
-  const acronyms = ['CT', 'MRI', 'PET', 'US', 'XR', 'MRCP', 'ERCP', 'EUS', 'OGD', 'CT-CAP']
-  
+
   // Split by underscore and process each word
   const words = subtype.split('_').map(word => {
     const upperWord = word.toUpperCase()
     // Check if this word is a known acronym
-    if (acronyms.includes(upperWord)) {
+    if (MEDICAL_ACRONYMS.includes(upperWord)) {
       return upperWord
     }
     // Otherwise capitalize normally
     return capitalize(word)
   })
-  
+
   return words.join(' ')
 }

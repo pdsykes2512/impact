@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useModalShortcuts } from '../../hooks/useModalShortcuts'
 import { Button } from '../common/Button'
-import { DateInput } from '../common/DateInput'
+import { DateInputTypeable } from '../common/DateInputTypeable'
 import { PatientSearch } from '../search/PatientSearch'
 import { SurgeonSearch } from '../search/SurgeonSearch'
 import { SearchableSelect } from '../common/SearchableSelect'
@@ -358,56 +358,56 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
         )}
       </div>
 
-      {/* Cancer Type */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Cancer Type <span className="text-red-500">*</span>
-        </label>
-        <SearchableSelect
-          value={formData.cancer_type}
-          onChange={(value) => updateFormData('cancer_type', value)}
-          options={[
-            { value: 'bowel', label: 'Bowel (Colorectal)' },
-            { value: 'kidney', label: 'Kidney (Renal)' },
-            { value: 'breast_primary', label: 'Breast (Primary)' },
-            { value: 'breast_metastatic', label: 'Breast (Metastatic)' },
-            { value: 'oesophageal', label: 'Oesophageal' },
-            { value: 'ovarian', label: 'Ovarian' },
-            { value: 'prostate', label: 'Prostate' }
-          ]}
-          getOptionValue={(opt) => opt.value}
-          getOptionLabel={(opt) => opt.label}
-          placeholder="Search cancer type..."
-          required
-        />
-      </div>
+      {/* Cancer Type, Referral Date, and Lead Clinician */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Cancer Type <span className="text-red-500">*</span>
+          </label>
+          <SearchableSelect
+            value={formData.cancer_type}
+            onChange={(value) => updateFormData('cancer_type', value)}
+            options={[
+              { value: 'bowel', label: 'Bowel (Colorectal)' },
+              { value: 'kidney', label: 'Kidney (Renal)' },
+              { value: 'breast_primary', label: 'Breast (Primary)' },
+              { value: 'breast_metastatic', label: 'Breast (Metastatic)' },
+              { value: 'oesophageal', label: 'Oesophageal' },
+              { value: 'ovarian', label: 'Ovarian' },
+              { value: 'prostate', label: 'Prostate' }
+            ]}
+            getOptionValue={(opt) => opt.value}
+            getOptionLabel={(opt) => opt.label}
+            placeholder="Search cancer type..."
+            required
+          />
+        </div>
 
-      {/* Referral Date */}
-      <div>
-        <DateInput
-          label="Referral Date"
-          required
-          value={formData.referral_date}
-          onChange={(e) => updateFormData('referral_date', e.target.value)}
-        />
-      </div>
+        <div>
+          <DateInputTypeable
+            label="Referral Date"
+            required
+            value={formData.referral_date}
+            onChange={(e) => updateFormData('referral_date', e.target.value)}
+          />
+        </div>
 
-      {/* Lead Clinician - filtered by subspecialty */}
-      <div>
-        <SurgeonSearch
-          value={formData.lead_clinician}
-          onChange={(name) => updateFormData('lead_clinician', name)}
-          label="Lead Clinician (Consultant)"
-          required
-          consultantsOnly
-          subspecialtyFilter={getSubspecialtyForCancerType(formData.cancer_type)}
-          placeholder="Search consultant surgeon..."
-        />
-        {getSubspecialtyForCancerType(formData.cancer_type) && (
-          <p className="mt-2 text-xs text-gray-500">
-            Showing {getSubspecialtyForCancerType(formData.cancer_type)?.replace('_', ' ')} consultants only
-          </p>
-        )}
+        <div>
+          <SurgeonSearch
+            value={formData.lead_clinician}
+            onChange={(name) => updateFormData('lead_clinician', name)}
+            label="Lead Clinician (Consultant)"
+            required
+            consultantsOnly
+            subspecialtyFilter={getSubspecialtyForCancerType(formData.cancer_type)}
+            placeholder="Search consultant surgeon..."
+          />
+          {getSubspecialtyForCancerType(formData.cancer_type) && (
+            <p className="mt-2 text-xs text-gray-500">
+              Showing {getSubspecialtyForCancerType(formData.cancer_type)?.replace('_', ' ')} consultants only
+            </p>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -418,6 +418,17 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
       <h3 className="text-lg font-semibold text-gray-900">Referral & Process Metrics</h3>
 
       <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+        {/* Provider First Seen - CR1410 */}
+        <div>
+          <NHSProviderSelect
+            label="Provider First Seen"
+            value={formData.provider_first_seen}
+            onChange={(value) => updateFormData('provider_first_seen', value)}
+            placeholder="Search NHS Trust..."
+          />
+          <p className="mt-1 text-xs text-gray-500">NBOCA (CR1410) - NHS Trust where first seen</p>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Referral Type */}
           <div>
@@ -468,46 +479,35 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Provider First Seen - CR1410 */}
-          <div>
-            <NHSProviderSelect
-              label="Provider First Seen"
-              value={formData.provider_first_seen}
-              onChange={(value) => updateFormData('provider_first_seen', value)}
-              placeholder="Search NHS Trust..."
-            />
-            <p className="mt-1 text-xs text-gray-500">NBOCA (CR1410) - NHS Trust where first seen</p>
-          </div>
-
           {/* First Seen Date */}
           <div>
-            <DateInput
+            <DateInputTypeable
               label="First Seen Date"
               value={formData.first_seen_date}
               onChange={(e) => updateFormData('first_seen_date', e.target.value)}
             />
           </div>
-        </div>
 
-        {/* CNS Involved - CR2050 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Clinical Nurse Specialist (CNS)
-          </label>
-          <SearchableSelect
-            value={formData.cns_involved}
-            onChange={(value) => updateFormData('cns_involved', value)}
-            options={[
-              { value: '', label: 'Not recorded' },
-              { value: 'yes', label: 'Yes - CNS Involved' },
-              { value: 'no', label: 'No - No CNS Involvement' },
-              { value: 'unknown', label: 'Unknown' }
-            ]}
-            getOptionValue={(opt) => opt.value}
-            getOptionLabel={(opt) => opt.label}
-            placeholder="Select CNS involvement..."
-          />
-          <p className="mt-1 text-xs text-gray-500">NBOCA (CR2050)</p>
+          {/* CNS Involved - CR2050 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Clinical Nurse Specialist (CNS)
+            </label>
+            <SearchableSelect
+              value={formData.cns_involved}
+              onChange={(value) => updateFormData('cns_involved', value)}
+              options={[
+                { value: '', label: 'Not recorded' },
+                { value: 'yes', label: 'Yes - CNS Involved' },
+                { value: 'no', label: 'No - No CNS Involvement' },
+                { value: 'unknown', label: 'Unknown' }
+              ]}
+              getOptionValue={(opt) => opt.value}
+              getOptionLabel={(opt) => opt.label}
+              placeholder="Select CNS involvement..."
+            />
+            <p className="mt-1 text-xs text-gray-500">NBOCA (CR2050)</p>
+          </div>
         </div>
       </div>
     </div>
@@ -522,7 +522,7 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* MDT Discussion Date */}
           <div>
-            <DateInput
+            <DateInputTypeable
               label="MDT Discussion Date"
               value={formData.mdt_discussion_date}
               onChange={(e) => updateFormData('mdt_discussion_date', e.target.value)}
@@ -554,7 +554,7 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Treatment Intent */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -599,30 +599,30 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
               placeholder="Select treatment plan..."
             />
           </div>
-        </div>
 
-        {/* Performance Status (ECOG) - NBOCA CR0510 */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Performance Status (ECOG)
-          </label>
-          <SearchableSelect
-            value={formData.performance_status}
-            onChange={(value) => updateFormData('performance_status', value)}
-            options={[
-              { value: '', label: 'Not assessed' },
-              { value: '0', label: 'ECOG 0 - Fully active, no restrictions' },
-              { value: '1', label: 'ECOG 1 - Strenuous activity restricted' },
-              { value: '2', label: 'ECOG 2 - Ambulatory, capable of self-care' },
-              { value: '3', label: 'ECOG 3 - Limited self-care, confined to bed/chair >50% of waking hours' },
-              { value: '4', label: 'ECOG 4 - Completely disabled, confined to bed/chair' },
-              { value: '5', label: 'ECOG 5 - Dead' }
-            ]}
-            getOptionValue={(opt) => opt.value}
-            getOptionLabel={(opt) => opt.label}
-            placeholder="Select ECOG score..."
-          />
-          <p className="mt-1 text-xs text-gray-500">NBOCA (CR0510) - Patient fitness assessment</p>
+          {/* Performance Status (ECOG) - NBOCA CR0510 */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Performance Status (ECOG)
+            </label>
+            <SearchableSelect
+              value={formData.performance_status}
+              onChange={(value) => updateFormData('performance_status', value)}
+              options={[
+                { value: '', label: 'Not assessed' },
+                { value: '0', label: 'ECOG 0 - Fully active' },
+                { value: '1', label: 'ECOG 1 - Strenuous restricted' },
+                { value: '2', label: 'ECOG 2 - Ambulatory, self-care' },
+                { value: '3', label: 'ECOG 3 - Limited self-care' },
+                { value: '4', label: 'ECOG 4 - Completely disabled' },
+                { value: '5', label: 'ECOG 5 - Dead' }
+              ]}
+              getOptionValue={(opt) => opt.value}
+              getOptionLabel={(opt) => opt.label}
+              placeholder="Select ECOG score..."
+            />
+            <p className="mt-1 text-xs text-gray-500">NBOCA (CR0510)</p>
+          </div>
         </div>
       </div>
     </div>

@@ -17,8 +17,11 @@ async def get_summary_report() -> Dict[str, Any]:
     db = Database.get_database()
     treatments_collection = db.treatments
     
-    # Get all surgical treatments
-    all_treatments = await treatments_collection.find({"treatment_type": "surgery"}).to_list(length=None)
+    # Get all surgical treatments with valid OPCS-4 codes
+    all_treatments = await treatments_collection.find({
+        "treatment_type": "surgery",
+        "opcs4_code": {"$exists": True, "$ne": ""}
+    }).to_list(length=None)
     total_surgeries = len(all_treatments)
     
     # Helper function to calculate metrics for a list of treatments
@@ -134,6 +137,7 @@ async def get_summary_report() -> Dict[str, Any]:
             "2024": metrics_2024,
             "2025": metrics_2025
         },
+        "filter_applied": "Only surgical treatments with valid OPCS-4 codes",
         "generated_at": datetime.utcnow().isoformat()
     }
 
@@ -184,8 +188,11 @@ async def get_surgeon_performance() -> Dict[str, Any]:
             if matched_id:
                 episode_to_lead_clinician[episode_id] = matched_id
     
-    # Get all surgical treatments
-    all_treatments = await treatments_collection.find({"treatment_type": "surgery"}).to_list(length=None)
+    # Get all surgical treatments with valid OPCS-4 codes
+    all_treatments = await treatments_collection.find({
+        "treatment_type": "surgery",
+        "opcs4_code": {"$exists": True, "$ne": ""}
+    }).to_list(length=None)
     
     # Group by episode lead clinician
     surgeon_stats = {}
@@ -283,6 +290,7 @@ async def get_surgeon_performance() -> Dict[str, Any]:
     
     return {
         "surgeons": surgeon_list,
+        "filter_applied": "Only surgical treatments with valid OPCS-4 codes",
         "generated_at": datetime.utcnow().isoformat()
     }
 
@@ -346,8 +354,10 @@ async def get_data_quality_report() -> Dict[str, Any]:
             "fields": field_stats
         })
     
-    # Treatment fields
-    all_treatments = await treatments_collection.find({}).to_list(length=None)
+    # Treatment fields - only include treatments with valid OPCS-4 codes
+    all_treatments = await treatments_collection.find({
+        "opcs4_code": {"$exists": True, "$ne": ""}
+    }).to_list(length=None)
     total_treatment_count = len(all_treatments)
     
     # Define treatment fields with their actual nested paths
@@ -387,9 +397,35 @@ async def get_data_quality_report() -> Dict[str, Any]:
             "completeness": round((complete_count / total_treatment_count * 100) if total_treatment_count > 0 else 0, 2),
             "missing_count": total_treatment_count - complete_count
         })
-    
+
+    # Tumour fields - TNM staging
+    all_tumours = await tumours_collection.find({}).to_list(length=None)
+    total_tumour_count = len(all_tumours)
+
+    # Define tumour field checks (excluding 'x' and null as invalid)
+    tumour_field_checks = [
+        ("clinical_t", "TNM Staging", lambda tum: tum.get("clinical_t") not in [None, "", "x"]),
+        ("clinical_n", "TNM Staging", lambda tum: tum.get("clinical_n") not in [None, "", "x"]),
+        ("clinical_m", "TNM Staging", lambda tum: tum.get("clinical_m") not in [None, "", "x"]),
+        ("pathological_t", "TNM Staging", lambda tum: tum.get("pathological_t") not in [None, "", "x"]),
+        ("pathological_n", "TNM Staging", lambda tum: tum.get("pathological_n") not in [None, "", "x"]),
+        ("pathological_m", "TNM Staging", lambda tum: tum.get("pathological_m") not in [None, "", "x"]),
+    ]
+
+    tumour_fields_flat = []
+    for field_name, category_name, field_getter in tumour_field_checks:
+        complete_count = sum(1 for tum in all_tumours if field_getter(tum))
+        tumour_fields_flat.append({
+            "field": field_name,
+            "category": category_name,
+            "complete_count": complete_count,
+            "total_count": total_tumour_count,
+            "completeness": round((complete_count / total_tumour_count * 100) if total_tumour_count > 0 else 0, 2),
+            "missing_count": total_tumour_count - complete_count
+        })
+
     overall_completeness = sum(c["avg_completeness"] for c in categories) / len(categories) if categories else 0
-    
+
     return {
         "total_episodes": total_episodes,
         "total_treatments": total_treatments,
@@ -398,6 +434,157 @@ async def get_data_quality_report() -> Dict[str, Any]:
         "categories": categories,
         "episode_fields": episode_fields_flat,
         "treatment_fields": treatment_fields_flat,
+        "tumour_fields": tumour_fields_flat,
+        "filter_applied": "Only treatments with valid OPCS-4 codes",
         "generated_at": datetime.utcnow().isoformat()
     }
 
+
+@router.get("/cosd-completeness")
+async def get_cosd_completeness(year: Optional[int] = Query(None, description="Year to filter (e.g., 2024). If not provided, returns all years.")) -> Dict[str, Any]:
+    """
+    Get COSD (Cancer Outcomes and Services Dataset) field completeness metrics.
+
+    COSD fields are mandatory NHS England fields required for cancer reporting.
+    This endpoint analyzes completeness by year based on treatment date.
+    """
+    db = Database.get_database()
+    episodes_collection = db.episodes
+    treatments_collection = db.treatments
+    tumours_collection = db.tumours
+
+    # Build query for year filter - only include treatments with valid OPCS-4 codes
+    year_query = {
+        "opcs4_code": {"$exists": True, "$ne": ""}
+    }
+    if year:
+        # Filter treatments by year
+        year_query["treatment_date"] = {
+            "$gte": f"{year}-01-01",
+            "$lte": f"{year}-12-31"
+        }
+
+    # Get treatments for the specified year (or all)
+    all_treatments = await treatments_collection.find(year_query).to_list(length=None)
+    total_treatments = len(all_treatments)
+
+    if total_treatments == 0:
+        return {
+            "year": year,
+            "total_treatments": 0,
+            "total_episodes": 0,
+            "overall_completeness": 0,
+            "cosd_fields": [],
+            "generated_at": datetime.utcnow().isoformat()
+        }
+
+    # Get unique episode IDs from treatments
+    episode_ids = list(set(t.get("episode_id") for t in all_treatments if t.get("episode_id")))
+    all_episodes = await episodes_collection.find({"episode_id": {"$in": episode_ids}}).to_list(length=None)
+    total_episodes = len(all_episodes)
+
+    # Get unique patient IDs
+    patient_ids = list(set(e.get("patient_id") for e in all_episodes if e.get("patient_id")))
+
+    # Get tumours for these episodes
+    all_tumours = await tumours_collection.find({"episode_id": {"$in": episode_ids}}).to_list(length=None)
+
+    # Define COSD mandatory fields with their field codes
+    # Based on COSD v9/v10 specification
+    cosd_field_checks = [
+        # Patient Demographics (CR*)
+        ("NHS Number", "Patient", lambda: len([e for e in all_episodes if e.get("patient_id")])),
+        ("Date of Birth", "Patient", lambda: len([e for e in all_episodes if e.get("patient_id")])),
+        ("Gender", "Patient", lambda: len([e for e in all_episodes if e.get("patient_id")])),
+        ("Postcode", "Patient", lambda: len([e for e in all_episodes if e.get("patient_id")])),
+
+        # Referral (CR0200-CR0230)
+        ("Referral Date (CR0200)", "Referral", lambda: sum(1 for e in all_episodes if e.get("referral_date"))),
+        ("Referral Source (CR0210)", "Referral", lambda: sum(1 for e in all_episodes if e.get("referral_source"))),
+        ("First Seen Date (CR0220)", "Referral", lambda: sum(1 for e in all_episodes if e.get("first_seen_date"))),
+        ("Provider First Seen (CR1410)", "Referral", lambda: sum(1 for e in all_episodes if e.get("provider_first_seen"))),
+
+        # Cancer Diagnosis
+        ("Primary Diagnosis Date (CR0440)", "Diagnosis", lambda: sum(1 for t in all_tumours if t.get("diagnosis_date"))),
+        ("Tumour Site (ICD-10)", "Diagnosis", lambda: sum(1 for t in all_tumours if t.get("site"))),
+        ("Morphology (ICD-O-3)", "Diagnosis", lambda: sum(1 for t in all_tumours if t.get("morphology"))),
+        # TNM Staging - check pathological first (surgical specimens), fall back to clinical (pre-op staging)
+        # Exclude 'x' (unknown) values - only count actual staging values (0, 1, 2, 3, 4, etc.)
+        ("T Stage (CR2510)", "Diagnosis", lambda: sum(1 for t in all_tumours if (t.get("pathological_t") not in [None, "", "x"]) or (t.get("clinical_t") not in [None, "", "x"]))),
+        ("N Stage (CR2520)", "Diagnosis", lambda: sum(1 for t in all_tumours if (t.get("pathological_n") not in [None, "", "x"]) or (t.get("clinical_n") not in [None, "", "x"]))),
+        ("M Stage (CR2530)", "Diagnosis", lambda: sum(1 for t in all_tumours if (t.get("pathological_m") not in [None, "", "x"]) or (t.get("clinical_m") not in [None, "", "x"]))),
+
+        # Treatment (CR0710+)
+        ("Treatment Date (CR0710)", "Treatment", lambda: sum(1 for t in all_treatments if t.get("treatment_date"))),
+        ("OPCS-4 Code (CR0720)", "Treatment", lambda: sum(1 for t in all_treatments if t.get("opcs4_code"))),
+        ("Provider Organisation (CR1450)", "Treatment", lambda: sum(1 for t in all_treatments if t.get("provider_organisation"))),
+        ("Treatment Intent (CR0730)", "Treatment", lambda: sum(1 for t in all_treatments if t.get("treatment_intent"))),
+
+        # Surgery Specific
+        ("Surgical Approach", "Surgery", lambda: sum(1 for t in all_treatments if t.get("classification", {}).get("approach"))),
+        ("ASA Score (CR6010)", "Surgery", lambda: sum(1 for t in all_treatments if t.get("asa_score"))),
+        ("Urgency (Elective/Emergency)", "Surgery", lambda: sum(1 for t in all_treatments if t.get("classification", {}).get("urgency"))),
+
+        # Outcomes
+        ("Discharge Date", "Outcomes", lambda: sum(1 for t in all_treatments if t.get("perioperative_timeline", {}).get("discharge_date"))),
+        ("Length of Stay", "Outcomes", lambda: sum(1 for t in all_treatments if t.get("perioperative_timeline", {}).get("length_of_stay_days") is not None)),
+        ("Complications", "Outcomes", lambda: sum(1 for t in all_treatments if t.get("postoperative_events", {}).get("complications"))),
+    ]
+
+    # Calculate completeness for each field
+    cosd_fields = []
+    total_completeness = 0
+
+    for field_name, category, field_getter in cosd_field_checks:
+        complete_count = field_getter()
+        # Determine denominator based on category
+        if category in ["Patient", "Referral", "Diagnosis"]:
+            total_count = total_episodes if total_episodes > 0 else total_treatments
+        else:
+            total_count = total_treatments
+
+        completeness = round((complete_count / total_count * 100) if total_count > 0 else 0, 2)
+
+        cosd_fields.append({
+            "field": field_name,
+            "category": category,
+            "complete_count": complete_count,
+            "total_count": total_count,
+            "completeness": completeness,
+            "missing_count": total_count - complete_count
+        })
+        total_completeness += completeness
+
+    overall_completeness = round(total_completeness / len(cosd_field_checks), 2) if cosd_field_checks else 0
+
+    # Group by category for summary
+    categories = {}
+    for field in cosd_fields:
+        cat = field["category"]
+        if cat not in categories:
+            categories[cat] = {"fields": [], "total_completeness": 0, "count": 0}
+        categories[cat]["fields"].append(field)
+        categories[cat]["total_completeness"] += field["completeness"]
+        categories[cat]["count"] += 1
+
+    category_summary = [
+        {
+            "category": cat,
+            "field_count": data["count"],
+            "avg_completeness": round(data["total_completeness"] / data["count"], 2),
+            "fields": data["fields"]
+        }
+        for cat, data in categories.items()
+    ]
+
+    return {
+        "year": year,
+        "total_treatments": total_treatments,
+        "total_episodes": total_episodes,
+        "total_patients": len(patient_ids),
+        "overall_completeness": overall_completeness,
+        "categories": category_summary,
+        "cosd_fields": cosd_fields,
+        "filter_applied": "Only treatments with valid OPCS-4 codes",
+        "generated_at": datetime.utcnow().isoformat()
+    }

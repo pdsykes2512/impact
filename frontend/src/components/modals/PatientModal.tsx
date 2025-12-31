@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { Button } from '../common/Button'
+import { DateInputTypeable } from '../common/DateInputTypeable'
 import { useModalShortcuts } from '../../hooks/useModalShortcuts'
 
 interface Patient {
@@ -169,7 +170,15 @@ export function PatientModal({ patient, onClose, onSubmit, onDelete, loading = f
     }
 
     setValidationError('');
-    onSubmit(formData);
+    
+    // Ensure mrn and nhs_number are always strings (not numbers)
+    const submissionData = {
+      ...formData,
+      mrn: formData.mrn ? String(formData.mrn) : undefined,
+      nhs_number: formData.nhs_number ? String(formData.nhs_number) : undefined
+    };
+    
+    onSubmit(submissionData);
   };
 
   // Ensure modal root exists
@@ -278,101 +287,100 @@ export function PatientModal({ patient, onClose, onSubmit, onDelete, loading = f
             {/* Demographics */}
             <div className="mb-6">
               <h3 className="text-lg font-medium mb-3 text-gray-700">Demographics</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Date of Birth <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={formData.demographics.date_of_birth}
-                    onChange={(e) => handleInputChange('demographics.date_of_birth', e.target.value)}
-                  />
+              <div className="space-y-4">
+                {/* DOB, Gender, Postcode in one row */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <DateInputTypeable
+                      label="Date of Birth"
+                      required
+                      value={formData.demographics.date_of_birth}
+                      onChange={(e) => handleInputChange('demographics.date_of_birth', e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Gender <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      required
+                      className="w-full px-3 py-2 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={formData.demographics.gender}
+                      onChange={(e) => handleInputChange('demographics.gender', e.target.value)}
+                    >
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Postcode
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="SW1A 1AA"
+                      className="w-full px-3 py-2 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={formData.demographics.postcode}
+                      onChange={(e) => handleInputChange('demographics.postcode', e.target.value)}
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Deceased Date
-                  </label>
-                  <input
-                    type="date"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={formData.demographics.deceased_date || ''}
-                    onChange={(e) => handleInputChange('demographics.deceased_date', e.target.value)}
-                  />
-                </div>
+                {/* Ethnicity and Deceased Date in one row */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Ethnicity
+                    </label>
+                    <select
+                      className="w-full px-3 py-2 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={formData.demographics.ethnicity}
+                      onChange={(e) => handleInputChange('demographics.ethnicity', e.target.value)}
+                    >
+                      <option value="">Select ethnicity</option>
+                      <optgroup label="White">
+                        <option value="English, Welsh, Scottish, Northern Irish or British">English, Welsh, Scottish, Northern Irish or British</option>
+                        <option value="Irish">Irish</option>
+                        <option value="Gypsy or Irish Traveller">Gypsy or Irish Traveller</option>
+                        <option value="Roma">Roma</option>
+                        <option value="Any other White background">Any other White background</option>
+                      </optgroup>
+                      <optgroup label="Mixed or Multiple ethnic groups">
+                        <option value="White and Black Caribbean">White and Black Caribbean</option>
+                        <option value="White and Black African">White and Black African</option>
+                        <option value="White and Asian">White and Asian</option>
+                        <option value="Any other Mixed or Multiple ethnic background">Any other Mixed or Multiple ethnic background</option>
+                      </optgroup>
+                      <optgroup label="Asian or Asian British">
+                        <option value="Indian">Indian</option>
+                        <option value="Pakistani">Pakistani</option>
+                        <option value="Bangladeshi">Bangladeshi</option>
+                        <option value="Chinese">Chinese</option>
+                        <option value="Any other Asian background">Any other Asian background</option>
+                      </optgroup>
+                      <optgroup label="Black, Black British, Caribbean or African">
+                        <option value="Caribbean">Caribbean</option>
+                        <option value="African">African</option>
+                        <option value="Any other Black, Black British, or Caribbean background">Any other Black, Black British, or Caribbean background</option>
+                      </optgroup>
+                      <optgroup label="Other ethnic group">
+                        <option value="Arab">Arab</option>
+                        <option value="Any other ethnic group">Any other ethnic group</option>
+                      </optgroup>
+                      <option value="Prefer not to say">Prefer not to say</option>
+                    </select>
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Gender <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={formData.demographics.gender}
-                    onChange={(e) => handleInputChange('demographics.gender', e.target.value)}
-                  >
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Postcode
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={formData.demographics.postcode}
-                    onChange={(e) => handleInputChange('demographics.postcode', e.target.value)}
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Ethnicity
-                  </label>
-                  <select
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={formData.demographics.ethnicity}
-                    onChange={(e) => handleInputChange('demographics.ethnicity', e.target.value)}
-                  >
-                    <option value="">Select ethnicity</option>
-                    <optgroup label="White">
-                      <option value="English, Welsh, Scottish, Northern Irish or British">English, Welsh, Scottish, Northern Irish or British</option>
-                      <option value="Irish">Irish</option>
-                      <option value="Gypsy or Irish Traveller">Gypsy or Irish Traveller</option>
-                      <option value="Roma">Roma</option>
-                      <option value="Any other White background">Any other White background</option>
-                    </optgroup>
-                    <optgroup label="Mixed or Multiple ethnic groups">
-                      <option value="White and Black Caribbean">White and Black Caribbean</option>
-                      <option value="White and Black African">White and Black African</option>
-                      <option value="White and Asian">White and Asian</option>
-                      <option value="Any other Mixed or Multiple ethnic background">Any other Mixed or Multiple ethnic background</option>
-                    </optgroup>
-                    <optgroup label="Asian or Asian British">
-                      <option value="Indian">Indian</option>
-                      <option value="Pakistani">Pakistani</option>
-                      <option value="Bangladeshi">Bangladeshi</option>
-                      <option value="Chinese">Chinese</option>
-                      <option value="Any other Asian background">Any other Asian background</option>
-                    </optgroup>
-                    <optgroup label="Black, Black British, Caribbean or African">
-                      <option value="Caribbean">Caribbean</option>
-                      <option value="African">African</option>
-                      <option value="Any other Black, Black British, or Caribbean background">Any other Black, Black British, or Caribbean background</option>
-                    </optgroup>
-                    <optgroup label="Other ethnic group">
-                      <option value="Arab">Arab</option>
-                      <option value="Any other ethnic group">Any other ethnic group</option>
-                    </optgroup>
-                    <option value="Prefer not to say">Prefer not to say</option>
-                  </select>
+                  <div>
+                    <DateInputTypeable
+                      label="Deceased Date"
+                      value={formData.demographics.deceased_date || ''}
+                      onChange={(e) => handleInputChange('demographics.deceased_date', e.target.value)}
+                    />
+                  </div>
                 </div>
               </div>
             </div>

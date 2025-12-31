@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Button } from '../common/Button'
+import { DateInputTypeable } from '../common/DateInputTypeable'
 
 interface EpisodeFormProps {
   onSubmit: (data: any) => void
@@ -1162,28 +1163,20 @@ export function EpisodeForm({ onSubmit, onCancel, initialData, mode = 'create' }
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Admission Date <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
+              <DateInputTypeable
+                label="Admission Date"
                 required
                 value={formData.perioperative_timeline.admission_date}
                 onChange={(e) => updateField('perioperative_timeline', 'admission_date', e.target.value)}
-                className="w-full h-10 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Surgery Date <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
+              <DateInputTypeable
+                label="Surgery Date"
                 required
                 value={formData.perioperative_timeline.surgery_date}
                 onChange={(e) => updateField('perioperative_timeline', 'surgery_date', e.target.value)}
-                className="w-full h-10 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
@@ -1227,14 +1220,10 @@ export function EpisodeForm({ onSubmit, onCancel, initialData, mode = 'create' }
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Discharge Date
-              </label>
-              <input
-                type="date"
+              <DateInputTypeable
+                label="Discharge Date"
                 value={formData.perioperative_timeline.discharge_date}
                 onChange={(e) => updateField('perioperative_timeline', 'discharge_date', e.target.value)}
-                className="w-full h-10 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               />
             </div>
 

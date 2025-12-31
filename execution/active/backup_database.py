@@ -28,10 +28,14 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.backends import default_backend
 
 # Load environment variables
-load_dotenv()
+load_dotenv('/etc/impact/secrets.env')
+load_dotenv('.env')
 
 MONGODB_URI = os.getenv('MONGODB_URI')
-DB_NAME = os.getenv('MONGODB_DB_NAME', 'surgdb')
+DB_NAME = os.getenv('MONGODB_DB_NAME', 'impact')
+DB_SYSTEM_NAME = os.getenv('MONGODB_SYSTEM_DB_NAME', 'impact_system')
+# List of databases to backup
+DATABASES_TO_BACKUP = [DB_NAME, DB_SYSTEM_NAME]
 BACKUP_BASE_DIR = Path.home() / '.tmp' / 'backups'
 ENCRYPTION_KEY_FILE = Path('/root/.backup-encryption-key')
 SALT_FILE = Path('/root/.backup-encryption-salt')
@@ -53,81 +57,109 @@ def check_disk_space():
     return free_gb
 
 
-def get_database_stats(client):
+def get_database_stats(client, databases=None):
     """Get database statistics for manifest"""
-    db = client[DB_NAME]
-    collections = db.list_collection_names()
-    
-    stats = {
-        'database': DB_NAME,
-        'collections': {},
-        'total_documents': 0
+    if databases is None:
+        databases = DATABASES_TO_BACKUP
+
+    all_stats = {
+        'databases': {},
+        'total_documents': 0,
+        'total_collections': 0
     }
-    
-    for coll_name in collections:
-        count = db[coll_name].count_documents({})
-        stats['collections'][coll_name] = count
-        stats['total_documents'] += count
-    
-    return stats
+
+    for db_name in databases:
+        db = client[db_name]
+        collections = db.list_collection_names()
+
+        db_stats = {
+            'collections': {},
+            'total_documents': 0
+        }
+
+        for coll_name in collections:
+            count = db[coll_name].count_documents({})
+            db_stats['collections'][coll_name] = count
+            db_stats['total_documents'] += count
+
+        all_stats['databases'][db_name] = db_stats
+        all_stats['total_documents'] += db_stats['total_documents']
+        all_stats['total_collections'] += len(collections)
+
+    return all_stats
 
 
-def backup_with_mongodump(backup_dir):
+def backup_with_mongodump(backup_dir, databases=None):
     """Backup using mongodump if available"""
     import subprocess
-    
+
+    if databases is None:
+        databases = DATABASES_TO_BACKUP
+
     # Check if mongodump is available
     try:
         subprocess.run(['mongodump', '--version'], capture_output=True, check=True)
     except (subprocess.CalledProcessError, FileNotFoundError):
         return False
-    
+
     print("Using mongodump for backup...")
     dump_dir = backup_dir / 'dump'
-    
-    cmd = [
-        'mongodump',
-        '--uri', MONGODB_URI,
-        '--out', str(dump_dir),
-        '--gzip'
-    ]
-    
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        print("✓ mongodump completed successfully")
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"❌ mongodump failed: {e}")
-        print(f"stderr: {e.stderr}")
-        return False
+
+    # Backup each database separately
+    for db_name in databases:
+        print(f"  Backing up {db_name}...")
+        cmd = [
+            'mongodump',
+            '--uri', MONGODB_URI,
+            '--db', db_name,
+            '--out', str(dump_dir),
+            '--gzip'
+        ]
+
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            print(f"  ✓ {db_name} backed up successfully")
+        except subprocess.CalledProcessError as e:
+            print(f"  ❌ {db_name} backup failed: {e}")
+            print(f"  stderr: {e.stderr}")
+            return False
+
+    print("✓ mongodump completed successfully")
+    return True
 
 
-def backup_with_pymongo(client, backup_dir):
+def backup_with_pymongo(client, backup_dir, databases=None):
     """Fallback: Backup using pymongo (slower but reliable)"""
+    if databases is None:
+        databases = DATABASES_TO_BACKUP
+
     print("Using pymongo for backup (mongodump not available)...")
-    db = client[DB_NAME]
-    collections = db.list_collection_names()
-    
-    dump_dir = backup_dir / 'dump' / DB_NAME
-    dump_dir.mkdir(parents=True, exist_ok=True)
-    
-    for coll_name in collections:
-        print(f"  Backing up {coll_name}...", end=' ')
-        collection = db[coll_name]
-        documents = list(collection.find())
-        
-        # Convert ObjectId to string for JSON serialization
-        for doc in documents:
-            if '_id' in doc:
-                doc['_id'] = str(doc['_id'])
-        
-        # Write compressed JSON
-        output_file = dump_dir / f"{coll_name}.json.gz"
-        with gzip.open(output_file, 'wt', encoding='utf-8') as f:
-            json.dump(documents, f, default=str, indent=2)
-        
-        print(f"✓ ({len(documents)} documents)")
-    
+
+    for db_name in databases:
+        print(f"\n  Database: {db_name}")
+        db = client[db_name]
+        collections = db.list_collection_names()
+
+        dump_dir = backup_dir / 'dump' / db_name
+        dump_dir.mkdir(parents=True, exist_ok=True)
+
+        for coll_name in collections:
+            print(f"    Backing up {coll_name}...", end=' ')
+            collection = db[coll_name]
+            documents = list(collection.find())
+
+            # Convert ObjectId to string for JSON serialization
+            for doc in documents:
+                if '_id' in doc:
+                    doc['_id'] = str(doc['_id'])
+
+            # Write compressed JSON
+            output_file = dump_dir / f"{coll_name}.json.gz"
+            with gzip.open(output_file, 'wt', encoding='utf-8') as f:
+                json.dump(documents, f, default=str, indent=2)
+
+            print(f"✓ ({len(documents)} documents)")
+
     return True
 
 
@@ -136,17 +168,17 @@ def create_manifest(backup_dir, stats, backup_type, note=None):
     manifest = {
         'timestamp': datetime.now().isoformat(),
         'backup_type': backup_type,
-        'database': stats['database'],
-        'collections': stats['collections'],
+        'databases': stats['databases'],
+        'total_collections': stats['total_collections'],
         'total_documents': stats['total_documents'],
         'backup_dir': str(backup_dir),
         'note': note
     }
-    
+
     manifest_file = backup_dir / 'manifest.json'
     with open(manifest_file, 'w') as f:
         json.dump(manifest, f, indent=2)
-    
+
     return manifest
 
 
@@ -358,16 +390,18 @@ def main():
     try:
         client = MongoClient(MONGODB_URI)
         client.admin.command('ping')
-        print(f"✓ Connected to {DB_NAME}")
+        print(f"✓ Connected successfully")
     except Exception as e:
         print(f"❌ Failed to connect to MongoDB: {e}")
         sys.exit(1)
-    
+
     # Get database stats
     print("\n📊 Gathering database statistics...")
     stats = get_database_stats(client)
-    print(f"✓ Database: {stats['database']}")
-    print(f"✓ Collections: {len(stats['collections'])}")
+    print(f"✓ Databases to backup: {', '.join(DATABASES_TO_BACKUP)}")
+    for db_name, db_stats in stats['databases'].items():
+        print(f"  • {db_name}: {len(db_stats['collections'])} collections, {db_stats['total_documents']} documents")
+    print(f"✓ Total collections: {stats['total_collections']}")
     print(f"✓ Total documents: {stats['total_documents']}")
     
     # Perform backup
@@ -407,7 +441,8 @@ def main():
         print("\n" + "=" * 60)
         print(f"✅ Encrypted backup completed successfully!")
         print(f"📁 Location: {encrypted_path}")
-        print(f"📊 Collections: {len(stats['collections'])}")
+        print(f"🗄️  Databases: {', '.join(DATABASES_TO_BACKUP)}")
+        print(f"📊 Collections: {stats['total_collections']}")
         print(f"📄 Documents: {stats['total_documents']}")
         print(f"💾 Original size: {backup_size_mb:.1f} MB")
         print(f"🔒 Encrypted size: {final_size:.1f} MB")
@@ -425,7 +460,8 @@ def main():
         print(f"✅ Backup completed successfully! (UNENCRYPTED)")
         print(f"⚠️  WARNING: This backup is NOT encrypted!")
         print(f"📁 Location: {backup_dir}")
-        print(f"📊 Collections: {len(stats['collections'])}")
+        print(f"🗄️  Databases: {', '.join(DATABASES_TO_BACKUP)}")
+        print(f"📊 Collections: {stats['total_collections']}")
         print(f"📄 Documents: {stats['total_documents']}")
         print(f"💾 Size: {backup_size_mb:.1f} MB")
         print(f"🏷️  Type: {backup_type}")

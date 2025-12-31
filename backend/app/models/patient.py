@@ -59,6 +59,14 @@ class PatientBase(BaseModel):
     nhs_number: Optional[str] = Field(None, description="NHS number: 10 digits")
     demographics: Demographics
     medical_history: Optional[MedicalHistory] = Field(default_factory=MedicalHistory)
+    
+    @field_validator('mrn', 'nhs_number', mode='before')
+    @classmethod
+    def convert_to_string(cls, v):
+        """Convert numeric values to strings"""
+        if v is None:
+            return v
+        return str(v) if v else None
 
 
 class PatientCreate(PatientBase):
@@ -73,6 +81,14 @@ class PatientUpdate(BaseModel):
     nhs_number: Optional[str] = None
     demographics: Optional[Demographics] = None
     medical_history: Optional[MedicalHistory] = None
+    
+    @field_validator('mrn', 'nhs_number', mode='before')
+    @classmethod
+    def convert_to_string(cls, v):
+        """Convert numeric values to strings"""
+        if v is None:
+            return v
+        return str(v) if v else None
 
 
 class PatientInDB(PatientBase):

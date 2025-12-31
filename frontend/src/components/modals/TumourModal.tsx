@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useModalShortcuts } from '../../hooks/useModalShortcuts'
 import { Button } from '../common/Button'
-import { DateInput } from '../common/DateInput'
+import { DateInputTypeable } from '../common/DateInputTypeable'
 import { SearchableSelect } from '../common/SearchableSelect'
 import { calculateStage, formatStage, getStageColor } from '../../utils/cancerStaging'
 
@@ -406,7 +406,7 @@ export function TumourModal({ episodeId, onSubmit, onCancel, mode = 'create', in
                   </div>
 
                   <div>
-                    <DateInput
+                    <DateInputTypeable
                       label="Diagnosis Date"
                       value={formData.diagnosis_date}
                       onChange={(e) => setFormData({ ...formData, diagnosis_date: e.target.value })}
@@ -567,7 +567,7 @@ export function TumourModal({ episodeId, onSubmit, onCancel, mode = 'create', in
                       />
                     </div>
 
-                    <DateInput
+                    <DateInputTypeable
                       label="Staging Date"
                       value={formData.clinical_stage_date}
                       onChange={(e) => setFormData({ ...formData, clinical_stage_date: e.target.value })}
@@ -636,7 +636,7 @@ export function TumourModal({ episodeId, onSubmit, onCancel, mode = 'create', in
                       />
                     </div>
 
-                    <DateInput
+                    <DateInputTypeable
                       label="Staging Date"
                       value={formData.pathological_stage_date}
                       onChange={(e) => setFormData({ ...formData, pathological_stage_date: e.target.value })}

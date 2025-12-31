@@ -1,6 +1,8 @@
-import { ReactNode, useState } from 'react'
+import { ReactNode, useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import axios from 'axios'
+import packageJson from '../../../package.json'
 
 interface LayoutProps {
   children: ReactNode
@@ -10,6 +12,24 @@ export function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth()
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [version, setVersion] = useState(packageJson.version)
+
+  useEffect(() => {
+    // Fetch version from backend API to verify sync
+    const API_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8000'
+    axios.get(`${API_URL}/`)
+      .then(response => {
+        if (response.data?.version) {
+          // Use backend version if available and different
+          if (response.data.version !== packageJson.version) {
+            setVersion(`${packageJson.version} (API: ${response.data.version})`)
+          }
+        }
+      })
+      .catch(() => {
+        // Silent fail - use package.json version
+      })
+  }, [])
 
   const isActive = (path: string) => {
     if (path === '/episodes') {
@@ -202,7 +222,7 @@ export function Layout({ children }: LayoutProps) {
               </button>
             </div>
             <div className="flex space-x-4 text-sm text-gray-500">
-              <span>Version 1.0.0</span>
+              <span>Version {version}</span>
               <span className="hidden sm:inline">•</span>
               <span className="hidden sm:inline">Logged in as {user?.email}</span>
             </div>

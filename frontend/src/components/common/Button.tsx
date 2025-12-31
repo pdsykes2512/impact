@@ -46,7 +46,7 @@ export function Button({
       {icon && <span className="mr-2">{icon}</span>}
       {children}
       {keyboardHint && (
-        <kbd className="ml-2 px-1.5 py-0.5 text-xs font-mono bg-white/20 border border-white/30 rounded opacity-80">
+        <kbd className="hidden md:inline ml-2 px-1.5 py-0.5 text-xs font-mono bg-white/20 border border-white/30 rounded opacity-80">
           {keyboardHint}
         </kbd>
       )}

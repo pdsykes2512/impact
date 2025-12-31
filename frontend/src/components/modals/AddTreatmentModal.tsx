@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useModalShortcuts } from '../../hooks/useModalShortcuts'
 import { Button } from '../common/Button'
-import { DateInput } from '../common/DateInput'
+import { DateInputTypeable } from '../common/DateInputTypeable'
 import { SurgeonSearch } from '../search/SurgeonSearch'
 import { SearchableSelect } from '../common/SearchableSelect'
 import { NHSProviderSelect } from '../search/NHSProviderSelect'
@@ -630,7 +630,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
                   />
                 </div>
-                <DateInput
+                <DateInputTypeable
                   label="Treatment Date"
                   required
                   value={formData.treatment_date}
@@ -993,12 +993,12 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
               <div className="space-y-4">
                 <h4 className="text-sm font-semibold text-gray-900">Timeline</h4>
                 <div className="grid grid-cols-2 gap-4">
-                  <DateInput
+                  <DateInputTypeable
                     label="Admission Date"
                     value={formData.admission_date}
                     onChange={(e) => updateFormData({ admission_date: e.target.value })}
                   />
-                  <DateInput
+                  <DateInputTypeable
                     label="Discharge Date"
                     value={formData.discharge_date}
                     onChange={(e) => updateFormData({ discharge_date: e.target.value })}
@@ -1321,7 +1321,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                       
                       {formData.stoma_type?.includes('temporary') && (
                         <div className="grid grid-cols-2 gap-4">
-                          <DateInput
+                          <DateInputTypeable
                             label="Planned Reversal Date"
                             value={formData.planned_reversal_date}
                             onChange={(e) => updateFormData({ planned_reversal_date: e.target.value })}
@@ -1336,7 +1336,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                       )}
                       
                       <div>
-                        <DateInput
+                        <DateInputTypeable
                           label="Actual Stoma Closure Date (if already closed)"
                           value={formData.stoma_closure_date}
                           onChange={(e) => updateFormData({ stoma_closure_date: e.target.value })}
@@ -1463,7 +1463,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                               placeholder="Select severity..."
                             />
                           </div>
-                          <DateInput
+                          <DateInputTypeable
                             label="Date Identified *"
                             value={formData.anastomotic_leak_date}
                             onChange={(e) => updateFormData({ anastomotic_leak_date: e.target.value })}
@@ -1616,7 +1616,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                                   placeholder="Select..."
                                 />
                               </div>
-                              <DateInput
+                              <DateInputTypeable
                                 label="Reoperation Date"
                                 value={formData.anastomotic_leak_reoperation_date}
                                 onChange={(e) => updateFormData({ anastomotic_leak_reoperation_date: e.target.value })}
@@ -1695,7 +1695,7 @@ export function AddTreatmentModal({ episodeId, onSubmit, onCancel, mode = 'creat
                             <span className="text-sm font-medium text-gray-700">Leak Resolved</span>
                           </label>
                           {formData.anastomotic_leak_resolved && (
-                            <DateInput
+                            <DateInputTypeable
                               label="Resolution Date"
                               value={formData.anastomotic_leak_resolution_date}
                               onChange={(e) => updateFormData({ anastomotic_leak_resolution_date: e.target.value })}

@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { PageHeader } from '../components/common/PageHeader'
 import { Card } from '../components/common/Card'
 import { Button } from '../components/common/Button'
+import { DateInputTypeable } from '../components/common/DateInputTypeable'
 import { Table, TableHeader, TableBody, TableRow, TableHeadCell, TableCell } from '../components/common/Table'
 
 // Use empty string for relative URLs when VITE_API_URL is /api (uses Vite proxy)
@@ -40,6 +41,8 @@ export function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [exportLoading, setExportLoading] = useState(false)
   const [exportProgress, setExportProgress] = useState('')
+  const [exportStartDate, setExportStartDate] = useState('')
+  const [exportEndDate, setExportEndDate] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [showClinicianForm, setShowClinicianForm] = useState(false)
   const [editingClinician, setEditingClinician] = useState<Clinician | null>(null)
@@ -878,8 +881,8 @@ export function AdminPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      (document.getElementById('export-start-date') as HTMLInputElement).value = '';
-                      (document.getElementById('export-end-date') as HTMLInputElement).value = ''
+                      setExportStartDate('')
+                      setExportEndDate('')
                     }}
                     className="text-xs text-blue-600 hover:text-blue-800"
                   >
@@ -888,23 +891,17 @@ export function AdminPage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Start Date (Diagnosis Date)
-                    </label>
-                    <input
-                      type="date"
-                      id="export-start-date"
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    <DateInputTypeable
+                      label="Start Date (Diagnosis Date)"
+                      value={exportStartDate}
+                      onChange={(e) => setExportStartDate(e.target.value)}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      End Date (Diagnosis Date)
-                    </label>
-                    <input
-                      type="date"
-                      id="export-end-date"
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    <DateInputTypeable
+                      label="End Date (Diagnosis Date)"
+                      value={exportEndDate}
+                      onChange={(e) => setExportEndDate(e.target.value)}
                     />
                   </div>
                 </div>
@@ -931,14 +928,20 @@ export function AdminPage() {
                 <Button
                   variant="success"
                   onClick={async () => {
+                    setExportLoading(true)
+                    setExportProgress('Fetching bowel cancer episodes...')
+
                     try {
+                      setExportProgress('Validating episodes for COSD compliance...')
                       const response = await axios.get(`${API_URL}/api/admin/exports/nboca-validator`, {
                         headers: { Authorization: `Bearer ${token}` }
                       })
-                      
+
                       const data = response.data
                       const summary = data.summary
-                      
+
+                      setExportProgress('Preparing validation report...')
+
                       // Create detailed report
                       let report = `🔍 NBOCA Submission Validator\n\n`
                       report += `📊 Summary:\n`
@@ -946,38 +949,43 @@ export function AdminPage() {
                       report += `Valid Episodes: ${summary.valid_episodes} (${summary.valid_percentage}%)\n`
                       report += `Episodes with Errors: ${summary.episodes_with_errors}\n`
                       report += `Episodes with Warnings: ${summary.episodes_with_warnings}\n\n`
-                      
+
                       if (summary.submission_ready) {
                         report += `✅ SUBMISSION READY - All episodes pass validation!\n\n`
                       } else {
                         report += `❌ NOT READY FOR SUBMISSION\n\n`
                         report += `Issues Found:\n\n`
-                        
+
                         data.episodes.forEach((ep: any) => {
                           report += `Episode: ${ep.patient_id}\n`
-                          
+
                           if (ep.errors.length > 0) {
                             report += `  ❌ Errors:\n`
                             ep.errors.forEach((err: string) => report += `     - ${err}\n`)
                           }
-                          
+
                           if (ep.warnings.length > 0) {
                             report += `  ⚠️  Warnings:\n`
                             ep.warnings.forEach((warn: string) => report += `     - ${warn}\n`)
                           }
-                          
+
                           report += `\n`
                         })
                       }
-                      
+
+                      setExportLoading(false)
+                      setExportProgress('')
                       alert(report)
                       setError('')
                     } catch (err: any) {
+                      setExportLoading(false)
+                      setExportProgress('')
                       setError('Failed to validate data: ' + (err.response?.data?.detail || err.message))
                     }
                   }}
+                  disabled={exportLoading}
                 >
-                  🔍 Validate COSD Data
+                  {exportLoading ? '⏳ Validating...' : '🔍 Validate COSD Data'}
                 </Button>
                 
                 <Button
@@ -985,13 +993,11 @@ export function AdminPage() {
                   onClick={async () => {
                     setExportLoading(true)
                     setExportProgress('Fetching cancer episodes from database...')
-                    const startDate = (document.getElementById('export-start-date') as HTMLInputElement)?.value
-                    const endDate = (document.getElementById('export-end-date') as HTMLInputElement)?.value
                     
                     try {
                       const params = new URLSearchParams()
-                      if (startDate) params.append('start_date', startDate)
-                      if (endDate) params.append('end_date', endDate)
+                      if (exportStartDate) params.append('start_date', exportStartDate)
+                      if (exportEndDate) params.append('end_date', exportEndDate)
                       
                       const url = `${API_URL}/api/admin/exports/nboca-xml${params.toString() ? '?' + params.toString() : ''}`
                       
@@ -1038,17 +1044,23 @@ export function AdminPage() {
                 <Button
                   variant="secondary"
                   onClick={async () => {
+                    setExportLoading(true)
+                    setExportProgress('Fetching bowel cancer episodes...')
+
                     try {
+                      setExportProgress('Analyzing data completeness...')
                       const response = await axios.get(`${API_URL}/api/admin/exports/data-completeness`, {
                         headers: { Authorization: `Bearer ${token}` }
                       })
-                      
+
                       const data = response.data
-                      
+
+                      setExportProgress('Preparing completeness report...')
+
                       // Format completeness report
                       let report = `NBOCA Data Completeness Report\n`
                       report += `Total Episodes: ${data.total_episodes}\n\n`
-                      
+
                       report += `Patient Demographics:\n`
                       for (const [field, value] of Object.entries(data.patient_demographics)) {
                         if (typeof value === 'object' && value !== null) {
@@ -1056,7 +1068,7 @@ export function AdminPage() {
                           report += `  ${field}: ${v.count}/${data.total_episodes} (${v.percentage}%)\n`
                         }
                       }
-                      
+
                       report += `\nDiagnosis:\n`
                       for (const [field, value] of Object.entries(data.diagnosis)) {
                         if (typeof value === 'object' && value !== null) {
@@ -1064,7 +1076,7 @@ export function AdminPage() {
                           report += `  ${field}: ${v.count}/${data.total_episodes} (${v.percentage}%)\n`
                         }
                       }
-                      
+
                       const surgeryTotal = data.surgery.total_surgical_episodes
                       report += `\nSurgery (${surgeryTotal} surgical episodes):\n`
                       for (const [field, value] of Object.entries(data.surgery)) {
@@ -1073,15 +1085,20 @@ export function AdminPage() {
                           report += `  ${field}: ${v.count}/${surgeryTotal} (${v.percentage}%)\n`
                         }
                       }
-                      
+
+                      setExportLoading(false)
+                      setExportProgress('')
                       alert(report)
                       setError('')
                     } catch (err: any) {
+                      setExportLoading(false)
+                      setExportProgress('')
                       setError('Failed to check data completeness: ' + (err.response?.data?.detail || err.message))
                     }
                   }}
+                  disabled={exportLoading}
                 >
-                  📊 Check Data Completeness
+                  {exportLoading ? '⏳ Analyzing...' : '📊 Check Data Completeness'}
                 </Button>
               </div>
 

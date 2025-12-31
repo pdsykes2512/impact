@@ -64,12 +64,11 @@ def create_patient_xml(patient: dict, episode: dict) -> ET.Element:
     if demographics.get("ethnicity"):
         ethnicity = ET.SubElement(patient_elem, "EthnicCategory")
         ethnicity.text = demographics["ethnicity"]
-    
+
     # Postcode (CR0080) - MANDATORY
-    contact = patient.get("contact", {})
-    if contact.get("postcode"):
+    if demographics.get("postcode"):
         postcode = ET.SubElement(patient_elem, "PostcodeOfUsualAddress")
-        postcode.text = contact["postcode"]
+        postcode.text = demographics["postcode"]
     
     return patient_elem
 
@@ -456,8 +455,12 @@ async def export_nboca_xml(
         patient = decrypt_document(patient)
         
         # Fetch treatments and tumours from separate collections using episode_id (not _id)
+        # Only include treatments with valid OPCS-4 codes
         episode_id = episode.get("episode_id") or str(episode["_id"])
-        treatments_cursor = db.treatments.find({"episode_id": episode_id})
+        treatments_cursor = db.treatments.find({
+            "episode_id": episode_id,
+            "opcs4_code": {"$exists": True, "$ne": ""}
+        })
         treatments = await treatments_cursor.to_list(length=None)
         
         tumours_cursor = db.tumours.find({"episode_id": episode_id})
@@ -546,9 +549,7 @@ async def check_data_completeness(
             completeness["patient_demographics"]["gender"] += 1
         if demographics.get("ethnicity"):
             completeness["patient_demographics"]["ethnicity"] += 1
-
-        contact = patient.get("contact", {})
-        if contact.get("postcode"):
+        if demographics.get("postcode"):
             completeness["patient_demographics"]["postcode"] += 1
         
         # Check diagnosis
@@ -561,8 +562,12 @@ async def check_data_completeness(
             completeness["diagnosis"]["tnm_staging"] += 1
         
         # Fetch treatments from separate collection using episode_id (not _id)
+        # Only include treatments with valid OPCS-4 codes
         episode_id = episode.get("episode_id") or str(episode["_id"])
-        treatments_cursor = db.treatments.find({"episode_id": episode_id})
+        treatments_cursor = db.treatments.find({
+            "episode_id": episode_id,
+            "opcs4_code": {"$exists": True, "$ne": ""}
+        })
         treatments = await treatments_cursor.to_list(length=None)
         surgical_treatments = [t for t in treatments if t.get("treatment_type") == "surgery"]
         
@@ -660,10 +665,14 @@ async def validate_nboca_submission(
         }
         
         # Fetch related data using episode_id (not _id)
+        # Only include treatments with valid OPCS-4 codes
         patient = await db.patients.find_one({"record_number": patient_id})
         tumours_cursor = db.tumours.find({"episode_id": episode_id})
         tumours = await tumours_cursor.to_list(length=None)
-        treatments_cursor = db.treatments.find({"episode_id": episode_id})
+        treatments_cursor = db.treatments.find({
+            "episode_id": episode_id,
+            "opcs4_code": {"$exists": True, "$ne": ""}
+        })
         treatments = await treatments_cursor.to_list(length=None)
 
         # === PATIENT VALIDATION ===
@@ -696,10 +705,9 @@ async def validate_nboca_submission(
             # Ethnicity
             if not demographics.get("ethnicity"):
                 episode_validation["warnings"].append("Ethnicity missing (recommended)")
-            
+
             # Postcode
-            contact = patient.get("contact", {})
-            if not contact.get("postcode"):
+            if not demographics.get("postcode"):
                 episode_validation["errors"].append("Postcode missing")
         
         # === EPISODE VALIDATION ===

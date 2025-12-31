@@ -15,6 +15,113 @@ This file tracks significant changes made to the IMPACT application (formerly su
 
 ---
 
+## 2025-12-31 - Dynamic Version Display in Footer
+
+**Changed by:** AI Session (GitHub Copilot)
+
+**Issue:** Footer displayed hardcoded version number (1.0.0) that needed manual updates when version was bumped.
+
+**Changes:**
+- Bumped application version from 1.0.0 to 1.1.0 across both frontend and backend
+- Modified Layout.tsx to read version from `package.json` at build time
+- Added optional backend API version check to detect frontend/backend version mismatches
+- Version now automatically updates in footer when `package.json` version is changed (no rebuild needed with Vite HMR)
+- Shows version mismatch indicator if frontend and backend versions differ
+
+**Files affected:**
+- `frontend/package.json` - Version bumped to 1.1.0
+- `backend/app/config.py` - api_version bumped to 1.1.0
+- `frontend/src/components/layout/Layout.tsx` - Import package.json, set initial version from packageJson.version, optional backend version check with mismatch detection
+- `frontend/tsconfig.json` - Already had `resolveJsonModule: true` enabled
+
+**Testing:**
+1. Check footer displays "Version 1.1.0"
+2. Change version in `frontend/package.json` and HMR should update immediately (no rebuild needed)
+3. If backend version differs, footer shows "1.1.0 (API: x.x.x)" to indicate mismatch
+4. Verify backend version with: `curl http://surg-db.vps:8000/ | jq .version`
+
+**Notes:**
+- **Primary source of truth:** `frontend/package.json` version field
+- **Backend version check:** Optional verification that happens in background, shows mismatch warning if versions differ
+- **No rebuild needed:** Vite HMR hot-reloads the JSON import during development
+- **For production builds:** Version is embedded at build time from package.json
+- **Version bumping workflow:** Update `frontend/package.json`, optionally update `backend/app/config.py` to match, restart backend if needed
+
+---
+
+## 2025-12-31 - Fixed Episode Filter Date Input with Auto-Advance
+
+**Changed by:** AI Session (GitHub Copilot)
+
+**Issue:** Episode filter date fields couldn't be typed into until a date was picked from the date picker. Users needed manual keyboard input with auto-advance between day/month/year fields.
+
+**Changes:**
+
+### 1. Created New DateInputTypeable Component
+- Built custom date input component with three separate input fields (DD/MM/YYYY format)
+- Converts internally to/from YYYY-MM-DD format for backend compatibility
+- Features:
+  - **Manual typing enabled** - All fields accept keyboard input immediately
+  - **Auto-advance** - Automatically moves to next field when valid input entered
+    - Day field: advances after 2 digits (01-31)
+    - Month field: advances after 2 digits (01-12) or 1 digit if >1
+    - Year field: blurs after 4 digits
+  - **Keyboard navigation** - Arrow keys and `/` to move between fields
+  - **Backspace navigation** - Returns to previous field when empty
+  - **Clear button** - Shows when any value entered
+  - **Validation** - Basic range checking (day 1-31, month 1-12, year 1900-2100)
+  - **Input mode** - Uses `inputMode="numeric"` for mobile numeric keyboard
+
+### 2. Applied to ALL Date Fields App-Wide
+- Replaced standard `DateInput` component with `DateInputTypeable` throughout entire application
+- Replaced direct HTML5 `type="date"` inputs with `DateInputTypeable`
+- Updated layout in EpisodesPage filter:
+  - Date inputs widened from `w-40` (160px) to `w-52` (208px) for clear button
+  - Text filter constrained to `md:max-w-md` to give more space to date fields
+  - All inputs now match height (`h-10`)
+- AdminPage refactored from getElementById to React state for date filters
+
+### 3. Files Modified
+**Component Updates (replaced DateInput with DateInputTypeable):**
+- `frontend/src/components/forms/CancerEpisodeForm.tsx` - 3 date fields
+- `frontend/src/components/modals/InvestigationModal.tsx` - 1 date field
+- `frontend/src/components/modals/TumourModal.tsx` - 3 date fields
+- `frontend/src/components/modals/AddTreatmentModal.tsx` - 7 date fields
+- `frontend/src/components/modals/FollowUpModal.tsx` - 2 date fields
+
+**HTML5 Input Replacements:**
+- `frontend/src/components/modals/PatientModal.tsx` - Date of birth, deceased date
+- `frontend/src/components/forms/EpisodeForm.tsx` - Admission, surgery, discharge dates
+- `frontend/src/pages/AdminPage.tsx` - Export date range filters (also refactored to use state)
+- `frontend/src/pages/EpisodesPage.tsx` - Episode filter date range
+
+**New File:**
+- `frontend/src/components/common/DateInputTypeable.tsx` (241 lines)
+
+**Files affected:** 10 files modified + 1 new file
+
+**Testing:**
+1. Navigate to any page with date inputs (Patients, Episodes, Cancer Episodes, Admin)
+2. Click on any date field and start typing immediately (e.g., "15")
+3. Verify cursor auto-advances to month field
+4. Type month (e.g., "03"), verify cursor advances to year
+5. Type year (e.g., "2024"), verify field blurs
+6. Test keyboard navigation with arrow keys between fields
+7. Test backspace navigation (empty field returns to previous)
+8. Test clear button (X) functionality
+9. Verify all dates save correctly in YYYY-MM-DD format to backend
+10. Check mobile devices show numeric keyboard
+
+**Notes:**
+- All date fields across the entire application now use the same improved input method
+- Format shown to user is DD/MM/YYYY but backend still receives YYYY-MM-DD
+- Original `DateInput` component still exists but is no longer used
+- Consider removing old `DateInput` component in future cleanup
+- Component provides significantly better UX for rapid data entry
+- No backend changes required - all date formatting handled on frontend
+
+---
+
 ## 2025-12-30 - Implemented Comprehensive Keyboard Shortcuts System
 
 **Changed by:** AI Session (Claude Code)

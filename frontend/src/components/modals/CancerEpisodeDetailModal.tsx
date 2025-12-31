@@ -92,6 +92,8 @@ export function CancerEpisodeDetailModal({
   const [deleteTumourConfirmText, setDeleteTumourConfirmText] = useState('')
   const [deleteTreatmentConfirmation, setDeleteTreatmentConfirmation] = useState<{ show: boolean; treatment: Treatment | null }>({ show: false, treatment: null })
   const [deleteTreatmentConfirmText, setDeleteTreatmentConfirmText] = useState('')
+  const [deleteInvestigationConfirmation, setDeleteInvestigationConfirmation] = useState<{ show: boolean; investigation: any | null }>({ show: false, investigation: null })
+  const [deleteInvestigationConfirmText, setDeleteInvestigationConfirmText] = useState('')
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -370,6 +372,41 @@ export function CancerEpisodeDetailModal({
     }
   }
 
+  const handleDeleteInvestigationClick = (investigation: any) => {
+    setDeleteInvestigationConfirmation({ show: true, investigation })
+    setDeleteInvestigationConfirmText('')
+  }
+
+  const handleDeleteInvestigationConfirm = async () => {
+    if (!deleteInvestigationConfirmation.investigation || !episode) return
+    
+    try {
+      // Use /api for relative URLs (uses Vite proxy)
+      const API_URL = import.meta.env.VITE_API_URL || '/api'
+      const response = await fetch(
+        `${API_URL}/investigations/${deleteInvestigationConfirmation.investigation.investigation_id}`,
+        {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      )
+      
+      if (response.ok) {
+        setDeleteInvestigationConfirmation({ show: false, investigation: null })
+        setDeleteInvestigationConfirmText('')
+        await loadTreatments() // Reloads investigations too
+      } else {
+        const error = await response.json()
+        alert(`Failed to delete investigation: ${error.detail || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('Failed to delete investigation:', error)
+      alert('Failed to delete investigation')
+    }
+  }
+
   // Investigation handlers
   const handleAddInvestigation = async (investigation: any) => {
     if (!episode) return
@@ -377,7 +414,7 @@ export function CancerEpisodeDetailModal({
     try {
       // Use /api for relative URLs (uses Vite proxy)
       const API_URL = import.meta.env.VITE_API_URL || '/api'
-      const response = await fetch(`${API_URL}/investigations`, {
+      const response = await fetch(`${API_URL}/investigations/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1289,6 +1326,18 @@ export function CancerEpisodeDetailModal({
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                 </svg>
                               </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleDeleteInvestigationClick(inv)
+                                }}
+                                className="text-red-600 hover:text-red-900"
+                                title="Delete investigation"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -1674,6 +1723,89 @@ export function CancerEpisodeDetailModal({
                   }`}
                 >
                   Delete Treatment
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Investigation Confirmation Modal */}
+        {deleteInvestigationConfirmation.show && deleteInvestigationConfirmation.investigation && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+              <div className="flex items-center mb-4">
+                <div className="flex-shrink-0">
+                  <svg className="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <h3 className="ml-3 text-lg font-medium text-gray-900">Delete Investigation</h3>
+              </div>
+              
+              <div className="mb-4">
+                <p className="text-sm text-gray-500 mb-4">
+                  You are about to delete the following investigation:
+                </p>
+                
+                <div className="bg-gray-50 rounded-md p-4 mb-4">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="text-gray-500">Investigation ID:</div>
+                    <div className="font-medium text-gray-900">{deleteInvestigationConfirmation.investigation.investigation_id}</div>
+                    
+                    <div className="text-gray-500">Type:</div>
+                    <div className="text-gray-900">{capitalize(deleteInvestigationConfirmation.investigation.type)}</div>
+                    
+                    <div className="text-gray-500">Investigation:</div>
+                    <div className="text-gray-900">{formatInvestigationType(deleteInvestigationConfirmation.investigation.subtype)}</div>
+                    
+                    {deleteInvestigationConfirmation.investigation.date && (
+                      <>
+                        <div className="text-gray-500">Date:</div>
+                        <div className="text-gray-900">{formatDate(deleteInvestigationConfirmation.investigation.date)}</div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
+                  <p className="text-sm text-red-800 font-medium">
+                    ⚠️ This action cannot be undone
+                  </p>
+                </div>
+
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Type the investigation ID <span className="font-mono font-bold">{deleteInvestigationConfirmation.investigation.investigation_id}</span> to confirm:
+                </label>
+                <input
+                  type="text"
+                  value={deleteInvestigationConfirmText}
+                  onChange={(e) => setDeleteInvestigationConfirmText(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
+                  placeholder="Enter investigation ID"
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setDeleteInvestigationConfirmation({ show: false, investigation: null })
+                    setDeleteInvestigationConfirmText('')
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteInvestigationConfirm}
+                  disabled={deleteInvestigationConfirmText !== deleteInvestigationConfirmation.investigation.investigation_id}
+                  className={`px-4 py-2 text-sm font-medium text-white rounded-md ${
+                    deleteInvestigationConfirmText === deleteInvestigationConfirmation.investigation.investigation_id
+                      ? 'bg-red-600 hover:bg-red-700'
+                      : 'bg-red-300 cursor-not-allowed'
+                  }`}
+                >
+                  Delete Investigation
                 </button>
               </div>
             </div>

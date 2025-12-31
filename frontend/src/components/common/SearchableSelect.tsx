@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 
 interface SearchableSelectProps<T> {
   value: string
@@ -36,6 +37,28 @@ export function SearchableSelect<T>({
   const [searchTerm, setSearchTerm] = useState('')
   const [showDropdown, setShowDropdown] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // Update dropdown position when shown
+  useEffect(() => {
+    if (showDropdown && inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect()
+      const viewportHeight = window.innerHeight
+      const spaceBelow = viewportHeight - rect.bottom
+      const spaceAbove = rect.top
+      
+      // Decide whether to show dropdown above or below
+      const maxDropdownHeight = 240 // max-h-60 in pixels
+      const showAbove = spaceBelow < maxDropdownHeight && spaceAbove > spaceBelow
+      
+      setDropdownPosition({
+        top: showAbove ? rect.top - maxDropdownHeight - 4 : rect.bottom + 4,
+        left: rect.left,
+        width: rect.width
+      })
+    }
+  }, [showDropdown])
 
   // Sync searchTerm with value prop when it changes (but not while user is actively editing)
   useEffect(() => {
@@ -91,6 +114,7 @@ export function SearchableSelect<T>({
       )}
       <div className="relative">
         <input
+          ref={inputRef}
           type="text"
           value={searchTerm}
           onChange={(e) => {
@@ -139,8 +163,15 @@ export function SearchableSelect<T>({
             </svg>
           </button>
         )}
-        {showDropdown && filteredOptions.length > 0 && !disabled && (
-          <div className="absolute z-[100] w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+        {showDropdown && filteredOptions.length > 0 && !disabled && createPortal(
+          <div 
+            className="fixed z-[9999] bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+            style={{
+              top: `${dropdownPosition.top}px`,
+              left: `${dropdownPosition.left}px`,
+              width: `${dropdownPosition.width}px`
+            }}
+          >
             {filteredOptions.map((option, index) => (
               <div
                 key={index}
@@ -150,7 +181,8 @@ export function SearchableSelect<T>({
                 {render(option)}
               </div>
             ))}
-          </div>
+          </div>,
+          document.body
         )}
       </div>
     </div>

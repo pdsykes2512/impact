@@ -5,7 +5,7 @@ import { useTableNavigation } from '../hooks/useTableNavigation'
 import { PageHeader } from '../components/common/PageHeader'
 import { Card } from '../components/common/Card'
 import { Button } from '../components/common/Button'
-import { DateInput } from '../components/common/DateInput'
+import { DateInputTypeable } from '../components/common/DateInputTypeable'
 import { Table, TableHeader, TableBody, TableRow, TableHeadCell, TableCell } from '../components/common/Table'
 import { Pagination } from '../components/common/Pagination'
 import { usePagination } from '../hooks/usePagination'
@@ -452,8 +452,8 @@ export function EpisodesPage() {
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Patient Information</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 text-sm">
                 <div>
-                  <span className="text-gray-500">Record Number:</span>
-                  <p className="font-medium text-gray-900">{patientInfo.record_number}</p>
+                  <span className="text-gray-500">MRN:</span>
+                  <p className="font-medium text-gray-900">{patientInfo.mrn || '—'}</p>
                 </div>
                 <div>
                   <span className="text-gray-500">NHS Number:</span>
@@ -479,65 +479,67 @@ export function EpisodesPage() {
         </Card>
       )}
 
-      {/* Filters */}
-      <Card>
-        <div className="space-y-4">
-          <div className="flex items-center space-x-4">
-            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-            </svg>
-            <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
-          </div>
-
-          {/* Search and Date Filters */}
-          <div className="flex flex-col md:flex-row gap-3">
-            {/* Search bar */}
-            <div className="flex-1">
-              <label className="block text-xs font-medium text-gray-600 mb-1">Episode Filter</label>
-              <input
-                ref={searchInputRef}
-                type="text"
-                placeholder="Search by Episode ID, Patient ID, Cancer Type, or Clinician..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full h-10 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+      {/* Filters - only show when not viewing a specific patient's episodes */}
+      {!patientId && (
+        <Card>
+          <div className="space-y-4">
+            <div className="flex items-center space-x-4">
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+              </svg>
+              <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
             </div>
 
-            {/* Date filters - stack on mobile, inline on desktop */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="w-full sm:w-40">
-                <label className="block text-xs font-medium text-gray-600 mb-1">From Date</label>
-                <DateInput
-                  value={startDateFilter}
-                  onChange={(e) => setStartDateFilter(e.target.value)}
+            {/* Search and Date Filters */}
+            <div className="flex flex-col md:flex-row gap-3">
+              {/* Search bar */}
+              <div className="flex-1">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Episode Filter</label>
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  placeholder="Search by Episode ID, Patient ID, Cancer Type, or Clinician..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full h-10 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
-              <div className="w-full sm:w-40">
-                <label className="block text-xs font-medium text-gray-600 mb-1">To Date</label>
-                <DateInput
-                  value={endDateFilter}
-                  onChange={(e) => setEndDateFilter(e.target.value)}
-                />
+
+              {/* Date filters - stack on mobile, inline on desktop */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="w-full sm:w-44">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">From Date</label>
+                  <DateInputTypeable
+                    value={startDateFilter}
+                    onChange={(e) => setStartDateFilter(e.target.value)}
+                  />
+                </div>
+                <div className="w-full sm:w-44">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">To Date</label>
+                  <DateInputTypeable
+                    value={endDateFilter}
+                    onChange={(e) => setEndDateFilter(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          {(startDateFilter || endDateFilter) && (
-            <div className="flex justify-end">
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setStartDateFilter('')
-                  setEndDateFilter('')
-                }}
-              >
-                Clear Filters
-              </Button>
-            </div>
-          )}
-        </div>
-      </Card>
+            {(startDateFilter || endDateFilter) && (
+              <div className="flex justify-end">
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setStartDateFilter('')
+                    setEndDateFilter('')
+                  }}
+                >
+                  Clear Filters
+                </Button>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
 
       {/* Episodes List */}
       <Card>

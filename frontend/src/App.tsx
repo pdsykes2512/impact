@@ -16,7 +16,13 @@ function AppContent() {
   const [showHelpDialog, setShowHelpDialog] = useState(false)
 
   // Global keyboard shortcuts: ? to open help dialog, Cmd+1-4 for page navigation
-  useHotkeys('shift+/', () => setShowHelpDialog(true), { preventDefault: true })
+  useHotkeys('shift+slash', () => {
+    console.log('Help dialog shortcut triggered')
+    setShowHelpDialog(true)
+  }, { 
+    preventDefault: true,
+    enableOnFormTags: ['INPUT', 'TEXTAREA', 'SELECT']
+  })
   useKeyboardShortcuts() // Page navigation (Cmd+1-4) - works here because we're inside Router
 
   return (

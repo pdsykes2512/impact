@@ -55,7 +55,8 @@ export function useTableNavigation<T>(options: UseTableNavigationOptions<T>) {
     },
     {
       enabled: enabled && items.length > 0,
-      preventDefault: true
+      preventDefault: true,
+      enableOnFormTags: ['INPUT', 'TEXTAREA', 'SELECT']
     },
     [items, enabled]
   )
@@ -73,7 +74,8 @@ export function useTableNavigation<T>(options: UseTableNavigationOptions<T>) {
     },
     {
       enabled: enabled && items.length > 0,
-      preventDefault: true
+      preventDefault: true,
+      enableOnFormTags: ['INPUT', 'TEXTAREA', 'SELECT']
     },
     [items, enabled]
   )
@@ -89,7 +91,8 @@ export function useTableNavigation<T>(options: UseTableNavigationOptions<T>) {
     },
     {
       enabled: enabled && selectedIndex >= 0 && !!onEdit,
-      preventDefault: true
+      preventDefault: true,
+      enableOnFormTags: ['INPUT', 'TEXTAREA', 'SELECT']
     },
     [selectedIndex, items, onEdit, enabled]
   )
@@ -105,14 +108,15 @@ export function useTableNavigation<T>(options: UseTableNavigationOptions<T>) {
     },
     {
       enabled: enabled && selectedIndex >= 0 && !!onDelete,
-      preventDefault: true
+      preventDefault: true,
+      enableOnFormTags: ['INPUT', 'TEXTAREA', 'SELECT']
     },
     [selectedIndex, items, onDelete, enabled]
   )
 
   // [ - Previous page
   useHotkeys(
-    '[',
+    'bracketleft',
     (e) => {
       e.preventDefault()
       if (canGoPrev && onPrevPage) {
@@ -122,14 +126,15 @@ export function useTableNavigation<T>(options: UseTableNavigationOptions<T>) {
     },
     {
       enabled: enabled && canGoPrev && !!onPrevPage,
-      preventDefault: true
+      preventDefault: true,
+      enableOnFormTags: ['INPUT', 'TEXTAREA', 'SELECT']
     },
     [canGoPrev, onPrevPage, resetSelection, enabled]
   )
 
   // ] - Next page
   useHotkeys(
-    ']',
+    'bracketright',
     (e) => {
       e.preventDefault()
       if (canGoNext && onNextPage) {
@@ -139,7 +144,8 @@ export function useTableNavigation<T>(options: UseTableNavigationOptions<T>) {
     },
     {
       enabled: enabled && canGoNext && !!onNextPage,
-      preventDefault: true
+      preventDefault: true,
+      enableOnFormTags: ['INPUT', 'TEXTAREA', 'SELECT']
     },
     [canGoNext, onNextPage, resetSelection, enabled]
   )

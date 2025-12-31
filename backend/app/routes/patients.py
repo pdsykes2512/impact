@@ -74,19 +74,42 @@ async def count_patients(
     """Get total count of patients with optional search filter (requires authentication)"""
     collection = await get_patients_collection()
 
-    # Build query with search filter if provided
+    # Check if search looks like MRN or NHS number (encrypted fields)
+    search_encrypted_fields = False
+    if search:
+        clean_search = search.replace(" ", "").upper()
+        # MRN patterns: 8+ digits, IW+6digits, or C+6digits+2alphanumeric
+        is_mrn_pattern = (
+            (clean_search.isdigit() and len(clean_search) >= 8) or
+            (clean_search.startswith('IW') and len(clean_search) == 8 and clean_search[2:].isdigit()) or
+            (clean_search.startswith('C') and len(clean_search) == 9 and clean_search[1:7].isdigit() and clean_search[7:9].isalnum())
+        )
+        if is_mrn_pattern:
+            search_encrypted_fields = True
+
+    # If searching encrypted fields, we need to fetch all, decrypt, and count
+    if search and search_encrypted_fields:
+        clean_search = search.replace(" ", "").lower()
+        patients = await collection.find({}).to_list(length=None)
+        
+        count = 0
+        for patient in patients:
+            # Decrypt patient
+            decrypted = decrypt_document(patient)
+            # Check MRN or NHS number
+            if decrypted.get("mrn") and clean_search in str(decrypted["mrn"]).replace(" ", "").lower():
+                count += 1
+            elif decrypted.get("nhs_number") and clean_search in str(decrypted["nhs_number"]).replace(" ", "").lower():
+                count += 1
+        
+        return {"count": count}
+
+    # Build query with search filter for non-encrypted fields
     query = {}
     if search:
-        # Sanitize search input to prevent NoSQL injection
         safe_search = sanitize_search_input(search)
         search_pattern = {"$regex": safe_search, "$options": "i"}
-        query = {
-            "$or": [
-                {"patient_id": search_pattern},
-                {"mrn": search_pattern},
-                {"nhs_number": search_pattern}
-            ]
-        }
+        query = {"patient_id": search_pattern}
 
     total = await collection.count_documents(query)
     return {"count": total}
@@ -103,19 +126,32 @@ async def list_patients(
     collection = await get_patients_collection()
     episodes_collection = await get_episodes_collection()
 
+    # Check if search looks like MRN or NHS number (encrypted fields that need special handling)
+    search_encrypted_fields = False
+    if search:
+        # Remove spaces and check patterns
+        clean_search = search.replace(" ", "").upper()
+        # MRN patterns: 8+ digits, IW+6digits, or C+6digits+2alphanumeric
+        # NHS number: 10 digits
+        is_mrn_pattern = (
+            (clean_search.isdigit() and len(clean_search) >= 8) or  # 8+ digits
+            (clean_search.startswith('IW') and len(clean_search) == 8 and clean_search[2:].isdigit()) or  # IW+6digits
+            (clean_search.startswith('C') and len(clean_search) == 9 and clean_search[1:7].isdigit() and clean_search[7:9].isalnum())  # C+6digits+2alphanumeric
+        )
+        if is_mrn_pattern:
+            search_encrypted_fields = True
+            print(f"Searching encrypted fields (MRN/NHS): {clean_search}")
+
     # Build query with search filter if provided
     query = {}
-    if search:
+    if search and not search_encrypted_fields:
         # Sanitize search input to prevent NoSQL injection
         safe_search = sanitize_search_input(search)
         search_pattern = {"$regex": safe_search, "$options": "i"}
-        query = {
-            "$or": [
-                {"patient_id": search_pattern},
-                {"mrn": search_pattern},
-                {"nhs_number": search_pattern}
-            ]
-        }
+        
+        # Only search non-encrypted fields (patient_id)
+        query = {"patient_id": search_pattern}
+        print(f"Search non-encrypted: {search} -> query: {query}")
 
     # Use aggregation to join with episodes and get most recent referral date
     pipeline = [
@@ -148,10 +184,14 @@ async def list_patients(
         {"$sort": {"most_recent_referral": -1, "patient_id": 1}},
         # Remove the episodes array from output
         {"$project": {"episodes": 0}},
-        # Pagination
-        {"$skip": skip},
-        {"$limit": limit}
     ]
+    
+    # If NOT searching encrypted fields, apply pagination in database
+    if not search_encrypted_fields:
+        pipeline.extend([
+            {"$skip": skip},
+            {"$limit": limit}
+        ])
 
     patients = await collection.aggregate(pipeline).to_list(length=None)
 
@@ -176,6 +216,26 @@ async def list_patients(
                 demo["deceased_date"] = demo["deceased_date"].isoformat()
 
         decrypted_patients.append(patient)
+
+    # If searching encrypted fields, filter after decryption
+    if search and search_encrypted_fields:
+        clean_search = search.replace(" ", "").lower()
+        filtered_patients = []
+        for patient in decrypted_patients:
+            # Check MRN
+            if patient.get("mrn") and clean_search in str(patient["mrn"]).replace(" ", "").lower():
+                filtered_patients.append(patient)
+                continue
+            # Check NHS number
+            if patient.get("nhs_number") and clean_search in str(patient["nhs_number"]).replace(" ", "").lower():
+                filtered_patients.append(patient)
+                continue
+        
+        print(f"Filtered {len(filtered_patients)} patients from {len(decrypted_patients)} by encrypted field search")
+        decrypted_patients = filtered_patients
+        
+        # Apply pagination after filtering
+        decrypted_patients = decrypted_patients[skip:skip+limit]
 
     return [Patient(**patient) for patient in decrypted_patients]
 
