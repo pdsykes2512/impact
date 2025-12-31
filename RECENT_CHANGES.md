@@ -117,19 +117,55 @@ This file tracks significant changes made to the IMPACT application (formerly su
 
 **Git commit:** `d414ce2b` - "feat: optimize encrypted field searches with searchable hashes"
 
-**Files affected:**
+### Phase 4: Dependency Cleanup & TypeScript Type System
+
+**Dependency Cleanup** ([backend/requirements.txt](backend/requirements.txt)):
+- Removed **3 unused packages**: fastapi-cors, python-dateutil, httpx
+- Replaced `dateutil.parser.parse()` with Python's built-in `datetime.fromisoformat()` in [reports.py](backend/app/routes/reports.py#L92)
+- Reduced attack surface and maintenance burden
+- No impact on functionality
+
+**Git commit:** `a71da4ec` - "chore: remove 3 unused dependencies"
+
+**TypeScript Type Definitions** ([frontend/src/types/](frontend/src/types/)):
+- Created comprehensive type system with **873 lines** of type definitions
+- **models.ts**: 15+ domain models (Patient, Episode, Treatment, Tumour, Investigation, etc.)
+- **api.ts**: 30+ API request/response types for all endpoints
+- **index.ts**: Central export point for all types
+- Types match backend Pydantic models for consistency
+- Foundation for replacing 117+ `any` types across 23 files
+- Enables IDE autocomplete and compile-time type checking
+
+**Git commit:** `365bd57b` - "feat: add comprehensive TypeScript type definitions"
+
+**Files affected (All Phases):**
+
+*Phase 1 - Indexes & Security:*
 - `backend/app/database.py` - 29 index definitions with safe creation logic
 - `backend/app/config.py` - Secret key and MongoDB URI validation
+- `.env.example` - Environment variable template (NEW)
+
+*Phase 2 - Error Handling:*
 - `backend/app/utils/errors.py` - Standardized error classes (NEW)
 - `backend/app/middleware/error_handler.py` - Global error handlers (NEW)
+- `backend/app/middleware/__init__.py` - Export error handlers
 - `backend/app/main.py` - Error handler registration, index initialization
+- `docs/ENVIRONMENT_SETUP.md` - Configuration documentation (NEW)
+
+*Phase 3 - Encrypted Search:*
 - `backend/app/utils/encryption.py` - Hash generation functions, searchable queries
 - `backend/app/routes/patients.py` - Hash-based search optimization
-- `backend/app/middleware/__init__.py` - Export error handlers
-- `.env.example` - Environment variable template (NEW)
-- `docs/ENVIRONMENT_SETUP.md` - Configuration documentation (NEW)
 - `execution/migrations/add_searchable_hashes.py` - Hash migration script (NEW)
-- `TODO.md` - Marked 3/5 technical debt items complete
+
+*Phase 4 - Cleanup & Types:*
+- `backend/requirements.txt` - Removed 3 unused dependencies
+- `backend/app/routes/reports.py` - Replaced dateutil with built-in datetime
+- `frontend/src/types/models.ts` - Domain model type definitions (NEW)
+- `frontend/src/types/api.ts` - API request/response types (NEW)
+- `frontend/src/types/index.ts` - Type exports (NEW)
+
+*Documentation:*
+- `TODO.md` - Marked 5/5 technical debt items complete
 
 **Testing:**
 

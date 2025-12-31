@@ -218,8 +218,17 @@
   - ✅ Implemented O(log n) hash-based lookups for encrypted searches
   - ✅ Performance improvement: ~100x speedup (seconds → milliseconds)
   - ✅ Migrated 15,074 hash fields for 7,971 existing patients
-- [ ] Clean up unused dependencies
-- [ ] Improve TypeScript type coverage
+- ✅ **Clean up unused dependencies** (Complete - 2025-12-31)
+  - ✅ Removed fastapi-cors (FastAPI has built-in CORS)
+  - ✅ Removed python-dateutil (replaced with Python's built-in datetime)
+  - ✅ Removed httpx (testing dependency not actively used)
+  - ✅ Reduced attack surface and maintenance burden
+- ✅ **Improve TypeScript type coverage** (Foundation Complete - 2025-12-31)
+  - ✅ Created comprehensive type definitions (models.ts, api.ts, index.ts)
+  - ✅ 15+ domain models with nested types
+  - ✅ 30+ API request/response types
+  - ✅ Types ready for incremental adoption across 23 files
+  - ⏭️  Component updates (can be done incrementally as features are worked on)
 - ✅ **Add proper environment configuration management** (Complete - 2025-12-31)
   - ✅ Secret key validation with strength requirements
   - ✅ MongoDB URI format validation
