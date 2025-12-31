@@ -9,7 +9,7 @@ import re
 
 from ..models.patient import Patient, PatientCreate, PatientUpdate
 from ..database import get_patients_collection, get_episodes_collection
-from ..utils.encryption import encrypt_document, decrypt_document
+from ..utils.encryption import encrypt_document, decrypt_document, create_searchable_query, generate_search_hash
 from ..auth import get_current_user, require_data_entry_or_higher, require_admin
 
 
@@ -87,22 +87,19 @@ async def count_patients(
         if is_mrn_pattern:
             search_encrypted_fields = True
 
-    # If searching encrypted fields, we need to fetch all, decrypt, and count
+    # If searching encrypted fields, use hash-based lookup (O(log n) vs O(n))
     if search and search_encrypted_fields:
         clean_search = search.replace(" ", "").lower()
-        patients = await collection.find({}).to_list(length=None)
-        
-        count = 0
-        for patient in patients:
-            # Decrypt patient
-            decrypted = decrypt_document(patient)
-            # Check MRN or NHS number
-            if decrypted.get("mrn") and clean_search in str(decrypted["mrn"]).replace(" ", "").lower():
-                count += 1
-            elif decrypted.get("nhs_number") and clean_search in str(decrypted["nhs_number"]).replace(" ", "").lower():
-                count += 1
-        
-        return {"count": count}
+
+        # Build OR query to search both NHS number and MRN hash fields
+        nhs_query = create_searchable_query('nhs_number', clean_search)
+        mrn_query = create_searchable_query('mrn', clean_search)
+
+        # MongoDB $or query for fast indexed lookup
+        query = {"$or": [nhs_query, mrn_query]}
+
+        total = await collection.count_documents(query)
+        return {"count": total}
 
     # Build query with search filter for non-encrypted fields
     query = {}
@@ -144,14 +141,21 @@ async def list_patients(
 
     # Build query with search filter if provided
     query = {}
-    if search and not search_encrypted_fields:
-        # Sanitize search input to prevent NoSQL injection
-        safe_search = sanitize_search_input(search)
-        search_pattern = {"$regex": safe_search, "$options": "i"}
-        
-        # Only search non-encrypted fields (patient_id)
-        query = {"patient_id": search_pattern}
-        print(f"Search non-encrypted: {search} -> query: {query}")
+    if search:
+        if search_encrypted_fields:
+            # Use hash-based lookup for encrypted fields (O(log n) indexed search)
+            clean_search = search.replace(" ", "").lower()
+            nhs_query = create_searchable_query('nhs_number', clean_search)
+            mrn_query = create_searchable_query('mrn', clean_search)
+            query = {"$or": [nhs_query, mrn_query]}
+            print(f"Search encrypted (hash-based): {clean_search} -> {query}")
+        else:
+            # Sanitize search input to prevent NoSQL injection
+            safe_search = sanitize_search_input(search)
+            search_pattern = {"$regex": safe_search, "$options": "i"}
+            # Only search non-encrypted fields (patient_id)
+            query = {"patient_id": search_pattern}
+            print(f"Search non-encrypted: {search} -> query: {query}")
 
     # Use aggregation to join with episodes and get most recent referral date
     pipeline = [
@@ -184,14 +188,10 @@ async def list_patients(
         {"$sort": {"most_recent_referral": -1, "patient_id": 1}},
         # Remove the episodes array from output
         {"$project": {"episodes": 0}},
+        # Apply pagination in database (now works for all searches thanks to hash indexes)
+        {"$skip": skip},
+        {"$limit": limit}
     ]
-    
-    # If NOT searching encrypted fields, apply pagination in database
-    if not search_encrypted_fields:
-        pipeline.extend([
-            {"$skip": skip},
-            {"$limit": limit}
-        ])
 
     patients = await collection.aggregate(pipeline).to_list(length=None)
 
@@ -217,26 +217,7 @@ async def list_patients(
 
         decrypted_patients.append(patient)
 
-    # If searching encrypted fields, filter after decryption
-    if search and search_encrypted_fields:
-        clean_search = search.replace(" ", "").lower()
-        filtered_patients = []
-        for patient in decrypted_patients:
-            # Check MRN
-            if patient.get("mrn") and clean_search in str(patient["mrn"]).replace(" ", "").lower():
-                filtered_patients.append(patient)
-                continue
-            # Check NHS number
-            if patient.get("nhs_number") and clean_search in str(patient["nhs_number"]).replace(" ", "").lower():
-                filtered_patients.append(patient)
-                continue
-        
-        print(f"Filtered {len(filtered_patients)} patients from {len(decrypted_patients)} by encrypted field search")
-        decrypted_patients = filtered_patients
-        
-        # Apply pagination after filtering
-        decrypted_patients = decrypted_patients[skip:skip+limit]
-
+    # No manual filtering needed - MongoDB hash indexes handle encrypted searches efficiently
     return [Patient(**patient) for patient in decrypted_patients]
 
 

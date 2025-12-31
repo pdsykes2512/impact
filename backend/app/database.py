@@ -24,6 +24,7 @@ class Database:
         if not cls.client:
             raise Exception("Database not connected. Call connect_db first.")
 
+        print("🔧 Initializing database indexes...")  # Use print for visibility
         logger.info("Initializing database indexes...")
         created_indexes = []
         failed_indexes = []
@@ -69,6 +70,13 @@ class Database:
                                     partialFilterExpression={"nhs_number": {"$exists": True, "$type": "string"}})
             await create_index_safe(clinical_db.patients, "mrn", unique=True, name="idx_mrn",
                                     partialFilterExpression={"mrn": {"$exists": True, "$type": "string"}})
+
+            # Hash fields for fast searchable encrypted field lookups (O(log n) vs O(n))
+            await create_index_safe(clinical_db.patients, "nhs_number_hash", name="idx_nhs_number_hash",
+                                    partialFilterExpression={"nhs_number_hash": {"$exists": True, "$type": "string"}})
+            await create_index_safe(clinical_db.patients, "mrn_hash", name="idx_mrn_hash",
+                                    partialFilterExpression={"mrn_hash": {"$exists": True, "$type": "string"}})
+
             await create_index_safe(clinical_db.patients, "demographics.postcode", name="idx_postcode")
             await create_index_safe(clinical_db.patients, "created_at", name="idx_patients_created_at")
 
@@ -114,8 +122,10 @@ class Database:
             await create_index_safe(system_db.audit_logs, "timestamp", name="idx_audit_timestamp")
 
             # Summary
+            print(f"✅ Index initialization complete: {len(created_indexes)} created/verified, {len(failed_indexes)} skipped")
             logger.info(f"✅ Index initialization complete: {len(created_indexes)} created/verified, {len(failed_indexes)} skipped")
             if failed_indexes:
+                print(f"⚠️  Skipped indexes (data quality issues): {', '.join(failed_indexes)}")
                 logger.warning(f"⚠️  Skipped indexes (data quality issues): {', '.join(failed_indexes)}")
 
             return {'success': True, 'created': len(created_indexes), 'failed': len(failed_indexes)}

@@ -26,8 +26,9 @@ Sensitive Fields (UK GDPR Article 32 + Caldicott Principles):
 
 import os
 import base64
+import hashlib
 import logging
-from typing import Optional, Any
+from typing import Optional, Any, Tuple
 from pathlib import Path
 from dotenv import load_dotenv
 from cryptography.fernet import Fernet, InvalidToken
@@ -63,6 +64,12 @@ ENCRYPTED_FIELDS = {
 
 # Encryption prefix to identify encrypted values
 ENCRYPTION_PREFIX = 'ENC:'
+
+# Fields that should have searchable hashes (subset of encrypted fields)
+SEARCHABLE_FIELDS = {
+    'nhs_number',
+    'mrn'
+}
 
 # Logger
 logger = logging.getLogger(__name__)
@@ -239,18 +246,28 @@ def decrypt_field(field_name: str, value: Any) -> Optional[str]:
 
 def encrypt_document(document: dict) -> dict:
     """
-    Encrypt all sensitive fields in a MongoDB document
+    Encrypt all sensitive fields in a MongoDB document and add searchable hashes
+
+    For searchable fields (NHS number, MRN), this also adds hash fields:
+    - nhs_number → nhs_number (encrypted) + nhs_number_hash (SHA-256)
+    - mrn → mrn (encrypted) + mrn_hash (SHA-256)
 
     Args:
         document: MongoDB document (dict)
 
     Returns:
-        Document with encrypted fields
+        Document with encrypted fields and search hashes
 
     Example:
-        >>> doc = {'nhs_number': '1234567890', 'name': 'John Smith'}
+        >>> doc = {'nhs_number': '1234567890', 'mrn': 'MRN12345', 'name': 'John Smith'}
         >>> encrypt_document(doc)
-        {'nhs_number': 'ENC:gAAAAABh...', 'name': 'John Smith'}
+        {
+            'nhs_number': 'ENC:gAAAAABh...',
+            'nhs_number_hash': 'c775e7b757ede630cd0aa1113bd102661ab38829...',
+            'mrn': 'ENC:gAAAAABh...',
+            'mrn_hash': 'a7b3c5d9e1f2a4b6c8d0e2f4a6b8c0d2e4f6a8b0...',
+            'name': 'John Smith'
+        }
     """
     if not isinstance(document, dict):
         return document
@@ -259,7 +276,14 @@ def encrypt_document(document: dict) -> dict:
 
     for field_name in ENCRYPTED_FIELDS:
         if field_name in encrypted_doc:
-            encrypted_doc[field_name] = encrypt_field(field_name, encrypted_doc[field_name])
+            # Encrypt the field and generate hash if searchable
+            encrypted_value, search_hash = encrypt_field_with_hash(field_name, encrypted_doc[field_name])
+            encrypted_doc[field_name] = encrypted_value
+
+            # Add hash field if generated
+            if search_hash is not None:
+                hash_field_name = f"{field_name}_hash"
+                encrypted_doc[hash_field_name] = search_hash
 
     return encrypted_doc
 
@@ -317,6 +341,86 @@ def is_encrypted(value: Any) -> bool:
         True if value is encrypted (has ENC: prefix)
     """
     return isinstance(value, str) and value.startswith(ENCRYPTION_PREFIX)
+
+
+def generate_search_hash(field_name: str, value: Any) -> Optional[str]:
+    """
+    Generate a SHA-256 hash for searchable encrypted fields
+
+    This enables fast O(log n) lookups on encrypted data by indexing the hash.
+    The hash is deterministic (same input → same hash) but one-way (cannot reverse).
+
+    Args:
+        field_name: Name of the field (e.g., 'nhs_number')
+        value: Value to hash (plaintext)
+
+    Returns:
+        Lowercase hex digest of SHA-256 hash, or None if not a searchable field
+
+    Example:
+        >>> generate_search_hash('nhs_number', '1234567890')
+        'c775e7b757ede630cd0aa1113bd102661ab38829ca52a6422ab782862f268646'
+        >>> generate_search_hash('postcode', 'SW1A 1AA')
+        None  # Not a searchable field
+
+    Security note:
+        Hashes are deterministic and enable fast searching, but do not provide
+        confidentiality. Always store the encrypted value alongside the hash.
+    """
+    # Only generate hashes for designated searchable fields
+    if field_name not in SEARCHABLE_FIELDS:
+        return None
+
+    # Skip if None or empty
+    if value is None or value == '':
+        return None
+
+    # Normalize and hash
+    normalized = str(value).strip().lower()
+    hash_digest = hashlib.sha256(normalized.encode('utf-8')).hexdigest()
+
+    return hash_digest
+
+
+def encrypt_field_with_hash(field_name: str, value: Any) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Encrypt a field value and generate searchable hash if applicable
+
+    For searchable fields (NHS number, MRN), this returns both:
+    - Encrypted ciphertext (for secure storage)
+    - SHA-256 hash (for fast indexed lookups)
+
+    Args:
+        field_name: Name of the field (e.g., 'nhs_number')
+        value: Value to encrypt and hash
+
+    Returns:
+        Tuple of (encrypted_value, search_hash)
+        - encrypted_value: ENC: prefixed ciphertext or original value
+        - search_hash: SHA-256 hex digest or None
+
+    Example:
+        >>> encrypted, hash_val = encrypt_field_with_hash('nhs_number', '1234567890')
+        >>> encrypted
+        'ENC:gAAAAABh...'
+        >>> hash_val
+        'c775e7b757ede630cd0aa1113bd102661ab38829ca52a6422ab782862f268646'
+
+        >>> encrypted, hash_val = encrypt_field_with_hash('postcode', 'SW1A 1AA')
+        >>> encrypted
+        'ENC:gAAAAABh...'
+        >>> hash_val
+        None  # Postcode is not searchable
+    """
+    # Encrypt the field
+    encrypted_value = encrypt_field(field_name, value)
+
+    # Generate hash if this is a searchable field
+    search_hash = None
+    if field_name in SEARCHABLE_FIELDS:
+        search_hash = generate_search_hash(field_name, value)
+
+    return encrypted_value, search_hash
 
 
 def migrate_to_encrypted(collection, field_name: str, batch_size: int = 100):
@@ -436,6 +540,47 @@ def create_encrypted_query(field_name: str, value: Any) -> dict:
         return {field_name: encrypted_value}
     else:
         return {field_name: value}
+
+
+def create_searchable_query(field_name: str, value: Any) -> dict:
+    """
+    Create an optimized MongoDB query for searchable encrypted fields
+
+    Uses hash-based lookup for O(log n) performance instead of full collection scan.
+    For searchable fields (NHS number, MRN), queries the indexed hash field.
+    For non-searchable encrypted fields, falls back to encrypted value match.
+
+    Args:
+        field_name: Name of the field (e.g., 'nhs_number', 'mrn')
+        value: Value to search for (plaintext)
+
+    Returns:
+        MongoDB query dict using hash field for searchable fields
+
+    Example:
+        >>> # Fast O(log n) hash lookup for NHS number
+        >>> query = create_searchable_query('nhs_number', '1234567890')
+        >>> query
+        {'nhs_number_hash': 'c775e7b757ede630cd0aa1113bd102661ab38829...'}
+
+        >>> # Exact match for non-searchable encrypted field
+        >>> query = create_searchable_query('postcode', 'SW1A 1AA')
+        >>> query
+        {'postcode': 'ENC:gAAAAABh...'}
+
+    Performance:
+        - Searchable fields: O(log n) via indexed hash lookup
+        - Non-searchable: O(n) via encrypted value match (fallback)
+    """
+    # Use hash-based search for searchable fields
+    if field_name in SEARCHABLE_FIELDS:
+        search_hash = generate_search_hash(field_name, value)
+        if search_hash:
+            hash_field_name = f"{field_name}_hash"
+            return {hash_field_name: search_hash}
+
+    # Fallback to encrypted value match for non-searchable fields
+    return create_encrypted_query(field_name, value)
 
 
 # Pseudonymization helper (for audit logs)
