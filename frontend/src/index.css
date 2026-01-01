@@ -95,6 +95,7 @@ html, body {
     @apply font-mono;
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.02em;
+    font-size: 0.8125em;
   }
 }
 
