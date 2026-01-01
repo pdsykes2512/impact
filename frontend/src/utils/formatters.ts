@@ -163,20 +163,40 @@ export const formatFieldValue = (value: any): string => {
 }
 
 /**
- * Format date strings consistently as DD/MM/YYYY
+ * Format date strings consistently as DD MMM YYYY (e.g., 01 Dec 2025)
  */
 export const formatDate = (dateStr: string | null | undefined): string => {
   if (!dateStr) return '-'
-  
+
   try {
     const date = new Date(dateStr)
     const day = date.getDate().toString().padStart(2, '0')
-    const month = (date.getMonth() + 1).toString().padStart(2, '0')
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const month = monthNames[date.getMonth()]
     const year = date.getFullYear()
-    return `${day}/${month}/${year}`
+    return `${day} ${month} ${year}`
   } catch {
     return dateStr
   }
+}
+
+/**
+ * Format NHS number consistently as XXX XXX XXXX
+ * Accepts 10-digit NHS numbers with or without spaces
+ */
+export const formatNHSNumber = (nhsNumber: string | undefined | null): string => {
+  if (!nhsNumber) return '-'
+
+  // Remove all non-digit characters
+  const digits = nhsNumber.replace(/\D/g, '')
+
+  // Only format if we have exactly 10 digits
+  if (digits.length === 10) {
+    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`
+  }
+
+  // Return original value if not 10 digits
+  return nhsNumber
 }
 
 /**

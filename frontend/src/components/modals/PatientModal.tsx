@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { Button } from '../common/Button'
 import { DateInputTypeable } from '../common/DateInputTypeable'
 import { useModalShortcuts } from '../../hooks/useModalShortcuts'
+import { formatNHSNumber } from '../../utils/formatters'
 
 interface Patient {
   _id: string;
@@ -146,7 +147,9 @@ export function PatientModal({ patient, onClose, onSubmit, onDelete, loading = f
   };
 
   const handleNHSNumberChange = (value: string) => {
+    // Remove all non-digits
     const digits = value.replace(/\D/g, '');
+    // Format as user types (progressive formatting)
     let formatted = digits;
     if (digits.length > 3) {
       formatted = digits.slice(0, 3) + ' ' + digits.slice(3);

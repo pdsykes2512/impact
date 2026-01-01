@@ -67,10 +67,20 @@ export function TumourSummaryModal({ tumour, onClose, onEdit }: TumourSummaryMod
 
   const Field = ({ label, value }: { label: string, value: any }) => {
     if (!value && value !== 0 && value !== false) return null
+    // Check if this is a date, ID, code, or TNM field that needs monospace formatting
+    const lowerLabel = label.toLowerCase()
+    const isNumeric = typeof value === 'string' && (
+      value.includes('/') ||
+      lowerLabel.includes('id') ||
+      lowerLabel.includes('date') ||
+      lowerLabel.includes('code') ||
+      lowerLabel.includes('tnm') ||
+      lowerLabel.includes('snomed')
+    )
     return (
       <div className="grid grid-cols-3 gap-4 py-2">
         <dt className="text-sm font-medium text-gray-500">{label}</dt>
-        <dd className="text-sm text-gray-900 col-span-2">{value}</dd>
+        <dd className={`text-sm text-gray-900 col-span-2 ${isNumeric ? 'tabular-nums' : ''}`}>{value}</dd>
       </div>
     )
   }
@@ -82,7 +92,7 @@ export function TumourSummaryModal({ tumour, onClose, onEdit }: TumourSummaryMod
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 sm:px-6 py-3 flex justify-between items-center">
           <div>
             <h2 className="text-xl font-bold text-white">Tumour Summary</h2>
-            <p className="text-blue-100 text-sm mt-1">{tumour.tumour_id}</p>
+            <p className="text-blue-100 text-sm mt-1 tabular-nums">{tumour.tumour_id}</p>
           </div>
           <button
             onClick={onClose}
@@ -125,7 +135,7 @@ export function TumourSummaryModal({ tumour, onClose, onEdit }: TumourSummaryMod
               <div className="grid grid-cols-3 gap-4 py-2">
                 <dt className="text-sm font-medium text-gray-500">TNM (cTNM)</dt>
                 <dd className="text-sm text-gray-900 col-span-2">
-                  <span className="font-mono">
+                  <span className="tabular-nums">
                     {formatClinicalTNM(tumour.clinical_t, tumour.clinical_n, tumour.clinical_m)}
                   </span>
                 </dd>
@@ -152,7 +162,7 @@ export function TumourSummaryModal({ tumour, onClose, onEdit }: TumourSummaryMod
                   <div className="grid grid-cols-3 gap-4 py-2">
                     <dt className="text-sm font-medium text-gray-500">TNM (pTNM)</dt>
                     <dd className="text-sm text-gray-900 col-span-2">
-                      <span className="font-mono">
+                      <span className="tabular-nums">
                         {formatPathologicalTNM(tumour.pathological_t, tumour.pathological_n, tumour.pathological_m)}
                       </span>
                     </dd>

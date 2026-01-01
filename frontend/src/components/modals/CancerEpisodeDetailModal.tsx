@@ -9,7 +9,7 @@ import { TumourSummaryModal } from './TumourSummaryModal'
 import { TreatmentSummaryModal } from './TreatmentSummaryModal'
 import { InvestigationModal } from './InvestigationModal'
 import { FollowUpModal } from './FollowUpModal'
-import { formatStatus, formatTreatmentType, formatSurgeon, capitalize, formatTreatmentPlan, formatCodedValue, formatAnatomicalSite, formatClinicalTNM, formatPathologicalTNM, formatInvestigationType } from '../../utils/formatters'
+import { formatStatus, formatTreatmentType, formatSurgeon, capitalize, formatTreatmentPlan, formatCodedValue, formatAnatomicalSite, formatClinicalTNM, formatPathologicalTNM, formatInvestigationType, formatDate } from '../../utils/formatters'
 import { calculateStage, getStageColor, formatStage } from '../../utils/cancerStaging'
 
 interface Treatment {
@@ -548,19 +548,6 @@ export function CancerEpisodeDetailModal({
 
   if (!episode) return null
 
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return '—'
-    try {
-      return new Date(dateStr).toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric'
-      })
-    } catch {
-      return dateStr
-    }
-  }
-
   const formatCancerType = (type?: string) => {
     if (!type) return '—'
     return type.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
@@ -594,7 +581,7 @@ export function CancerEpisodeDetailModal({
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 sm:px-6 py-3 flex justify-between items-center">
           <div>
             <h2 className="text-xl font-bold text-white">Cancer Episode Details</h2>
-            <p className="text-blue-100 text-sm mt-1">{episode.episode_id}</p>
+            <p className="text-blue-100 text-sm mt-1 tabular-nums">{episode.episode_id}</p>
           </div>
           <button
             onClick={onClose}
@@ -673,7 +660,7 @@ export function CancerEpisodeDetailModal({
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   <div>
                     <label className="text-sm font-medium text-gray-500">Patient ID</label>
-                    <p className="text-sm text-gray-900 mt-1">{episode.patient_id}</p>
+                    <p className="text-sm text-gray-900 mt-1 tabular-nums">{episode.patient_id}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-500">Cancer Type</label>
@@ -697,7 +684,7 @@ export function CancerEpisodeDetailModal({
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-500">Referral Date</label>
-                    <p className="text-sm text-gray-900 mt-1">{formatDate(episode.referral_date)}</p>
+                    <p className="text-sm text-gray-900 mt-1 tabular-nums">{formatDate(episode.referral_date)}</p>
                   </div>
                   {episode.referral_source && (
                     <div>
@@ -734,11 +721,11 @@ export function CancerEpisodeDetailModal({
                   )}
                   <div>
                     <label className="text-sm font-medium text-gray-500">First Seen</label>
-                    <p className="text-sm text-gray-900 mt-1">{formatDate(episode.first_seen_date)}</p>
+                    <p className="text-sm text-gray-900 mt-1 tabular-nums">{formatDate(episode.first_seen_date)}</p>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-500">MDT Discussion</label>
-                    <p className="text-sm text-gray-900 mt-1">{formatDate(episode.mdt_discussion_date || episode.mdt_outcome?.mdt_discussion_date)}</p>
+                    <p className="text-sm text-gray-900 mt-1 tabular-nums">{formatDate(episode.mdt_discussion_date || episode.mdt_outcome?.mdt_discussion_date)}</p>
                   </div>
                   {(episode.mdt_meeting_type || episode.mdt_outcome?.mdt_meeting_type) && (
                     <div>
@@ -870,7 +857,7 @@ export function CancerEpisodeDetailModal({
                                   <div className="flex items-center justify-between text-xs">
                                     <div>
                                       <span className="text-gray-500">Clinical:</span>
-                                      <span className="ml-1 text-gray-900 font-mono">
+                                      <span className="ml-1 text-gray-900 tabular-nums">
                                         {formatClinicalTNM(tumour.clinical_t, tumour.clinical_n, tumour.clinical_m)}
                                       </span>
                                     </div>
@@ -882,7 +869,7 @@ export function CancerEpisodeDetailModal({
                                     <div className="flex items-center justify-between text-xs">
                                       <div>
                                         <span className="text-gray-500">Pathological:</span>
-                                        <span className="ml-1 text-gray-900 font-mono">
+                                        <span className="ml-1 text-gray-900 tabular-nums">
                                           {formatPathologicalTNM(tumour.pathological_t, tumour.pathological_n, tumour.pathological_m)}
                                         </span>
                                       </div>
@@ -975,7 +962,7 @@ export function CancerEpisodeDetailModal({
                                 {formatTreatmentType(treatment.treatment_type)}
                               </span>
                               {treatment.treatment_date && (
-                                <span className="text-sm text-gray-600">{formatDate(treatment.treatment_date)}</span>
+                                <span className="text-sm text-gray-600 tabular-nums">{formatDate(treatment.treatment_date)}</span>
                               )}
                             </div>
                           </div>
@@ -1109,7 +1096,7 @@ export function CancerEpisodeDetailModal({
                           className="hover:bg-blue-50 cursor-pointer transition-colors"
                           onClick={() => setViewingTumour(tumour)}
                         >
-                          <td className="px-2 sm:px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          <td className="px-2 sm:px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-sm font-medium text-gray-900 tabular-nums">
                             {tumour.tumour_id}
                           </td>
                           <td className="px-2 sm:px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-sm text-gray-900">
@@ -1124,15 +1111,15 @@ export function CancerEpisodeDetailModal({
                           <td className="px-2 sm:px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-sm text-gray-900">
                             {formatAnatomicalSite(tumour.site)}
                           </td>
-                          <td className="px-2 sm:px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-sm text-gray-900">
+                          <td className="px-2 sm:px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-sm text-gray-900 tabular-nums">
                             {tumour.icd10_code || '—'}
                           </td>
-                          <td className="px-2 sm:px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-sm text-gray-900">
+                          <td className="px-2 sm:px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-sm text-gray-900 tabular-nums">
                             {tumour.clinical_t || tumour.clinical_n || tumour.clinical_m ? (
                               formatClinicalTNM(tumour.clinical_t, tumour.clinical_n, tumour.clinical_m)
                             ) : '—'}
                           </td>
-                          <td className="px-2 sm:px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-sm text-gray-900">
+                          <td className="px-2 sm:px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-sm text-gray-900 tabular-nums">
                             {tumour.pathological_t || tumour.pathological_n || tumour.pathological_m ? (
                               formatPathologicalTNM(tumour.pathological_t, tumour.pathological_n, tumour.pathological_m)
                             ) : '—'}
@@ -1228,7 +1215,7 @@ export function CancerEpisodeDetailModal({
                           className="hover:bg-blue-50 cursor-pointer transition-colors"
                           onClick={() => setViewingTreatment(treatment)}
                         >
-                          <td className="px-2 sm:px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          <td className="px-2 sm:px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-sm font-medium text-gray-900 tabular-nums">
                             {treatment.treatment_id}
                           </td>
                           <td className="px-2 sm:px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-sm text-gray-900">
@@ -1236,7 +1223,7 @@ export function CancerEpisodeDetailModal({
                               {formatTreatmentType(treatment.treatment_type)}
                             </span>
                           </td>
-                          <td className="px-2 sm:px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-sm text-gray-900">
+                          <td className="px-2 sm:px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-sm text-gray-900 tabular-nums">
                             {formatDate(treatment.treatment_date)}
                           </td>
                           <td className="px-2 sm:px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-sm text-gray-900 max-w-xs truncate">
@@ -1338,7 +1325,7 @@ export function CancerEpisodeDetailModal({
                     <tbody className="bg-white divide-y divide-gray-200">
                       {investigations.map((inv) => (
                         <tr key={inv.investigation_id} className="hover:bg-blue-50 cursor-pointer transition-colors">
-                          <td className="px-2 sm:px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-sm text-gray-900">
+                          <td className="px-2 sm:px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-sm text-gray-900 tabular-nums">
                             {inv.date ? formatDate(inv.date) : '—'}
                           </td>
                           <td className="px-2 sm:px-4 md:px-6 py-3 md:py-4 whitespace-nowrap text-sm text-gray-900">
@@ -1635,7 +1622,7 @@ export function CancerEpisodeDetailModal({
                 <div className="bg-gray-50 rounded-md p-4 mb-4">
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div className="text-gray-500">Tumour ID:</div>
-                    <div className="font-medium text-gray-900">{deleteTumourConfirmation.tumour.tumour_id}</div>
+                    <div className="font-medium text-gray-900 tabular-nums">{deleteTumourConfirmation.tumour.tumour_id}</div>
                     
                     <div className="text-gray-500">Site:</div>
                     <div className="text-gray-900">{formatAnatomicalSite(deleteTumourConfirmation.tumour.site)}</div>
@@ -1715,7 +1702,7 @@ export function CancerEpisodeDetailModal({
                 <div className="bg-gray-50 rounded-md p-4 mb-4">
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <div className="text-gray-500">Treatment ID:</div>
-                    <div className="font-medium text-gray-900">{deleteTreatmentConfirmation.treatment.treatment_id}</div>
+                    <div className="font-medium text-gray-900 tabular-nums">{deleteTreatmentConfirmation.treatment.treatment_id}</div>
                     
                     <div className="text-gray-500">Type:</div>
                     <div className="text-gray-900">{formatTreatmentType(deleteTreatmentConfirmation.treatment.treatment_type)}</div>
@@ -1723,7 +1710,7 @@ export function CancerEpisodeDetailModal({
                     {deleteTreatmentConfirmation.treatment.treatment_date && (
                       <>
                         <div className="text-gray-500">Date:</div>
-                        <div className="text-gray-900">{formatDate(deleteTreatmentConfirmation.treatment.treatment_date)}</div>
+                        <div className="text-gray-900 tabular-nums">{formatDate(deleteTreatmentConfirmation.treatment.treatment_date)}</div>
                       </>
                     )}
                   </div>

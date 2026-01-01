@@ -89,5 +89,12 @@ html, body {
   .animate-slide-in {
     animation: slide-in 0.3s ease-out;
   }
+
+  /* Tabular numeric styling for IDs, dates, MRNs, NHS numbers */
+  .tabular-nums {
+    @apply font-mono;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
 }
 

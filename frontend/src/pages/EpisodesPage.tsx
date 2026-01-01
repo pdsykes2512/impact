@@ -14,22 +14,13 @@ import { CancerEpisodeDetailModal } from '../components/modals/CancerEpisodeDeta
 import { ToastContainer } from '../components/common/Toast'
 import { apiService } from '../services/api'
 import api from '../services/api'
-import { formatDate, formatCancerType, formatSurgeon } from '../utils/formatters'
+import { formatDate, formatCancerType, formatSurgeon, formatNHSNumber } from '../utils/formatters'
 
 // @ts-ignore - Unused but kept for potential future use
 const _capitalize = (str: string) => {
   if (!str) return ''
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
 }
-
-const formatNHSNumber = (nhsNumber: string | undefined) => {
-  if (!nhsNumber) return '-';
-  const digits = nhsNumber.replace(/\D/g, '');
-  if (digits.length === 10) {
-    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
-  }
-  return nhsNumber;
-};
 
 export function EpisodesPage() {
   const { patientId } = useParams<{ patientId: string }>()
@@ -594,13 +585,13 @@ export function EpisodesPage() {
                   }}
                   className={tableNav.selectedIndex === index ? 'ring-2 ring-blue-500 bg-blue-50' : ''}
                 >
-                  <TableCell className="font-medium text-gray-900">
+                  <TableCell className="font-medium text-gray-900 tabular-nums">
                     {episode.episode_id}
                   </TableCell>
-                  <TableCell className="text-gray-900">
+                  <TableCell className="text-gray-900 tabular-nums">
                     {episode.patient_mrn || episode.patient_id}
                   </TableCell>
-                  <TableCell className="text-gray-900">
+                  <TableCell className="text-gray-900 tabular-nums">
                     {formatDate(episode.referral_date)}
                   </TableCell>
                   <TableCell className="text-gray-900">

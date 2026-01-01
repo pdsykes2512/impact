@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Button } from '../common/Button'
 import { DateInputTypeable } from '../common/DateInputTypeable'
+import { formatNHSNumber } from '../../utils/formatters'
 
 interface EpisodeFormProps {
   onSubmit: (data: any) => void
@@ -778,7 +779,7 @@ export function EpisodeForm({ onSubmit, onCancel, initialData, mode = 'create' }
                             {patient.first_name} {patient.last_name}
                           </div>
                           <div className="text-xs text-gray-500">
-                            MRN: {patient.record_number} | NHS: {patient.nhs_number || 'N/A'}
+                            MRN: {patient.record_number} | NHS: {formatNHSNumber(patient.nhs_number)}
                           </div>
                         </div>
                       ))}

@@ -8,7 +8,7 @@ import { SearchableSelect } from '../common/SearchableSelect'
 import { NHSProviderSelect } from '../search/NHSProviderSelect'
 import { TumourModal } from '../modals/TumourModal'
 import { AddTreatmentModal } from '../modals/AddTreatmentModal'
-import { formatCancerType, formatAnatomicalSite } from '../../utils/formatters'
+import { formatCancerType, formatAnatomicalSite, formatNHSNumber } from '../../utils/formatters'
 
 interface CancerEpisodeFormProps {
   onSubmit: (data: any) => void
@@ -341,7 +341,7 @@ export function CancerEpisodeForm({ onSubmit, onCancel, initialData, mode = 'cre
                     </label>
                     <input
                       type="text"
-                      value={selectedPatientDetails.nhs_number || '-'}
+                      value={formatNHSNumber(selectedPatientDetails.nhs_number)}
                       readOnly
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 text-sm"
                     />

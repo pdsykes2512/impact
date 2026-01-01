@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { SearchableSelect } from '../common/SearchableSelect'
 import api from '../../services/api'
+import { formatNHSNumber } from '../../utils/formatters'
 
 interface Patient {
   patient_id: string
@@ -30,15 +31,6 @@ export function PatientSearch({
 }: PatientSearchProps) {
   const [patients, setPatients] = useState<Patient[]>([])
   const [loading, setLoading] = useState(false)
-
-  const formatNHSNumber = (nhsNumber: string | undefined) => {
-    if (!nhsNumber) return '-'
-    const digits = nhsNumber.replace(/\D/g, '')
-    if (digits.length === 10) {
-      return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`
-    }
-    return nhsNumber
-  }
 
   // Fetch patients on mount
   useEffect(() => {

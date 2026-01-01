@@ -10,7 +10,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHeadCell, TableCell } fro
 import { Pagination } from '../components/common/Pagination'
 import { usePagination } from '../hooks/usePagination'
 import api from '../services/api';
-import { formatDate } from '../utils/formatters';
+import { formatDate, formatNHSNumber } from '../utils/formatters';
 
 interface Patient {
   _id: string;
@@ -382,16 +382,16 @@ export function PatientsPage() {
                   onClick={() => navigate(`/episodes/${patient.patient_id}`)}
                   className={tableNav.selectedIndex === index ? 'ring-2 ring-blue-500 bg-blue-50' : ''}
                 >
-                  <TableCell className="font-medium text-gray-900">
+                  <TableCell className="font-medium text-gray-900 tabular-nums">
                     {patient.patient_id}
                   </TableCell>
-                  <TableCell className="text-gray-900">
+                  <TableCell className="text-gray-900 tabular-nums">
                     {patient.mrn || '-'}
                   </TableCell>
-                  <TableCell className="text-gray-900">
-                    {patient.nhs_number}
+                  <TableCell className="text-gray-900 tabular-nums">
+                    {formatNHSNumber(patient.nhs_number)}
                   </TableCell>
-                  <TableCell className="text-gray-900">
+                  <TableCell className="text-gray-900 tabular-nums">
                     {formatDate(patient.demographics.date_of_birth)}
                   </TableCell>
                   <TableCell className="text-gray-900">
@@ -470,7 +470,7 @@ export function PatientsPage() {
                 </p>
                 <div className="bg-gray-50 rounded-md p-3 border border-gray-200">
                   <p className="text-sm font-medium text-gray-900">Record Number: {deleteConfirmation.patient.patient_id}</p>
-                  <p className="text-sm text-gray-600">NHS Number: {deleteConfirmation.patient.nhs_number}</p>
+                  <p className="text-sm text-gray-600">NHS Number: {formatNHSNumber(deleteConfirmation.patient.nhs_number)}</p>
                   <p className="text-sm text-gray-600">DOB: {formatDate(deleteConfirmation.patient.demographics.date_of_birth)}</p>
                 </div>
               </div>

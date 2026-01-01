@@ -15,6 +15,205 @@ This file tracks significant changes made to the IMPACT application (formerly su
 
 ---
 
+## 2026-01-01 - Applied Monospaced Font to Investigation and Treatment Table Dates
+
+**Changed by:** AI Session (Claude Code)
+
+**Issue:** Date columns in investigation and treatment tables were not using monospaced font, causing inconsistent display with other numeric data.
+
+**Changes:**
+- Applied `tabular-nums` class to date columns in [CancerEpisodeDetailModal.tsx](frontend/src/components/modals/CancerEpisodeDetailModal.tsx):
+  - Investigation table date column (line 1328)
+  - Treatment table date column (line 1226)
+  - Treatment card compact view date (line 965)
+  - Treatment delete confirmation date (line 1713)
+
+**Files affected:**
+- `frontend/src/components/modals/CancerEpisodeDetailModal.tsx` - Added tabular-nums to 4 date displays
+
+**Testing:**
+1. Open any episode detail modal
+2. View Investigations tab - Date column now uses monospaced font
+3. View Treatments tab - Date column now uses monospaced font
+4. All dates align properly with other numeric columns
+
+**Notes:**
+- Completes monospaced font implementation for all date displays
+- Ensures consistent typography across all tables and summaries
+- Works with new "DD MMM YYYY" date format
+
+---
+
+## 2026-01-01 - Changed Date Format to DD MMM YYYY
+
+**Changed by:** AI Session (Claude Code)
+
+**Issue:** Dates displayed as "DD/MM/YYYY" (e.g., "01/12/2025") were less readable. User requested more human-friendly format "DD MMM YYYY" (e.g., "01 Dec 2025").
+
+**Changes:**
+- Updated centralized `formatDate()` function in [formatters.ts](frontend/src/utils/formatters.ts#L165-L181)
+  - Changed from "DD/MM/YYYY" to "DD MMM YYYY" format
+  - Uses short month names: Jan, Feb, Mar, Apr, May, Jun, Jul, Aug, Sep, Oct, Nov, Dec
+  - Maintains 2-digit zero-padded day (01, 02, ..., 31)
+  - Example: "01 Dec 2025", "15 Mar 2024"
+- Removed duplicate local formatDate in [CancerEpisodeDetailModal.tsx](frontend/src/components/modals/CancerEpisodeDetailModal.tsx#L12)
+  - Now imports and uses centralized formatDate from formatters.ts
+  - Ensures consistency across all date displays
+
+**Site-wide application:**
+All dates in tables and summaries now display in new format:
+- ✅ Patient tables - Date of birth
+- ✅ Episode tables - Referral dates, first seen dates, MDT dates
+- ✅ Treatment summaries - Admission, surgery, discharge dates
+- ✅ Tumour summaries - Diagnosis dates
+- ✅ Investigation records - All investigation dates
+- ✅ Follow-up records - All follow-up dates
+- ✅ All modal displays and detail views
+
+**Files affected:**
+- `frontend/src/utils/formatters.ts` - Updated formatDate function
+- `frontend/src/components/modals/CancerEpisodeDetailModal.tsx` - Removed local function, use centralized
+
+**Testing:**
+1. Open any patient - DOB now shows as "01 Dec 1975" instead of "01/12/1975"
+2. View episode details - All dates display with month names
+3. Check treatment summaries - Surgery dates formatted consistently
+4. Verify all tables and modals use new format
+
+**Notes:**
+- EpisodeDetailModal.tsx has separate datetime formatter (includes time) - left unchanged
+- New format is more readable and internationally friendly
+- Maintains monospaced font styling from previous update
+
+---
+
+## 2026-01-01 - Extended Monospaced Font to Medical Codes (ICD-10, TNM, OPCS-4)
+
+**Changed by:** AI Session (Claude Code)
+
+**Issue:** Medical codes (ICD-10, TNM staging, OPCS-4, SNOMED) needed monospaced font styling for consistency and readability alongside dates and IDs.
+
+**Changes:**
+- Enhanced Field component auto-detection to include medical codes:
+  - [TumourSummaryModal.tsx](frontend/src/components/modals/TumourSummaryModal.tsx) - Added checks for "tnm" and "snomed" in labels
+  - [TreatmentSummaryModal.tsx](frontend/src/components/modals/TreatmentSummaryModal.tsx) - Added checks for "opcs" in labels
+- Replaced `font-mono` with `tabular-nums` for TNM staging displays:
+  - [TumourSummaryModal.tsx](frontend/src/components/modals/TumourSummaryModal.tsx#L130-L158) - Clinical and pathological TNM
+  - [CancerEpisodeDetailModal.tsx](frontend/src/components/modals/CancerEpisodeDetailModal.tsx#L873-L885) - TNM in tumour cards
+- Applied `tabular-nums` to table columns with medical codes:
+  - [CancerEpisodeDetailModal.tsx](frontend/src/components/modals/CancerEpisodeDetailModal.tsx#L1127-L1139) - ICD-10 codes, clinical TNM, pathological TNM in tumour table
+
+**Medical codes now displaying in monospaced font:**
+- ✅ ICD-10 codes (e.g., C18.0, C20.9)
+- ✅ TNM staging (e.g., T3 N1 M0, pT2 N0 M0)
+- ✅ OPCS-4 procedure codes (e.g., H33.4, H07.1)
+- ✅ SNOMED morphology codes
+
+**Files affected:**
+- `frontend/src/components/modals/TumourSummaryModal.tsx` - Field auto-detection and TNM displays
+- `frontend/src/components/modals/TreatmentSummaryModal.tsx` - Field/CompactField auto-detection
+- `frontend/src/components/modals/CancerEpisodeDetailModal.tsx` - TNM displays and table columns
+
+**Testing:**
+1. View tumour details - ICD-10 codes and TNM staging display in monospaced font
+2. View treatment details - OPCS-4 codes display in monospaced font
+3. Check episode detail modal tumour table - ICD-10 and TNM columns use monospaced font
+4. All medical codes now have consistent, professional appearance
+
+**Notes:**
+- Auto-detection in Field components now checks for: id, date, code, tnm, opcs, snomed
+- This completes the monospaced font implementation for all numeric/coded data
+- Improves clinical data entry UX by making codes easier to read and verify
+
+---
+
+## 2026-01-01 - Added Monospaced Font for Numeric Data in Tables
+
+**Changed by:** AI Session (Claude Code)
+
+**Issue:** Numeric data (IDs, dates, MRNs, NHS numbers) displayed in default system font, making it harder to scan and compare values in tables. Modern monospaced fonts improve readability for tabular numeric data.
+
+**Changes:**
+- Added modern monospaced font stack to [tailwind.config.js](frontend/tailwind.config.js#L9-L20)
+  - Uses system fonts: SF Mono (macOS), Cascadia Code (Windows), Liberation Mono (Linux)
+  - No external dependencies - purely system fonts for performance
+- Created `tabular-nums` utility class in [index.css](frontend/src/index.css#L93-L98)
+  - Applies monospaced font
+  - Uses `font-variant-numeric: tabular-nums` for equal-width digits
+  - Slight negative letter-spacing (-0.02em) for optimal readability
+- Updated tables to use `tabular-nums` for numeric columns:
+  - [PatientsPage.tsx](frontend/src/pages/PatientsPage.tsx) - Patient ID, MRN, NHS Number, DOB columns
+  - [EpisodesPage.tsx](frontend/src/pages/EpisodesPage.tsx) - Episode ID, Patient MRN/ID, Referral Date columns
+- Updated modals to use `tabular-nums` for IDs and dates:
+  - [CancerEpisodeDetailModal.tsx](frontend/src/components/modals/CancerEpisodeDetailModal.tsx) - Episode ID, Patient ID, dates, Treatment/Tumour IDs in tables
+  - [TreatmentSummaryModal.tsx](frontend/src/components/modals/TreatmentSummaryModal.tsx) - Treatment ID and auto-detection in Field/CompactField components
+  - [TumourSummaryModal.tsx](frontend/src/components/modals/TumourSummaryModal.tsx) - Tumour ID and auto-detection in Field component
+
+**Files affected:**
+- `frontend/tailwind.config.js` - Added mono font stack
+- `frontend/src/index.css` - Added tabular-nums utility class
+- `frontend/src/pages/PatientsPage.tsx` - Applied to numeric table columns
+- `frontend/src/pages/EpisodesPage.tsx` - Applied to numeric table columns
+- `frontend/src/components/modals/CancerEpisodeDetailModal.tsx` - Applied to IDs and dates
+- `frontend/src/components/modals/TreatmentSummaryModal.tsx` - Smart auto-detection for Field components
+- `frontend/src/components/modals/TumourSummaryModal.tsx` - Smart auto-detection for Field components
+
+**Testing:**
+1. Open Patients page - Patient IDs, MRNs, NHS numbers, DOBs now display in monospaced font
+2. Open Episodes page - Episode IDs, Patient IDs/MRNs, dates now display in monospaced font
+3. Click any episode - Modal shows IDs and dates in monospaced font
+4. View treatment/tumour details - IDs and dates automatically use monospaced font
+5. Verify alignment of digits in columns for easier scanning
+
+**Notes:**
+- The `tabular-nums` utility class is now available globally for any numeric data display
+- Summary modals use smart auto-detection: checks if value contains "/" or label contains "id"/"date"/"code"
+- This improves UX for data entry staff who need to quickly scan and compare numeric values
+- System font approach means zero latency - fonts are already installed on user devices
+
+---
+
+## 2025-12-31 - Standardized NHS Number Display Format
+
+**Changed by:** AI Session (Claude Code)
+
+**Issue:** NHS numbers were displayed inconsistently across the site - some showing raw values (e.g., "1234567890"), others with various formatting. Needed consistent "XXX XXX XXXX" format throughout.
+
+**Changes:**
+- Created centralized `formatNHSNumber()` utility in [frontend/src/utils/formatters.ts](frontend/src/utils/formatters.ts#L182-L199)
+- Formats 10-digit NHS numbers as "XXX XXX XXXX" (3-3-4 digit grouping)
+- Returns "-" for missing/empty NHS numbers
+- Updated all components to use centralized formatter:
+  - [PatientsPage.tsx](frontend/src/pages/PatientsPage.tsx) - Patient table and delete confirmation
+  - [EpisodesPage.tsx](frontend/src/pages/EpisodesPage.tsx) - Episode listings
+  - [PatientModal.tsx](frontend/src/components/modals/PatientModal.tsx) - Add/Edit patient form
+  - [PatientSearch.tsx](frontend/src/components/search/PatientSearch.tsx) - Patient search dropdown
+  - [EpisodeForm.tsx](frontend/src/components/forms/EpisodeForm.tsx) - Patient selection dropdown
+  - [CancerEpisodeForm.tsx](frontend/src/components/forms/CancerEpisodeForm.tsx) - Patient details display
+
+**Files affected:**
+- `frontend/src/utils/formatters.ts` - Added formatNHSNumber() function
+- `frontend/src/pages/PatientsPage.tsx` - Import and use formatter
+- `frontend/src/pages/EpisodesPage.tsx` - Removed local function, use centralized
+- `frontend/src/components/modals/PatientModal.tsx` - Import formatter
+- `frontend/src/components/search/PatientSearch.tsx` - Removed local function, use centralized
+- `frontend/src/components/forms/EpisodeForm.tsx` - Import and use formatter
+- `frontend/src/components/forms/CancerEpisodeForm.tsx` - Import and use formatter
+
+**Testing:**
+1. View Patients page - NHS numbers display as "XXX XXX XXXX"
+2. Click any patient - Edit modal shows formatted NHS number
+3. View Episodes page - Patient NHS numbers formatted consistently
+4. Create new episode - Patient search dropdown shows formatted NHS numbers
+5. Verify empty/missing NHS numbers show "-" instead of blank
+
+**Notes:**
+- PatientModal's `handleNHSNumberChange()` keeps inline formatting logic for progressive user input (formats as user types)
+- The centralized formatter is used for display only, not for input handling
+- All 6 files that display NHS numbers now use the same formatting logic
+
+---
+
 ## 2025-12-31 - Technical Debt Remediation: Indexes, Error Handling, and Encrypted Search Optimization
 
 **Changed by:** AI Session (Claude Code)

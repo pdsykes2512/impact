@@ -61,20 +61,38 @@ export function TreatmentSummaryModal({ treatment, onClose, onEdit }: TreatmentS
 
   const Field = ({ label, value }: { label: string, value: any }) => {
     if (!value && value !== 0 && value !== false) return null
+    // Check if this is a date, ID, code, or OPCS field that needs monospace formatting
+    const lowerLabel = label.toLowerCase()
+    const isNumeric = typeof value === 'string' && (
+      value.includes('/') ||
+      lowerLabel.includes('id') ||
+      lowerLabel.includes('date') ||
+      lowerLabel.includes('code') ||
+      lowerLabel.includes('opcs')
+    )
     return (
       <div className="grid grid-cols-3 gap-4 py-1.5 border-b border-gray-100 last:border-0">
         <dt className="text-xs font-medium text-gray-500">{label}</dt>
-        <dd className="text-sm text-gray-900 col-span-2">{value}</dd>
+        <dd className={`text-sm text-gray-900 col-span-2 ${isNumeric ? 'tabular-nums' : ''}`}>{value}</dd>
       </div>
     )
   }
 
   const CompactField = ({ label, value }: { label: string, value: any }) => {
     if (!value && value !== 0 && value !== false) return null
+    // Check if this is a date, ID, code, or OPCS field that needs monospace formatting
+    const lowerLabel = label.toLowerCase()
+    const isNumeric = typeof value === 'string' && (
+      value.includes('/') ||
+      lowerLabel.includes('id') ||
+      lowerLabel.includes('date') ||
+      lowerLabel.includes('code') ||
+      lowerLabel.includes('opcs')
+    )
     return (
       <div className="flex items-center gap-2">
         <dt className="text-xs font-medium text-gray-500 whitespace-nowrap">{label}:</dt>
-        <dd className="text-sm text-gray-900">{value}</dd>
+        <dd className={`text-sm text-gray-900 ${isNumeric ? 'tabular-nums' : ''}`}>{value}</dd>
       </div>
     )
   }
@@ -86,7 +104,7 @@ export function TreatmentSummaryModal({ treatment, onClose, onEdit }: TreatmentS
         <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-4 sm:px-6 py-3 flex justify-between items-center">
           <div>
             <h2 className="text-xl font-bold text-white">Treatment Summary</h2>
-            <p className="text-purple-100 text-sm mt-1">{treatment.treatment_id}</p>
+            <p className="text-purple-100 text-sm mt-1 tabular-nums">{treatment.treatment_id}</p>
           </div>
           <button
             onClick={onClose}
